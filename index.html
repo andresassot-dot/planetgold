@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Planet Gold</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #12141c;
+      --card: #1c2030;
+      --line: #d4af37;
+      --text: #f3ead2;
+      --muted: #9aa0b4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .gold { color: var(--line); font-weight: 700; }
+    .card {
+      margin: 12px;
+      background: var(--card);
+      border: 1px solid #2a3146;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .map {
+      height: 280px;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: repeating-linear-gradient(45deg, #1a1f2e 0 10px, #161a26 10px 20px);
+    }
+    button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--line);
+      color: #1a1404;
+      font-weight: 800;
+    }
+    .row { display: flex; gap: 8px; }
+    .row button { background: #2b3146; color: var(--text); }
+    .muted { color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="gold">PLANET GOLD</div>
+      <div class="muted" id="user">Cargando jugador...</div>
+    </div>
+    <div class="gold" id="points">0 pts</div>
+  </header>
+
+  <section class="card map">
+    <div>
+      <div style="font-size:42px;text-align:center">🌍</div>
+      <div class="gold" style="text-align:center">PLANETA</div>
+      <div class="muted" style="text-align:center">Pulsa recolectar</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div>tgold pendiente: <b id="pending">0</b></div>
+    <div class="muted">Mint: CBQx46tG5sUcm5bT3jV7oqNo2wvzfqevghmPvcRp6ray</div>
+    <button id="collect">Recolectar</button>
+    <div class="row">
+      <button id="wallet">WALLET</button>
+      <button id="claim">CLAIM tgold</button>
+    </div>
+    <p class="muted" id="msg">El claim on-chain se conecta después. Ahora solo sumamos puntos.</p>
+  </section>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    const user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+    document.getElementById("user").textContent = user
+      ? ("@" + (user.username || user.first_name))
+      : "Abre esto desde Telegram";
+
+    let points = Number(localStorage.getItem("pg_points") || 0);
+
+    function render() {
+      document.getElementById("points").textContent = points + " pts";
+      document.getElementById("pending").textContent = Math.floor(points / 10000);
+    }
+    render();
+
+    document.getElementById("collect").onclick = function () {
+      points += 10;
+      localStorage.setItem("pg_points", String(points));
+      render();
+    };
+
+    document.getElementById("wallet").onclick = function () {
+      document.getElementById("msg").textContent = "Luego conectamos Phantom y tu tgold.";
+    };
+
+    document.getElementById("claim").onclick = function () {
+      document.getElementById("msg").textContent = "Aun no envia tokens. Primero publicamos la web.";
+    };
+  </script>
+</body>
+</html>
