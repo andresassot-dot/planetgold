@@ -7,7 +7,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 body{margin:0;font-family:system-ui;background:#12141c;color:#f3ead2}
-header,section{padding:12px}
+header{padding:12px;display:flex;justify-content:space-between}
 .gold{color:#d4af37;font-weight:700}
 .card{background:#1c2030;border:1px solid #2a3146;border-radius:14px;padding:12px;margin:12px}
 .map{position:relative;height:220px;border:2px solid #d4af37;border-radius:12px;background:#161a26}
@@ -50,6 +50,7 @@ function render(){
 document.getElementById("points").textContent=points+" pts";
 document.getElementById("pending").textContent=Math.floor(points/RATE);
 document.getElementById("walletLabel").textContent="Wallet: "+short(wallet);
+if(wallet) document.getElementById("walletInput").value=wallet;
 }
 function add(n){points+=n;localStorage.setItem("pg_points",String(points));render();}
 render();
@@ -79,10 +80,14 @@ wallet=v;localStorage.setItem("pg_wallet",wallet);render();
 document.getElementById("msg").textContent="Wallet: "+short(wallet);
 };
 document.getElementById("jup").onclick=function(){window.open("https://jup.ag/swap/SOL-CBQx46tG5sUcm5bT3jV7oqNo2wvzfqevghmPvcRp6ray","_blank");};
-document.getElementById("claim").onclick=function(){
+document.getElementById("claim").onclick=async function(){
 if(!wallet){document.getElementById("msg").textContent="Guarda la wallet";return;}
-var p=Math.floor(points/RATE);
-document.getElementById("msg").textContent=p<1?"Necesitas 10000 pts":("Pendiente "+p+" tgold");
+document.getElementById("msg").textContent="Enviando 1 tgold...";
+try{
+var r=await fetch("/api/claim",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({wallet:wallet})});
+var j=await r.json();
+document.getElementById("msg").textContent=j.ok?("Enviado: "+j.sig):("Error: "+(j.error||"fallo"));
+}catch(e){document.getElementById("msg").textContent="Error de red";}
 };
 })();
 </script>
