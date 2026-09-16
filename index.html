@@ -1,53 +1,90 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Planet Gold</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    :root { --bg:#12141c; --card:#1c2030; --line:#d4af37; --text:#f3ead2; --muted:#9aa0b4; }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
-    header { padding:12px 16px; display:flex; justify-content:space-between; align-items:center; }
-    .gold { color:var(--line); font-weight:700; }
-    .card { margin:12px; background:var(--card); border:1px solid #2a3146; border-radius:14px; padding:16px; }
-    .map { position:relative; height:240px; border:2px solid var(--line); border-radius:12px; overflow:hidden; background:repeating-linear-gradient(45deg,#1a1f2e 0 12px,#161a26 12px 24px); }
-    .hero { position:absolute; width:28px; height:28px; margin-left:-14px; margin-top:-14px; border-radius:6px; background:#4aa3ff; border:2px solid #fff; display:grid; place-items:center; transition:left .25s linear, top .25s linear; }
-    .tree { position:absolute; font-size:22px; pointer-events:none; }
-    button { width:100%; margin-top:10px; padding:12px; border:0; border-radius:10px; background:var(--line); color:#1a1404; font-weight:800; }
-    .row { display:flex; gap:8px; }
-    .row button { background:#2b3146; color:var(--text); }
-    .muted { color:var(--muted); font-size:13px; word-break:break-all; }
-    input { width:100%; margin-top:8px; padding:10px; border-radius:8px; border:1px solid #3a4258; background:#12141c; color:var(--text); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planet Gold</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{margin:0;font-family:system-ui;background:#12141c;color:#f3ead2}
+header,section{padding:12px}
+.gold{color:#d4af37;font-weight:700}
+.card{background:#1c2030;border:1px solid #2a3146;border-radius:14px;padding:12px;margin:12px}
+.map{position:relative;height:220px;border:2px solid #d4af37;border-radius:12px;background:#161a26}
+.hero{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;background:#4aa3ff;border:2px solid #fff;border-radius:6px}
+button{width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:#d4af37;color:#1a1404;font-weight:800}
+input{width:100%;margin-top:8px;padding:10px;border-radius:8px;border:1px solid #3a4258;background:#12141c;color:#fff}
+.muted{color:#9aa0b4;font-size:13px;word-break:break-all}
+.row{display:flex;gap:8px}
+.row button{background:#2b3146;color:#fff}
+</style>
 </head>
 <body>
-  <header>
-    <div>
-      <div class="gold">PLANET GOLD</div>
-      <div class="muted" id="user">Cargando jugador...</div>
-    </div>
-    <div class="gold" id="points">0 pts</div>
-  </header>
-  <section class="card" style="padding:12px;">
-    <div class="map" id="map">
-      <div class="tree" style="left:18%;top:22%">🌳</div>
-      <div class="tree" style="left:62%;top:18%">🌳</div>
-      <div class="tree" style="left:40%;top:58%">🪨</div>
-      <div class="hero" id="hero">🙂</div>
-    </div>
-    <div class="muted" style="margin-top:8px">Toca el mapa para moverte y recolectar</div>
-  </section>
-  <section class="card">
-    <div>tgold pendiente: <b id="pending">0</b></div>
-    <div class="muted">10.000 pts = 1 tgold</div>
-    <div class="muted" id="walletLabel">Wallet: no guardada</div>
-    <input id="walletInput" placeholder="Pega tu wallet de Solana" />
-    <button id="saveWallet">Guardar wallet</button>
-    <button id="collect">Recolectar</button>
-    <div class="row">
-      <button id="jup">Comprar tgold</button>
-      <button id="claim">CLAIM tgold</button>
-    </div>
-    <p class="muted" id="msg">
+<header>
+<div><div class="gold">PLANET GOLD</div><div class="muted" id="user">jugador</div></div>
+<div class="gold" id="points">0 pts</div>
+</header>
+<div class="card"><div class="map" id="map"><div class="hero" id="hero"></div></div>
+<div class="muted">Toca el mapa</div></div>
+<div class="card">
+<div>tgold pendiente: <b id="pending">0</b></div>
+<div class="muted" id="walletLabel">Wallet: no guardada</div>
+<input id="walletInput" placeholder="Pega wallet Solana">
+<button id="saveWallet" type="button">Guardar wallet</button>
+<button id="collect" type="button">Recolectar</button>
+<div class="row">
+<button id="jup" type="button">Comprar</button>
+<button id="claim" type="button">CLAIM</button>
+</div>
+<p class="muted" id="msg">Listo</p>
+</div>
+<script>
+(function(){
+var RATE=10000;
+var points=Number(localStorage.getItem("pg_points")||0);
+var wallet=localStorage.getItem("pg_wallet")||"";
+var hero=document.getElementById("hero");
+var map=document.getElementById("map");
+function short(a){return a?a.slice(0,4)+"..."+a.slice(-4):"no guardada";}
+function render(){
+document.getElementById("points").textContent=points+" pts";
+document.getElementById("pending").textContent=Math.floor(points/RATE);
+document.getElementById("walletLabel").textContent="Wallet: "+short(wallet);
+}
+function add(n){points+=n;localStorage.setItem("pg_points",String(points));render();}
+render();
+try{
+var tg=window.Telegram&&window.Telegram.WebApp;
+if(tg){tg.ready();tg.expand();
+var u=tg.initDataUnsafe&&tg.initDataUnsafe.user;
+if(u){document.getElementById("user").textContent="@"+(u.username||u.first_name);}
+}
+}catch(e){}
+function move(ev){
+var t=ev.touches?ev.touches[0]:ev;
+var r=map.getBoundingClientRect();
+hero.style.left=((t.clientX-r.left)/r.width)*100+"%";
+hero.style.top=((t.clientY-r.top)/r.height)*100+"%";
+add(10);
+document.getElementById("msg").textContent="+10 pts";
+ev.preventDefault();
+}
+map.addEventListener("click",move);
+map.addEventListener("touchstart",move,{passive:false});
+document.getElementById("collect").onclick=function(){add(10);document.getElementById("msg").textContent="+10 pts";};
+document.getElementById("saveWallet").onclick=function(){
+var v=document.getElementById("walletInput").value.trim();
+if(v.length<32){document.getElementById("msg").textContent="Wallet corta";return;}
+wallet=v;localStorage.setItem("pg_wallet",wallet);render();
+document.getElementById("msg").textContent="Wallet: "+short(wallet);
+};
+document.getElementById("jup").onclick=function(){window.open("https://jup.ag/swap/SOL-CBQx46tG5sUcm5bT3jV7oqNo2wvzfqevghmPvcRp6ray","_blank");};
+document.getElementById("claim").onclick=function(){
+if(!wallet){document.getElementById("msg").textContent="Guarda la wallet";return;}
+var p=Math.floor(points/RATE);
+document.getElementById("msg").textContent=p<1?"Necesitas 10000 pts":("Pendiente "+p+" tgold");
+};
+})();
+</script>
+</body>
+</html>
