@@ -13,45 +13,96 @@
       display: flex; justify-content: space-between; align-items: flex-start;
       padding: 10px 12px; pointer-events: none;
     }
-    .box { background: rgba(0,0,0,.45); border: 1px solid #d4af37; border-radius: 10px; padding: 8px 10px; pointer-events: auto; }
-    .hp { width: 42vw; max-width: 220px; }
+    .box { background: rgba(0,0,0,.5); border: 1px solid #d4af37; border-radius: 10px; padding: 8px 10px; pointer-events: auto; }
+    .hp { width: 38vw; max-width: 200px; }
     .bar { height: 10px; background: #333; border-radius: 6px; overflow: hidden; margin-top: 4px; }
     .fill { height: 100%; background: linear-gradient(90deg,#e74c3c,#f1c40f); width: 100%; }
-    #turn { text-align: center; font-weight: 800; color: #ffe08a; min-width: 110px; }
+    #turn { text-align: center; font-weight: 800; color: #ffe08a; min-width: 96px; }
     #bottom {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-      padding: 10px 12px 16px; background: linear-gradient(transparent, rgba(0,0,0,.75));
+      padding: 10px 12px 16px; background: linear-gradient(transparent, rgba(0,0,0,.8));
     }
     .row { display: flex; gap: 8px; align-items: center; }
     label { font-size: 12px; color: #ffe08a; width: 58px; }
     input[type=range] { flex: 1; }
     #powerWrap { height: 16px; background: #222; border-radius: 8px; overflow: hidden; flex: 1; border: 1px solid #d4af37; }
     #powerFill { height: 100%; width: 0%; background: linear-gradient(90deg,#2ecc71,#f1c40f,#e74c3c); }
-    button {
+    button.main {
       width: 100%; margin-top: 8px; padding: 12px; border: 0; border-radius: 12px;
-      background: #d4af37; color: #1a1200; font-weight: 800; font-size: 16px;
+      background: #d4af37; color: #1a1200; font-weight: 800; font-size: 15px;
     }
-    button:disabled { opacity: .45; }
+    button.main:disabled { opacity: .45; }
     #msg { text-align: center; margin-top: 6px; min-height: 18px; font-size: 13px; color: #ffe08a; }
     canvas { display: block; width: 100%; height: 100%; }
+    #pick {
+      position: fixed; inset: 0; z-index: 20; background: #0b1020;
+      display: flex; flex-direction: column; padding: 16px 12px 20px;
+    }
+    #pick h1 { margin: 0 0 6px; font-size: 22px; color: #ffe08a; text-align: center; }
+    #pick p { margin: 0 0 12px; text-align: center; color: #bbb; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow: auto; }
+    .card {
+      border: 2px solid #d4af37; border-radius: 14px; padding: 10px;
+      background: #161a26; text-align: center; cursor: pointer;
+    }
+    .card.on { outline: 3px solid #fff; }
+    .swatch { height: 54px; border-radius: 10px; margin-bottom: 8px; }
+    .card b { display: block; }
+    .card small { color: #aaa; }
+    #go { margin-top: 12px; }
   </style>
 </head>
 <body>
+  <div id="pick">
+    <h1>PLANET GOLD</h1>
+    <p>Elige ficha · marco oro</p>
+    <div class="grid" id="grid"></div>
+    <button class="main" id="go">JUGAR</button>
+  </div>
+
   <div id="hud">
-    <div class="box hp">TÚ · Capitán<br><div class="bar"><div id="hpMe" class="fill"></div></div></div>
+    <div class="box hp"><span id="meName">TÚ</span><div class="bar"><div id="hpMe" class="fill"></div></div></div>
     <div class="box" id="turn">TU TURNO</div>
-    <div class="box hp" style="text-align:right">NAVE<br><div class="bar"><div id="hpEn" class="fill"></div></div></div>
+    <div class="box hp" style="text-align:right">NAVE<div class="bar"><div id="hpEn" class="fill"></div></div></div>
   </div>
   <canvas id="c"></canvas>
   <div id="bottom">
-    <div class="row"><label>Ángulo</label><input id="ang" type="range" min="10" max="80" value="45" /></div>
+    <div class="row"><label>Ángulo</label><input id="ang" type="range" min="12" max="78" value="38" /></div>
     <div class="row" style="margin-top:8px"><label>Potencia</label><div id="powerWrap"><div id="powerFill"></div></div></div>
-    <button id="fire">MANTÉN PARA CARGAR · SUELTA PARA DISPARAR</button>
-    <div id="msg">Gana puntos al dar. 1 victoria = +500 pts</div>
+    <button class="main" id="fire">MANTÉN PARA CARGAR · SUELTA PARA DISPARAR</button>
+    <div id="msg">Elige ángulo y carga</div>
   </div>
+
   <script>
     const tg = window.Telegram && window.Telegram.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
+
+    const HEROES = [
+      { id: "capitan", name: "Capitán", role: "potencia", shirt: "#c0392b", shorts: "#1e7a3a", skin: "#e0ac69", hair: "#2b1b12", dmg: 1.25 },
+      { id: "diez", name: "Diez", role: "preciso", shirt: "#5dade2", shorts: "#111", skin: "#e0ac69", hair: "#5a3a22", dmg: 1.05, acc: 1.15 },
+      { id: "samba", name: "Samba", role: "efecto", shirt: "#f1c40f", shorts: "#1e7a3a", skin: "#8d5524", hair: "#1a1a1a", dmg: 1.1 },
+      { id: "pibe", name: "Pibe", role: "sube rango", shirt: "#1f4e79", shorts: "#1a365d", skin: "#c68642", hair: "#111", dmg: 1.0 },
+      { id: "rayo", name: "Rayo", role: "rápido", shirt: "#f5f5f5", shorts: "#f5f5f5", skin: "#8d5524", hair: "#111", dmg: 0.95, spd: 1.2 }
+    ];
+
+    let hero = HEROES[0];
+    const grid = document.getElementById("grid");
+    HEROES.forEach(h => {
+      const el = document.createElement("div");
+      el.className = "card" + (h.id === hero.id ? " on" : "");
+      el.innerHTML = `<div class="swatch" style="background:linear-gradient(180deg,${h.shirt},${h.shorts})"></div><b>${h.name}</b><small>${h.role}</small>`;
+      el.onclick = () => {
+        hero = h;
+        document.querySelectorAll(".card").forEach(c => c.classList.remove("on"));
+        el.classList.add("on");
+      };
+      grid.appendChild(el);
+    });
+    document.getElementById("go").onclick = () => {
+      document.getElementById("pick").style.display = "none";
+      document.getElementById("meName").textContent = "TÚ · " + hero.name;
+      reset(false);
+    };
 
     const cvs = document.getElementById("c");
     const ctx = cvs.getContext("2d");
@@ -67,28 +118,25 @@
       H = cvs.height = innerHeight * devicePixelRatio;
       cvs.style.width = innerWidth + "px";
       cvs.style.height = innerHeight + "px";
-      ground = H * 0.78;
+      ground = H * 0.76;
     }
     addEventListener("resize", resize);
     resize();
 
     const state = {
-      meHp: 100, enHp: 100,
-      turn: "me",
-      power: 0, charging: false,
-      shot: null,
+      meHp: 100, enHp: 100, turn: "me",
+      power: 0, charging: false, shot: null,
       pts: Number(localStorage.getItem("pg_pts") || 0),
-      wind: (Math.random() * 2 - 1) * 0.12
+      wind: 0, boom: null
     };
 
     const me = { x: () => W * 0.16, y: () => ground - 8 };
-    const en = { x: () => W * 0.82, y: () => ground - 70 };
+    const en = { x: () => W * 0.84, y: () => ground - 78 };
 
     function setHp() {
       document.getElementById("hpMe").style.width = state.meHp + "%";
       document.getElementById("hpEn").style.width = state.enHp + "%";
     }
-    setHp();
 
     let hold = null;
     function startCharge(e) {
@@ -96,7 +144,8 @@
       e.preventDefault();
       state.charging = true; state.power = 8;
       hold = setInterval(() => {
-        state.power = Math.min(100, state.power + 1.6);
+        const extra = hero.spd || 1;
+        state.power = Math.min(100, state.power + 1.5 * extra);
         pFill.style.width = state.power + "%";
       }, 16);
     }
@@ -109,52 +158,47 @@
     fireBtn.addEventListener("mousedown", startCharge);
     fireBtn.addEventListener("touchend", release);
     fireBtn.addEventListener("mouseup", release);
-    fireBtn.addEventListener("mouseleave", () => { if (state.charging) release(); });
 
     function shoot(who, deg, pwr) {
       const fromMe = who === "me";
       const rad = (fromMe ? deg : 180 - deg) * Math.PI / 180;
-      const speed = 7 + pwr / 7;
-      const sx = fromMe ? me.x() + 20 : en.x() - 20;
-      const sy = fromMe ? me.y() - 28 : en.y() + 20;
-      state.shot = {
-        who, x: sx, y: sy,
-        vx: Math.cos(rad) * speed * (fromMe ? 1 : 1),
-        vy: -Math.sin(rad) * speed,
-        r: 9
-      };
+      const speed = 7.2 + pwr / 6.6;
+      const sx = fromMe ? me.x() + 22 : en.x() - 22;
+      const sy = fromMe ? me.y() - 30 : en.y() + 18;
+      state.shot = { who, x: sx, y: sy, vx: Math.cos(rad) * speed, vy: -Math.sin(rad) * speed, r: 10 };
       fireBtn.disabled = true;
-      msg.textContent = fromMe ? "Bola en el aire…" : "¡La nave responde!";
+      msg.textContent = fromMe ? hero.name + " dispara…" : "¡La nave responde!";
     }
+
+    function boomAt(x, y) { state.boom = { x, y, t: 18 }; }
 
     function hitTest() {
       const s = state.shot;
       if (!s) return;
       if (s.who === "me") {
-        const dx = s.x - en.x(), dy = s.y - (en.y() + 28);
-        if (Math.hypot(dx, dy) < 52) {
-          const dmg = 18 + Math.round(state.power / 5);
+        const dx = s.x - en.x(), dy = s.y - (en.y() + 26);
+        const rad = 58 * (hero.acc || 1);
+        if (Math.hypot(dx, dy) < rad) {
+          const dmg = Math.round((20 + state.power / 4.5) * hero.dmg);
           state.enHp = Math.max(0, state.enHp - dmg);
-          setHp();
+          setHp(); boomAt(en.x(), en.y() + 20);
           msg.textContent = "¡Impacto! -" + dmg;
-          state.shot = null;
-          afterShot();
+          state.shot = null; afterShot();
         }
       } else {
-        const dx = s.x - me.x(), dy = s.y - (me.y() - 20);
-        if (Math.hypot(dx, dy) < 36) {
-          const dmg = 12 + Math.round(Math.random() * 10);
+        const dx = s.x - me.x(), dy = s.y - (me.y() - 22);
+        if (Math.hypot(dx, dy) < 38) {
+          const dmg = 11 + Math.round(Math.random() * 9);
           state.meHp = Math.max(0, state.meHp - dmg);
-          setHp();
+          setHp(); boomAt(me.x(), me.y() - 20);
           msg.textContent = "Te han dado -" + dmg;
-          state.shot = null;
-          afterShot();
+          state.shot = null; afterShot();
         }
       }
-      if (s && (s.y > ground + 8 || s.x < 0 || s.x > W)) {
+      if (s && (s.y > ground + 10 || s.x < -20 || s.x > W + 20)) {
+        boomAt(s.x, Math.min(s.y, ground));
         msg.textContent = "Falló…";
-        state.shot = null;
-        afterShot();
+        state.shot = null; afterShot();
       }
     }
 
@@ -166,21 +210,21 @@
         msg.textContent = "+500 pts · total " + state.pts;
         fireBtn.textContent = "OTRA RONDA";
         fireBtn.disabled = false;
-        fireBtn.onclick = reset;
+        fireBtn.onclick = () => reset(true);
         return;
       }
       if (state.meHp <= 0) {
         turnEl.textContent = "DERROTA";
-        msg.textContent = "La nave gana. Reintenta.";
+        msg.textContent = "La nave gana.";
         fireBtn.textContent = "REINTENTAR";
         fireBtn.disabled = false;
-        fireBtn.onclick = reset;
+        fireBtn.onclick = () => reset(true);
         return;
       }
       if (state.turn === "me") {
         state.turn = "en";
         turnEl.textContent = "NAVE";
-        setTimeout(enemyTurn, 700);
+        setTimeout(enemyTurn, 650);
       } else {
         state.turn = "me";
         turnEl.textContent = "TU TURNO";
@@ -192,57 +236,66 @@
     }
 
     function enemyTurn() {
-      const deg = 28 + Math.random() * 22;
-      const pwr = 45 + Math.random() * 40;
-      shoot("en", deg, pwr);
+      shoot("en", 30 + Math.random() * 20, 48 + Math.random() * 36);
     }
 
-    function reset() {
+    function reset(keepHero) {
       state.meHp = 100; state.enHp = 100;
       state.turn = "me"; state.shot = null; state.power = 0;
-      state.wind = (Math.random() * 2 - 1) * 0.12;
+      state.wind = (Math.random() * 2 - 1) * 0.1;
       pFill.style.width = "0%";
       setHp();
       turnEl.textContent = "TU TURNO";
       fireBtn.textContent = "MANTÉN PARA CARGAR · SUELTA PARA DISPARAR";
       fireBtn.disabled = false;
       fireBtn.onclick = null;
-      msg.textContent = "Puntos: " + state.pts;
+      msg.textContent = hero.name + " · " + state.pts + " pts";
+      if (!keepHero) document.getElementById("meName").textContent = "TÚ · " + hero.name;
+    }
+
+    function drawHero(x, y) {
+      ctx.fillStyle = "#6b4a22";
+      ctx.fillRect(x - 40, y, 80, 16);
+      ctx.fillStyle = hero.shorts;
+      ctx.fillRect(x - 12, y - 20, 24, 20);
+      ctx.fillStyle = hero.shirt;
+      ctx.fillRect(x - 14, y - 38, 28, 20);
+      ctx.fillStyle = hero.skin;
+      ctx.beginPath(); ctx.arc(x, y - 48, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = hero.hair;
+      ctx.beginPath(); ctx.arc(x, y - 54, 10, Math.PI, 0); ctx.fill();
+    }
+
+    function drawShip(x, y) {
+      ctx.fillStyle = "#5d6d7e";
+      ctx.beginPath(); ctx.ellipse(x, y + 30, 54, 24, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#85929e";
+      ctx.fillRect(x - 16, y + 2, 32, 28);
+      ctx.fillStyle = "#e74c3c";
+      ctx.beginPath(); ctx.arc(x, y + 14, 8, 0, Math.PI * 2); ctx.fill();
     }
 
     function draw() {
-      ctx.clearRect(0, 0, W, H);
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "#1b2a4a"); g.addColorStop(1, "#0b1020");
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, "#2a1a3a"); sky.addColorStop(.55, "#c0392b"); sky.addColorStop(1, "#f39c12");
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
 
-      ctx.fillStyle = "#3d2a14";
+      ctx.fillStyle = "rgba(255,255,255,.15)";
+      ctx.beginPath(); ctx.arc(W * 0.78, H * 0.16, 46, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = "#2d1a0a";
       ctx.fillRect(0, ground, W, H - ground);
-      ctx.fillStyle = "#2a6b2a";
-      ctx.fillRect(0, ground, W, 10);
+      ctx.fillStyle = "#1e7a3a";
+      ctx.fillRect(0, ground, W, 12);
 
-      ctx.fillStyle = "#6b4a22";
-      const px = me.x(), py = me.y();
-      ctx.fillRect(px - 36, py, 72, 14);
-
-      ctx.fillStyle = "#c0392b";
-      ctx.beginPath(); ctx.arc(px, py - 22, 16, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#f1c40f";
-      ctx.fillRect(px - 10, py - 18, 20, 18);
-
-      const ex = en.x(), ey = en.y();
-      ctx.fillStyle = "#7f8c8d";
-      ctx.beginPath(); ctx.ellipse(ex, ey + 28, 48, 22, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#95a5a6";
-      ctx.fillRect(ex - 18, ey, 36, 28);
-      ctx.fillStyle = "#e74c3c";
-      ctx.beginPath(); ctx.arc(ex, ey + 10, 8, 0, Math.PI * 2); ctx.fill();
+      drawHero(me.x(), me.y());
+      drawShip(en.x(), en.y());
 
       const deg = Number(angEl.value) * Math.PI / 180;
       ctx.strokeStyle = "#ffe08a"; ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(px + 8, py - 26);
-      ctx.lineTo(px + 8 + Math.cos(deg) * 46, py - 26 - Math.sin(deg) * 46);
+      ctx.moveTo(me.x() + 10, me.y() - 28);
+      ctx.lineTo(me.x() + 10 + Math.cos(deg) * 50, me.y() - 28 - Math.sin(deg) * 50);
       ctx.stroke();
 
       if (state.shot) {
@@ -253,12 +306,19 @@
         s.y += s.vy * devicePixelRatio * 0.55;
         ctx.fillStyle = "#fff59d";
         ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(255,200,80,.35)";
+        ctx.beginPath(); ctx.arc(s.x - s.vx, s.y - s.vy, s.r + 6, 0, Math.PI * 2); ctx.fill();
         hitTest();
+      }
+
+      if (state.boom && state.boom.t > 0) {
+        const b = state.boom; b.t--;
+        ctx.fillStyle = "rgba(255,140,0," + (b.t / 18) + ")";
+        ctx.beginPath(); ctx.arc(b.x, b.y, 18 + (18 - b.t) * 2, 0, Math.PI * 2); ctx.fill();
       }
       requestAnimationFrame(draw);
     }
     draw();
-    msg.textContent = "Puntos: " + state.pts;
   </script>
 </body>
 </html>
