@@ -293,9 +293,13 @@
       ctx.translate(x, y - 6 + bob);
       ctx.rotate(kick);
       if (im && im.complete && im.naturalWidth) {
-        ctx.shadowColor = "rgba(0,0,0,.4)";
-        ctx.shadowBlur = 14;
-        ctx.drawImage(im, -iw / 2, -ih, iw, ih);
+        ctx.shadowColor = "rgba(0,0,0,.35)";
+        ctx.shadowBlur = 12;
+        const sx = im.naturalWidth * 0.16;
+        const sy = im.naturalHeight * 0.14;
+        const sw = im.naturalWidth * 0.68;
+        const sh = im.naturalHeight * 0.62;
+        ctx.drawImage(im, sx, sy, sw, sh, -iw / 2, -ih, iw, ih);
       } else {
         ctx.fillStyle = hero.shirt;
         ctx.fillRect(-28, -78, 56, 78);
