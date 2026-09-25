@@ -86,6 +86,13 @@
       { id: "rayo", name: "Rayo", role: "rápido", img: "cards/rayo.jpg", shirt: "#f5f5f5", shorts: "#f5f5f5", skin: "#8d5524", hair: "#111", dmg: 0.95, spd: 1.2 }
     ];
 
+    const heroImg = {};
+    HEROES.forEach(h => {
+      const im = new Image();
+      im.src = h.img;
+      heroImg[h.id] = im;
+    });
+
     let hero = HEROES[0];
     const grid = document.getElementById("grid");
     HEROES.forEach(h => {
@@ -255,16 +262,56 @@
     }
 
     function drawHero(x, y) {
+      const s = Math.max(1, devicePixelRatio);
       ctx.fillStyle = "#6b4a22";
-      ctx.fillRect(x - 40, y, 80, 16);
+      ctx.fillRect(x - 46 * s / 2, y, 46 * s, 16);
+
       ctx.fillStyle = hero.shorts;
-      ctx.fillRect(x - 12, y - 20, 24, 20);
-      ctx.fillStyle = hero.shirt;
-      ctx.fillRect(x - 14, y - 38, 28, 20);
+      ctx.fillRect(x - 13, y - 22, 26, 22);
+      if (hero.id === "diez") {
+        ctx.fillStyle = "#5dade2";
+        ctx.fillRect(x - 15, y - 42, 30, 22);
+        ctx.fillStyle = "#fff";
+        for (let i = 0; i < 4; i++) ctx.fillRect(x - 13 + i * 8, y - 42, 4, 22);
+      } else if (hero.id === "pibe") {
+        ctx.fillStyle = "#1f4e79";
+        ctx.fillRect(x - 15, y - 42, 30, 22);
+        ctx.fillStyle = "#c0392b";
+        for (let i = 0; i < 3; i++) ctx.fillRect(x - 11 + i * 10, y - 42, 5, 22);
+      } else {
+        ctx.fillStyle = hero.shirt;
+        ctx.fillRect(x - 15, y - 42, 30, 22);
+      }
+
       ctx.fillStyle = hero.skin;
-      ctx.beginPath(); ctx.arc(x, y - 48, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - 16, y - 28, 7, 14);
+      ctx.fillRect(x + 9, y - 28, 7, 14);
+
+      ctx.beginPath(); ctx.arc(x, y - 54, 13, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = hero.hair;
-      ctx.beginPath(); ctx.arc(x, y - 54, 10, Math.PI, 0); ctx.fill();
+      if (hero.id === "samba" || hero.id === "pibe") {
+        ctx.beginPath(); ctx.arc(x - 8, y - 58, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 8, y - 58, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y - 64, 9, 0, Math.PI * 2); ctx.fill();
+      } else if (hero.id === "rayo") {
+        ctx.fillRect(x - 11, y - 62, 22, 10);
+      } else {
+        ctx.beginPath(); ctx.ellipse(x, y - 60, 13, 10, 0, Math.PI, 0); ctx.fill();
+        if (hero.id === "capitan") {
+          ctx.beginPath(); ctx.moveTo(x - 4, y - 68); ctx.lineTo(x, y - 78); ctx.lineTo(x + 4, y - 68); ctx.fill();
+        }
+      }
+
+      const im = heroImg[hero.id];
+      if (im && im.complete && im.naturalWidth) {
+        const iw = 72 * s, ih = 96 * s;
+        ctx.save();
+        ctx.strokeStyle = "#d4af37";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x - 90 * s / 2, y - 175, iw, ih);
+        ctx.drawImage(im, x - 90 * s / 2, y - 175, iw, ih);
+        ctx.restore();
+      }
     }
 
     function drawShip(x, y) {
