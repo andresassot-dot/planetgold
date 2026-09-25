@@ -1,95 +1,264 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Planet Gold</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-body{margin:0;font-family:system-ui;background:#12141c;color:#f3ead2}
-header{padding:12px;display:flex;justify-content:space-between}
-.gold{color:#d4af37;font-weight:700}
-.card{background:#1c2030;border:1px solid #2a3146;border-radius:14px;padding:12px;margin:12px}
-.map{position:relative;height:220px;border:2px solid #d4af37;border-radius:12px;background:#161a26}
-.hero{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;background:#4aa3ff;border:2px solid #fff;border-radius:6px}
-button{width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:#d4af37;color:#1a1404;font-weight:800}
-input{width:100%;margin-top:8px;padding:10px;border-radius:8px;border:1px solid #3a4258;background:#12141c;color:#fff}
-.muted{color:#9aa0b4;font-size:13px;word-break:break-all}
-.row{display:flex;gap:8px}
-.row button{background:#2b3146;color:#fff}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Planet Gold — Disparo</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; color: #fff; }
+    #hud {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 10px 12px; pointer-events: none;
+    }
+    .box { background: rgba(0,0,0,.45); border: 1px solid #d4af37; border-radius: 10px; padding: 8px 10px; pointer-events: auto; }
+    .hp { width: 42vw; max-width: 220px; }
+    .bar { height: 10px; background: #333; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+    .fill { height: 100%; background: linear-gradient(90deg,#e74c3c,#f1c40f); width: 100%; }
+    #turn { text-align: center; font-weight: 800; color: #ffe08a; min-width: 110px; }
+    #bottom {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+      padding: 10px 12px 16px; background: linear-gradient(transparent, rgba(0,0,0,.75));
+    }
+    .row { display: flex; gap: 8px; align-items: center; }
+    label { font-size: 12px; color: #ffe08a; width: 58px; }
+    input[type=range] { flex: 1; }
+    #powerWrap { height: 16px; background: #222; border-radius: 8px; overflow: hidden; flex: 1; border: 1px solid #d4af37; }
+    #powerFill { height: 100%; width: 0%; background: linear-gradient(90deg,#2ecc71,#f1c40f,#e74c3c); }
+    button {
+      width: 100%; margin-top: 8px; padding: 12px; border: 0; border-radius: 12px;
+      background: #d4af37; color: #1a1200; font-weight: 800; font-size: 16px;
+    }
+    button:disabled { opacity: .45; }
+    #msg { text-align: center; margin-top: 6px; min-height: 18px; font-size: 13px; color: #ffe08a; }
+    canvas { display: block; width: 100%; height: 100%; }
+  </style>
 </head>
 <body>
-<header>
-<div><div class="gold">PLANET GOLD</div><div class="muted" id="user">jugador</div></div>
-<div class="gold" id="points">0 pts</div>
-</header>
-<div class="card"><div class="map" id="map"><div class="hero" id="hero"></div></div>
-<div class="muted">Toca el mapa</div></div>
-<div class="card">
-<div>tgold pendiente: <b id="pending">0</b></div>
-<div class="muted" id="walletLabel">Wallet: no guardada</div>
-<input id="walletInput" placeholder="Pega wallet Solana">
-<button id="saveWallet" type="button">Guardar wallet</button>
-<button id="collect" type="button">Recolectar</button>
-<div class="row">
-<button id="jup" type="button">Comprar</button>
-<button id="claim" type="button">CLAIM</button>
-</div>
-<p class="muted" id="msg">Listo</p>
-</div>
-<script>
-(function(){
-var RATE=10000;
-var points=Number(localStorage.getItem("pg_points")||0);
-var wallet=localStorage.getItem("pg_wallet")||"";
-var hero=document.getElementById("hero");
-var map=document.getElementById("map");
-function short(a){return a?a.slice(0,4)+"..."+a.slice(-4):"no guardada";}
-function render(){
-document.getElementById("points").textContent=points+" pts";
-document.getElementById("pending").textContent=Math.floor(points/RATE);
-document.getElementById("walletLabel").textContent="Wallet: "+short(wallet);
-if(wallet) document.getElementById("walletInput").value=wallet;
-}
-function add(n){points+=n;localStorage.setItem("pg_points",String(points));render();}
-render();
-try{
-var tg=window.Telegram&&window.Telegram.WebApp;
-if(tg){tg.ready();tg.expand();
-var u=tg.initDataUnsafe&&tg.initDataUnsafe.user;
-if(u){document.getElementById("user").textContent="@"+(u.username||u.first_name);}
-}
-}catch(e){}
-function move(ev){
-var t=ev.touches?ev.touches[0]:ev;
-var r=map.getBoundingClientRect();
-hero.style.left=((t.clientX-r.left)/r.width)*100+"%";
-hero.style.top=((t.clientY-r.top)/r.height)*100+"%";
-add(10);
-document.getElementById("msg").textContent="+10 pts";
-ev.preventDefault();
-}
-map.addEventListener("click",move);
-map.addEventListener("touchstart",move,{passive:false});
-document.getElementById("collect").onclick=function(){add(10);document.getElementById("msg").textContent="+10 pts";};
-document.getElementById("saveWallet").onclick=function(){
-var v=document.getElementById("walletInput").value.trim();
-if(v.length<32){document.getElementById("msg").textContent="Wallet corta";return;}
-wallet=v;localStorage.setItem("pg_wallet",wallet);render();
-document.getElementById("msg").textContent="Wallet: "+short(wallet);
-};
-document.getElementById("jup").onclick=function(){window.open("https://jup.ag/swap/SOL-CBQx46tG5sUcm5bT3jV7oqNo2wvzfqevghmPvcRp6ray","_blank");};
-document.getElementById("claim").onclick=async function(){
-if(!wallet){document.getElementById("msg").textContent="Guarda la wallet";return;}
-document.getElementById("msg").textContent="Enviando 1 tgold...";
-try{
-var r=await fetch("/api/claim",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({wallet:wallet})});
-var j=await r.json();
-document.getElementById("msg").textContent=j.ok?("Enviado: "+j.sig):("Error: "+(j.error||"fallo"));
-}catch(e){document.getElementById("msg").textContent="Error de red";}
-};
-})();
-</script>
+  <div id="hud">
+    <div class="box hp">TÚ · Capitán<br><div class="bar"><div id="hpMe" class="fill"></div></div></div>
+    <div class="box" id="turn">TU TURNO</div>
+    <div class="box hp" style="text-align:right">NAVE<br><div class="bar"><div id="hpEn" class="fill"></div></div></div>
+  </div>
+  <canvas id="c"></canvas>
+  <div id="bottom">
+    <div class="row"><label>Ángulo</label><input id="ang" type="range" min="10" max="80" value="45" /></div>
+    <div class="row" style="margin-top:8px"><label>Potencia</label><div id="powerWrap"><div id="powerFill"></div></div></div>
+    <button id="fire">MANTÉN PARA CARGAR · SUELTA PARA DISPARAR</button>
+    <div id="msg">Gana puntos al dar. 1 victoria = +500 pts</div>
+  </div>
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) { tg.ready(); tg.expand(); }
+
+    const cvs = document.getElementById("c");
+    const ctx = cvs.getContext("2d");
+    const angEl = document.getElementById("ang");
+    const pFill = document.getElementById("powerFill");
+    const fireBtn = document.getElementById("fire");
+    const msg = document.getElementById("msg");
+    const turnEl = document.getElementById("turn");
+
+    let W, H, ground;
+    function resize() {
+      W = cvs.width = innerWidth * devicePixelRatio;
+      H = cvs.height = innerHeight * devicePixelRatio;
+      cvs.style.width = innerWidth + "px";
+      cvs.style.height = innerHeight + "px";
+      ground = H * 0.78;
+    }
+    addEventListener("resize", resize);
+    resize();
+
+    const state = {
+      meHp: 100, enHp: 100,
+      turn: "me",
+      power: 0, charging: false,
+      shot: null,
+      pts: Number(localStorage.getItem("pg_pts") || 0),
+      wind: (Math.random() * 2 - 1) * 0.12
+    };
+
+    const me = { x: () => W * 0.16, y: () => ground - 8 };
+    const en = { x: () => W * 0.82, y: () => ground - 70 };
+
+    function setHp() {
+      document.getElementById("hpMe").style.width = state.meHp + "%";
+      document.getElementById("hpEn").style.width = state.enHp + "%";
+    }
+    setHp();
+
+    let hold = null;
+    function startCharge(e) {
+      if (state.turn !== "me" || state.shot) return;
+      e.preventDefault();
+      state.charging = true; state.power = 8;
+      hold = setInterval(() => {
+        state.power = Math.min(100, state.power + 1.6);
+        pFill.style.width = state.power + "%";
+      }, 16);
+    }
+    function release() {
+      if (!state.charging) return;
+      clearInterval(hold); state.charging = false;
+      shoot("me", Number(angEl.value), state.power);
+    }
+    fireBtn.addEventListener("touchstart", startCharge, { passive: false });
+    fireBtn.addEventListener("mousedown", startCharge);
+    fireBtn.addEventListener("touchend", release);
+    fireBtn.addEventListener("mouseup", release);
+    fireBtn.addEventListener("mouseleave", () => { if (state.charging) release(); });
+
+    function shoot(who, deg, pwr) {
+      const fromMe = who === "me";
+      const rad = (fromMe ? deg : 180 - deg) * Math.PI / 180;
+      const speed = 7 + pwr / 7;
+      const sx = fromMe ? me.x() + 20 : en.x() - 20;
+      const sy = fromMe ? me.y() - 28 : en.y() + 20;
+      state.shot = {
+        who, x: sx, y: sy,
+        vx: Math.cos(rad) * speed * (fromMe ? 1 : 1),
+        vy: -Math.sin(rad) * speed,
+        r: 9
+      };
+      fireBtn.disabled = true;
+      msg.textContent = fromMe ? "Bola en el aire…" : "¡La nave responde!";
+    }
+
+    function hitTest() {
+      const s = state.shot;
+      if (!s) return;
+      if (s.who === "me") {
+        const dx = s.x - en.x(), dy = s.y - (en.y() + 28);
+        if (Math.hypot(dx, dy) < 52) {
+          const dmg = 18 + Math.round(state.power / 5);
+          state.enHp = Math.max(0, state.enHp - dmg);
+          setHp();
+          msg.textContent = "¡Impacto! -" + dmg;
+          state.shot = null;
+          afterShot();
+        }
+      } else {
+        const dx = s.x - me.x(), dy = s.y - (me.y() - 20);
+        if (Math.hypot(dx, dy) < 36) {
+          const dmg = 12 + Math.round(Math.random() * 10);
+          state.meHp = Math.max(0, state.meHp - dmg);
+          setHp();
+          msg.textContent = "Te han dado -" + dmg;
+          state.shot = null;
+          afterShot();
+        }
+      }
+      if (s && (s.y > ground + 8 || s.x < 0 || s.x > W)) {
+        msg.textContent = "Falló…";
+        state.shot = null;
+        afterShot();
+      }
+    }
+
+    function afterShot() {
+      if (state.enHp <= 0) {
+        state.pts += 500;
+        localStorage.setItem("pg_pts", state.pts);
+        turnEl.textContent = "VICTORIA";
+        msg.textContent = "+500 pts · total " + state.pts;
+        fireBtn.textContent = "OTRA RONDA";
+        fireBtn.disabled = false;
+        fireBtn.onclick = reset;
+        return;
+      }
+      if (state.meHp <= 0) {
+        turnEl.textContent = "DERROTA";
+        msg.textContent = "La nave gana. Reintenta.";
+        fireBtn.textContent = "REINTENTAR";
+        fireBtn.disabled = false;
+        fireBtn.onclick = reset;
+        return;
+      }
+      if (state.turn === "me") {
+        state.turn = "en";
+        turnEl.textContent = "NAVE";
+        setTimeout(enemyTurn, 700);
+      } else {
+        state.turn = "me";
+        turnEl.textContent = "TU TURNO";
+        fireBtn.disabled = false;
+        fireBtn.textContent = "MANTÉN PARA CARGAR · SUELTA PARA DISPARAR";
+        fireBtn.onclick = null;
+        state.power = 0; pFill.style.width = "0%";
+      }
+    }
+
+    function enemyTurn() {
+      const deg = 28 + Math.random() * 22;
+      const pwr = 45 + Math.random() * 40;
+      shoot("en", deg, pwr);
+    }
+
+    function reset() {
+      state.meHp = 100; state.enHp = 100;
+      state.turn = "me"; state.shot = null; state.power = 0;
+      state.wind = (Math.random() * 2 - 1) * 0.12;
+      pFill.style.width = "0%";
+      setHp();
+      turnEl.textContent = "TU TURNO";
+      fireBtn.textContent = "MANTÉN PARA CARGAR · SUELTA PARA DISPARAR";
+      fireBtn.disabled = false;
+      fireBtn.onclick = null;
+      msg.textContent = "Puntos: " + state.pts;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#1b2a4a"); g.addColorStop(1, "#0b1020");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = "#3d2a14";
+      ctx.fillRect(0, ground, W, H - ground);
+      ctx.fillStyle = "#2a6b2a";
+      ctx.fillRect(0, ground, W, 10);
+
+      ctx.fillStyle = "#6b4a22";
+      const px = me.x(), py = me.y();
+      ctx.fillRect(px - 36, py, 72, 14);
+
+      ctx.fillStyle = "#c0392b";
+      ctx.beginPath(); ctx.arc(px, py - 22, 16, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f1c40f";
+      ctx.fillRect(px - 10, py - 18, 20, 18);
+
+      const ex = en.x(), ey = en.y();
+      ctx.fillStyle = "#7f8c8d";
+      ctx.beginPath(); ctx.ellipse(ex, ey + 28, 48, 22, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#95a5a6";
+      ctx.fillRect(ex - 18, ey, 36, 28);
+      ctx.fillStyle = "#e74c3c";
+      ctx.beginPath(); ctx.arc(ex, ey + 10, 8, 0, Math.PI * 2); ctx.fill();
+
+      const deg = Number(angEl.value) * Math.PI / 180;
+      ctx.strokeStyle = "#ffe08a"; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(px + 8, py - 26);
+      ctx.lineTo(px + 8 + Math.cos(deg) * 46, py - 26 - Math.sin(deg) * 46);
+      ctx.stroke();
+
+      if (state.shot) {
+        const s = state.shot;
+        s.vy += 0.22;
+        s.vx += state.wind;
+        s.x += s.vx * devicePixelRatio * 0.55;
+        s.y += s.vy * devicePixelRatio * 0.55;
+        ctx.fillStyle = "#fff59d";
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+        hitTest();
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+    msg.textContent = "Puntos: " + state.pts;
+  </script>
 </body>
 </html>
