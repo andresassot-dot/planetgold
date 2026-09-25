@@ -79,18 +79,22 @@
     if (tg) { tg.ready(); tg.expand(); }
 
     const HEROES = [
-      { id: "capitan", name: "Capitán", role: "potencia", img: "cards/capitan.jpg", shirt: "#c0392b", shorts: "#1e7a3a", skin: "#e0ac69", hair: "#2b1b12", dmg: 1.25 },
-      { id: "diez", name: "Diez", role: "preciso", img: "cards/diez.jpg", shirt: "#5dade2", shorts: "#111", skin: "#e0ac69", hair: "#5a3a22", dmg: 1.05, acc: 1.15 },
-      { id: "samba", name: "Samba", role: "efecto", img: "cards/samba.jpg", shirt: "#f1c40f", shorts: "#1e7a3a", skin: "#8d5524", hair: "#1a1a1a", dmg: 1.1 },
-      { id: "pibe", name: "Pibe", role: "sube rango", img: "cards/pibe.jpg", shirt: "#1f4e79", shorts: "#1a365d", skin: "#c68642", hair: "#111", dmg: 1.0 },
-      { id: "rayo", name: "Rayo", role: "rápido", img: "cards/rayo.jpg", shirt: "#f5f5f5", shorts: "#f5f5f5", skin: "#8d5524", hair: "#111", dmg: 0.95, spd: 1.2 }
+      { id: "capitan", name: "Capitán", role: "potencia", img: "cards/capitan.jpg", sprite: "cards/sprite-capitan.jpg", shirt: "#c0392b", shorts: "#1e7a3a", skin: "#e0ac69", hair: "#2b1b12", dmg: 1.25 },
+      { id: "diez", name: "Diez", role: "preciso", img: "cards/diez.jpg", sprite: "cards/sprite-diez.jpg", shirt: "#5dade2", shorts: "#111", skin: "#e0ac69", hair: "#5a3a22", dmg: 1.05, acc: 1.15 },
+      { id: "samba", name: "Samba", role: "efecto", img: "cards/samba.jpg", sprite: "cards/sprite-samba.jpg", shirt: "#f1c40f", shorts: "#1e7a3a", skin: "#8d5524", hair: "#1a1a1a", dmg: 1.1 },
+      { id: "pibe", name: "Pibe", role: "sube rango", img: "cards/pibe.jpg", sprite: "cards/sprite-pibe.jpg", shirt: "#1f4e79", shorts: "#1a365d", skin: "#c68642", hair: "#111", dmg: 1.0 },
+      { id: "rayo", name: "Rayo", role: "rápido", img: "cards/rayo.jpg", sprite: "cards/sprite-rayo.jpg", shirt: "#f5f5f5", shorts: "#f5f5f5", skin: "#8d5524", hair: "#111", dmg: 0.95, spd: 1.2 }
     ];
 
     const heroImg = {};
+    const heroSprite = {};
     HEROES.forEach(h => {
       const im = new Image();
       im.src = h.img;
       heroImg[h.id] = im;
+      const sp = new Image();
+      sp.src = h.sprite || h.img;
+      heroSprite[h.id] = sp;
     });
 
     let hero = HEROES[0];
@@ -288,17 +292,18 @@
       ctx.fillStyle = "#6b4a22";
       ctx.fillRect(x - 50, y, 100, 14);
       const im = heroImg[hero.id];
-      const iw = 90 * s, ih = 120 * s;
+      const iw = 100 * s, ih = 130 * s;
       ctx.save();
       ctx.translate(x, y - 6 + bob);
       ctx.rotate(kick);
       if (im && im.complete && im.naturalWidth) {
-        ctx.shadowColor = "rgba(0,0,0,.35)";
-        ctx.shadowBlur = 12;
-        const sx = im.naturalWidth * 0.16;
-        const sy = im.naturalHeight * 0.14;
-        const sw = im.naturalWidth * 0.68;
-        const sh = im.naturalHeight * 0.62;
+        ctx.beginPath();
+        ctx.ellipse(0, -ih * 0.48, iw * 0.38, ih * 0.48, 0, 0, Math.PI * 2);
+        ctx.clip();
+        const sx = im.naturalWidth * 0.18;
+        const sy = im.naturalHeight * 0.16;
+        const sw = im.naturalWidth * 0.64;
+        const sh = im.naturalHeight * 0.58;
         ctx.drawImage(im, sx, sy, sw, sh, -iw / 2, -ih, iw, ih);
       } else {
         ctx.fillStyle = hero.shirt;
