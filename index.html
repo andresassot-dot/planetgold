@@ -291,20 +291,13 @@
       const kick = state.charging ? -0.1 : (state.shot && state.shot.who === "me" ? 0.16 : 0);
       ctx.fillStyle = "#6b4a22";
       ctx.fillRect(x - 50, y, 100, 14);
-      const im = heroImg[hero.id];
+      const im = heroSprite[hero.id] || heroImg[hero.id];
       const iw = 100 * s, ih = 130 * s;
       ctx.save();
       ctx.translate(x, y - 6 + bob);
       ctx.rotate(kick);
       if (im && im.complete && im.naturalWidth) {
-        ctx.beginPath();
-        ctx.ellipse(0, -ih * 0.48, iw * 0.38, ih * 0.48, 0, 0, Math.PI * 2);
-        ctx.clip();
-        const sx = im.naturalWidth * 0.18;
-        const sy = im.naturalHeight * 0.16;
-        const sw = im.naturalWidth * 0.64;
-        const sh = im.naturalHeight * 0.58;
-        ctx.drawImage(im, sx, sy, sw, sh, -iw / 2, -ih, iw, ih);
+        ctx.drawImage(im, -iw / 2, -ih, iw, ih);
       } else {
         ctx.fillStyle = hero.shirt;
         ctx.fillRect(-28, -78, 56, 78);
