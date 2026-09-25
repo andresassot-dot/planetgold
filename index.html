@@ -261,57 +261,46 @@
       if (!keepHero) document.getElementById("meName").textContent = "TÚ · " + hero.name;
     }
 
+    let tick = 0;
+    function drawBall(x, y, r, rot) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot || 0);
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#111";
+      ctx.lineWidth = Math.max(2, r / 5);
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 5; i++) {
+        const a = i * Math.PI * 2 / 5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * r * 0.32, Math.sin(a) * r * 0.32);
+        ctx.lineTo(Math.cos(a) * r * 0.95, Math.sin(a) * r * 0.95);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     function drawHero(x, y) {
       const s = Math.max(1, devicePixelRatio);
+      const bob = Math.sin(tick / 12) * 5;
+      const kick = state.charging ? -0.1 : (state.shot && state.shot.who === "me" ? 0.16 : 0);
       ctx.fillStyle = "#6b4a22";
-      ctx.fillRect(x - 46 * s / 2, y, 46 * s, 16);
-
-      ctx.fillStyle = hero.shorts;
-      ctx.fillRect(x - 13, y - 22, 26, 22);
-      if (hero.id === "diez") {
-        ctx.fillStyle = "#5dade2";
-        ctx.fillRect(x - 15, y - 42, 30, 22);
-        ctx.fillStyle = "#fff";
-        for (let i = 0; i < 4; i++) ctx.fillRect(x - 13 + i * 8, y - 42, 4, 22);
-      } else if (hero.id === "pibe") {
-        ctx.fillStyle = "#1f4e79";
-        ctx.fillRect(x - 15, y - 42, 30, 22);
-        ctx.fillStyle = "#c0392b";
-        for (let i = 0; i < 3; i++) ctx.fillRect(x - 11 + i * 10, y - 42, 5, 22);
+      ctx.fillRect(x - 50, y, 100, 14);
+      const im = heroImg[hero.id];
+      const iw = 90 * s, ih = 120 * s;
+      ctx.save();
+      ctx.translate(x, y - 6 + bob);
+      ctx.rotate(kick);
+      if (im && im.complete && im.naturalWidth) {
+        ctx.shadowColor = "rgba(0,0,0,.4)";
+        ctx.shadowBlur = 14;
+        ctx.drawImage(im, -iw / 2, -ih, iw, ih);
       } else {
         ctx.fillStyle = hero.shirt;
-        ctx.fillRect(x - 15, y - 42, 30, 22);
+        ctx.fillRect(-28, -78, 56, 78);
       }
-
-      ctx.fillStyle = hero.skin;
-      ctx.fillRect(x - 16, y - 28, 7, 14);
-      ctx.fillRect(x + 9, y - 28, 7, 14);
-
-      ctx.beginPath(); ctx.arc(x, y - 54, 13, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = hero.hair;
-      if (hero.id === "samba" || hero.id === "pibe") {
-        ctx.beginPath(); ctx.arc(x - 8, y - 58, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x + 8, y - 58, 8, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x, y - 64, 9, 0, Math.PI * 2); ctx.fill();
-      } else if (hero.id === "rayo") {
-        ctx.fillRect(x - 11, y - 62, 22, 10);
-      } else {
-        ctx.beginPath(); ctx.ellipse(x, y - 60, 13, 10, 0, Math.PI, 0); ctx.fill();
-        if (hero.id === "capitan") {
-          ctx.beginPath(); ctx.moveTo(x - 4, y - 68); ctx.lineTo(x, y - 78); ctx.lineTo(x + 4, y - 68); ctx.fill();
-        }
-      }
-
-      const im = heroImg[hero.id];
-      if (im && im.complete && im.naturalWidth) {
-        const iw = 72 * s, ih = 96 * s;
-        ctx.save();
-        ctx.strokeStyle = "#d4af37";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x - 90 * s / 2, y - 175, iw, ih);
-        ctx.drawImage(im, x - 90 * s / 2, y - 175, iw, ih);
-        ctx.restore();
-      }
+      ctx.restore();
     }
 
     function drawShip(x, y) {
@@ -342,9 +331,10 @@
       const deg = Number(angEl.value) * Math.PI / 180;
       ctx.strokeStyle = "#ffe08a"; ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(me.x() + 10, me.y() - 28);
-      ctx.lineTo(me.x() + 10 + Math.cos(deg) * 50, me.y() - 28 - Math.sin(deg) * 50);
+      ctx.moveTo(me.x() + 18, me.y() - 40);
+      ctx.lineTo(me.x() + 18 + Math.cos(deg) * 56, me.y() - 40 - Math.sin(deg) * 56);
       ctx.stroke();
+      tick++;
 
       if (state.shot) {
         const s = state.shot;
@@ -352,10 +342,7 @@
         s.vx += state.wind;
         s.x += s.vx * devicePixelRatio * 0.55;
         s.y += s.vy * devicePixelRatio * 0.55;
-        ctx.fillStyle = "#fff59d";
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = "rgba(255,200,80,.35)";
-        ctx.beginPath(); ctx.arc(s.x - s.vx, s.y - s.vy, s.r + 6, 0, Math.PI * 2); ctx.fill();
+        drawBall(s.x, s.y, s.r + 4, tick / 4);
         hitTest();
       }
 
