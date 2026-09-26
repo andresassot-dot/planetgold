@@ -96,6 +96,20 @@
     #arena.on { display: block; }
     #bottom { bottom: 62px; }
     .card img { object-position: center 18%; }
+    #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
+    #packs.on { display: flex; }
+    .pack {
+      width: 160px; height: 210px; margin: 18px auto; border-radius: 16px;
+      background: linear-gradient(160deg,#3a2a0a,#d4af37 45%,#fff3c4);
+      border: 3px solid #ffe08a; box-shadow: 0 12px 30px rgba(0,0,0,.4);
+      display: flex; align-items: center; justify-content: center; font-weight: 900; color: #1a1200;
+      transform: rotate(-4deg);
+    }
+    .pack.open { animation: pop .5s ease; }
+    @keyframes pop { 0%{transform:scale(.7) rotate(-8deg)} 60%{transform:scale(1.08)} 100%{transform:scale(1) rotate(0)} }
+    #packCard { display:none; text-align:center; }
+    #packCard img { width: 180px; height: 220px; object-fit: cover; object-position: top; border-radius: 12px; border: 3px solid #d4af37; }
+
 
   </style>
 </head>
@@ -126,7 +140,7 @@
     </div>
     <div class="actions">
       <div class="act" data-tab="pick"><b>🃏</b>Cartas</div>
-      <div class="act" data-tab="pick"><b>▶️</b>Jugar</div>
+      <div class="act" data-tab="packs"><b>📦</b>Sobres</div>
       <div class="act" data-tab="wallet"><b>💰</b>Cobrar</div>
     </div>
     <p class="muted">Gana partidas para sumar puntos. Al cobrar envías tgold a tu wallet Solana.</p>
@@ -140,6 +154,19 @@
     <button class="main" id="go">JUGAR</button>
   </div>
 
+
+  <div id="packs">
+    <h1 style="color:#ffe08a;text-align:center">Sobres</h1>
+    <p class="muted" style="text-align:center">1 sobre gratis al día. Puede tocar copia de carta o tgold.</p>
+    <div class="pack" id="packBox">SOBRE<br>GOLD</div>
+    <div id="packCard">
+      <img id="packImg" alt="" />
+      <b id="packName" style="display:block;margin-top:8px"></b>
+      <small class="muted" id="packNote"></small>
+    </div>
+    <button class="main" id="openPack">ABRIR SOBRE</button>
+    <p class="muted" id="packMsg" style="text-align:center;margin-top:10px"></p>
+  </div>
   <div id="wallet">
     <h1 style="color:#ffe08a;text-align:center">Cobrar</h1>
     <p class="muted" style="text-align:center">Pega tu wallet de Solana (la de recibir tgold)</p>
@@ -171,7 +198,7 @@
   <nav id="nav">
     <button data-tab="home" class="on">Inicio</button>
     <button data-tab="pick">Jugar</button>
-    <button data-tab="pick">Cartas</button>
+    <button data-tab="packs">Sobres</button>
     <button data-tab="wallet">Cobrar</button>
   </nav>
   <script>
@@ -248,7 +275,7 @@
 
 
     function showTab(name) {
-      ["home","pick","wallet","arena"].forEach(id => {
+      ["home","pick","wallet","arena","packs"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -324,6 +351,34 @@
     }
     loadTicker();
     setInterval(loadTicker, 30000);
+
+
+    document.getElementById("openPack").onclick = () => {
+      const msg = document.getElementById("packMsg");
+      const day = new Date().toISOString().slice(0,10);
+      if (localStorage.getItem("pg_packDay") === day) {
+        msg.textContent = "Ya abriste el sobre de hoy. Vuelve mañana.";
+        return;
+      }
+      localStorage.setItem("pg_packDay", day);
+      const h = HEROES[Math.floor(Math.random()*HEROES.length)];
+      const jackpot = Math.random() < 0.18;
+      const note = addDust(h.id);
+      let extra = "";
+      if (jackpot) {
+        const pend = Number(localStorage.getItem("pg_pend")||0) + 1;
+        localStorage.setItem("pg_pend", pend);
+        extra = " + 1 tgold";
+      }
+      document.getElementById("packBox").classList.add("open");
+      const box = document.getElementById("packCard");
+      box.style.display = "block";
+      document.getElementById("packImg").src = h.img;
+      document.getElementById("packName").textContent = h.name;
+      document.getElementById("packNote").textContent = note + extra;
+      msg.textContent = jackpot ? "¡Sobre bueno!" : "Copia añadida a tu álbum.";
+      refreshHome();
+    };
 
     refreshHome();
 
