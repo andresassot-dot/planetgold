@@ -792,7 +792,12 @@
       }
       const kx = keeperX(), ky = y + 58;
       if (keeperImg.complete && keeperImg.naturalWidth) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(kx, ky - 30, 28, 46, 0, 0, Math.PI * 2);
+        ctx.clip();
         ctx.drawImage(keeperImg, kx - 36, ky - 78, 72, 96);
+        ctx.restore();
       } else {
         ctx.fillStyle = "#f1c27d";
         ctx.beginPath(); ctx.arc(kx, ky - 28, 11, 0, Math.PI * 2); ctx.fill();
