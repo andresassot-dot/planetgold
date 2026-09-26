@@ -17,22 +17,14 @@ export default async function handler(req, res) {
   const body = {
     chat_id: msg.chat.id,
     text:
-      "PLANET GOLD\nElige ficha, dispara a la portería y gana tgold.\nToca JUGAR para abrir el Mini App.",
+      "PLANET GOLD\nElige ficha, dispara a la portería y gana tgold.\nToca JUGAR para abrir el juego.",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🎮 JUGAR AHORA", web_app: { url: URL } }]
+        [{ text: "🎮 JUGAR AHORA", web_app: { url: URL } }],
+        [{ text: "Abrir el bot", url: "https://t.me/Planetgoldgame_bot" }]
       ]
     }
   };
-
-  // In groups Telegram often requires url button instead of web_app
-  if (msg.chat.type === "group" || msg.chat.type === "supergroup") {
-    body.reply_markup = {
-      inline_keyboard: [
-        [{ text: "🎮 JUGAR AHORA", url: "https://t.me/PlanetgoldGringotts?startapp" }]
-      ]
-    };
-  }
 
   await fetch("https://api.telegram.org/bot" + token + "/sendMessage", {
     method: "POST",
