@@ -115,6 +115,10 @@
     .lastPack .fifa { width: 92px; flex-shrink: 0; }
     .lastPack img { height: 118px; object-fit: cover; object-position: top; }
 
+    #mercado { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
+    #mercado.on { display: flex; }
+    .offer { display:flex; gap:10px; align-items:center; background:#161a26; border:1px solid #3a4258; border-radius:12px; padding:10px; margin:8px 0; }
+    .offer img { width:48px; height:62px; object-fit:cover; border-radius:6px; border:1px solid #d4af37; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
     .pack {
@@ -170,9 +174,10 @@
       <canvas id="spark" width="320" height="56" style="width:100%;height:56px;margin-top:8px"></canvas>
       <div class="muted" id="tkMeta">precio en vivo</div>
     </div>
-    <div class="actions">
+    <div class="actions" style="grid-template-columns:1fr 1fr">
       <div class="act" data-tab="pick"><img src="cards/icon-cartas.jpg?v=4" alt="" onerror="this.onerror=null;this.src='cards/icon-cartas.png'" />Cartas</div>
       <div class="act" data-tab="packs"><img src="cards/icon-sobres.jpg?v=4" alt="" onerror="this.onerror=null;this.src='cards/icon-sobres.png'" />Sobres</div>
+      <div class="act" data-tab="mercado"><b>🏪</b>Mercado</div>
       <div class="act" data-tab="wallet"><img src="cards/icon-cobrar.jpg?v=4" alt="" onerror="this.onerror=null;this.src='cards/icon-cobrar.png'" />Cobrar</div>
     </div>
     <p class="muted">Gana partidas para sumar puntos. Al cobrar envías tgold a tu wallet Solana.</p>
@@ -198,6 +203,20 @@
     </div>
     <button class="main" id="openPack">ABRIR SOBRE</button>
     <p class="muted" id="packMsg" style="text-align:center;margin-top:10px"></p>
+  </div>
+
+  <div id="mercado">
+    <h1 style="color:#ffe08a;text-align:center">Mercado</h1>
+    <p class="muted" style="text-align:center">Vende una copia (1/3) por puntos. La compra real entre jugadores llega después.</p>
+    <div class="heroBan">
+      <div class="muted">Poner a la venta</div>
+      <select id="sellWho" class="wal" style="margin-top:8px"></select>
+      <input class="wal" id="sellPrice" type="number" placeholder="Precio en pts" value="800" />
+      <button class="main" id="sellBtn">PUBLICAR</button>
+      <p class="muted" id="sellMsg" style="text-align:center"></p>
+    </div>
+    <h2 style="color:#ffe08a;font-size:16px;margin:16px 0 8px">Ofertas</h2>
+    <div id="offers"></div>
   </div>
   <div id="wallet">
     <h1 style="color:#ffe08a;text-align:center">Cobrar</h1>
@@ -307,7 +326,7 @@
 
 
     function showTab(name) {
-      ["home","pick","wallet","arena","packs"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -316,6 +335,7 @@
       });
       if (name === "home") refreshHome();
       if (name === "pick") renderGrid();
+      if (name === "mercado") renderMarket();
       if (name === "wallet") {
         document.getElementById("walPend").textContent = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walletIn").value = localStorage.getItem("pg_wallet")||"";
@@ -435,7 +455,51 @@
       document.getElementById("packNote").textContent = note + extra;
       localStorage.setItem("pg_lastPack", JSON.stringify({ img:h.img, name:h.name, note: note + extra }));
       msg.textContent = jackpot ? "¡Sobre bueno!" : "Copia añadida a tu álbum.";
-      refreshHome();
+  
+    function marketList() {
+      try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]"); } catch(e){ return []; }
+    }
+    function renderMarket() {
+      const sel = document.getElementById("sellWho");
+      if (!sel) return;
+      sel.innerHTML = HEROES.map(h => `<option value="${h.id}">${h.name} · ${dustOf(h.id)}/3</option>`).join("");
+      const box = document.getElementById("offers");
+      const list = marketList();
+      if (!list.length) { box.innerHTML = '<p class="muted">No hay ofertas. Publica la primera.</p>'; return; }
+      box.innerHTML = list.map((o,i) => {
+        const h = HEROES.find(x => x.id===o.id) || HEROES[0];
+        return `<div class="offer"><img src="${h.img}" /><div style="flex:1"><b>${h.name}</b><div class="muted">${o.price} pts · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
+      }).join("");
+      box.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
+        const i = Number(b.getAttribute("data-buy"));
+        const list = marketList();
+        const o = list[i];
+        if (!o) return;
+        const pts = Number(localStorage.getItem("pg_pts")||0);
+        if (pts < o.price) { document.getElementById("sellMsg").textContent = "No te llegan los puntos."; return; }
+        localStorage.setItem("pg_pts", pts - o.price);
+        addDust(o.id);
+        list.splice(i,1);
+        localStorage.setItem("pg_mkt", JSON.stringify(list));
+        refreshHome(); renderMarket();
+        document.getElementById("sellMsg").textContent = "Comprada.";
+      });
+    }
+    const sellBtn = document.getElementById("sellBtn");
+    if (sellBtn) sellBtn.onclick = () => {
+      const id = document.getElementById("sellWho").value;
+      const price = Math.max(100, Number(document.getElementById("sellPrice").value||0));
+      if (dustOf(id) <= 0) { document.getElementById("sellMsg").textContent = "No tienes copias de esa carta."; return; }
+      localStorage.setItem("pg_du_"+id, dustOf(id)-1);
+      const list = marketList();
+      const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+      list.unshift({ id, price, by: u.first_name || "tú" });
+      localStorage.setItem("pg_mkt", JSON.stringify(list));
+      document.getElementById("sellMsg").textContent = "Publicada.";
+      renderMarket(); renderGrid();
+    };
+
+    refreshHome();
     };
 
     refreshHome();
