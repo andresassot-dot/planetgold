@@ -880,11 +880,11 @@
       meHp: 100, enHp: 100, turn: "me",
       power: 0, charging: false, shot: null,
       pts: Number(localStorage.getItem("pg_pts") || 0),
-      wind: 0, boom: null
+      wind: 0, boom: null, net: 0
     };
 
     const me = { x: () => W * 0.16, y: () => ground - 8 };
-    const en = { x: () => W * 0.82, y: () => ground - 118 };
+    const en = { x: () => W * 0.78, y: () => ground - 168 };
 
     function setHp() {
       document.getElementById("hpMe").style.width = state.meHp + "%";
@@ -940,11 +940,19 @@
       if (s.who === "me") {
         const dx = s.x - keeperX(), dy = s.y - (en.y() + 40);
         const rad = 58 * (hero.acc || 1);
-        if (Math.hypot(dx, dy) < rad) {
+        const gx = en.x(), gy = en.y();
+        const gw = 176, gh = 176;
+        const inGoal = s.x > gx-gw/2+8 && s.x < gx+gw/2-8 && s.y > gy-10 && s.y < gy+gh-12;
+        if (Math.hypot(dx, dy) < 36) {
+          boomAt(s.x, s.y);
+          msg.textContent = "¡Parada!";
+          state.shot = null; afterShot();
+        } else if (inGoal) {
           const dmg = Math.round((20 + state.power / 4.5) * hero.dmg);
           state.enHp = Math.max(0, state.enHp - dmg);
-          setHp(); boomAt(en.x(), en.y() + 20);
-          msg.textContent = "¡Impacto! -" + dmg;
+          setHp(); boomAt(gx, gy + 40);
+          state.net = 28;
+          msg.textContent = "¡GOL! -" + dmg;
           state.shot = null; afterShot();
         }
       } else {
@@ -1064,23 +1072,24 @@
     }
 
     function drawShip(x, y) {
-      const post = 8;
-      const gw = 118, gh = 128;
+      const post = 10;
+      const gw = 176, gh = 176;
+      const shake = state.net > 0 ? (state.net--, Math.sin(tick) * state.net * 0.55) : 0;
       ctx.fillStyle = "#f5f5f5";
       ctx.fillRect(x - gw/2, y - 18, post, gh);
       ctx.fillRect(x + gw/2 - post, y - 18, post, gh);
       ctx.fillRect(x - gw/2, y - 18, gw, post);
-      ctx.strokeStyle = "rgba(255,255,255,.4)";
+      ctx.strokeStyle = "rgba(255,255,255,.55)";
       ctx.lineWidth = 2;
-      for (let i = 0; i <= 7; i++) {
-        const px = x - gw/2 + 8 + i * ((gw-16)/7);
-        ctx.beginPath(); ctx.moveTo(px, y - 8); ctx.lineTo(px, y + gh - 22); ctx.stroke();
+      for (let i = 0; i <= 9; i++) {
+        const px = x - gw/2 + 8 + i * ((gw-16)/9) + shake * (i%2?1:-1);
+        ctx.beginPath(); ctx.moveTo(px, y - 8); ctx.lineTo(px + shake, y + gh - 22); ctx.stroke();
       }
-      for (let j = 0; j <= 6; j++) {
-        const py = y - 8 + j * ((gh-14)/6);
-        ctx.beginPath(); ctx.moveTo(x - gw/2 + 8, py); ctx.lineTo(x + gw/2 - 8, py); ctx.stroke();
+      for (let j = 0; j <= 8; j++) {
+        const py = y - 8 + j * ((gh-14)/8) + Math.sin(tick/3+j)*shake;
+        ctx.beginPath(); ctx.moveTo(x - gw/2 + 8, py); ctx.lineTo(x + gw/2 - 8, py + shake*0.4); ctx.stroke();
       }
-      const kx = keeperX(), ky = y + 92;
+      const kx = keeperX(), ky = y + 118;
       if (keeperImg.complete && keeperImg.naturalWidth) {
         ctx.save();
         ctx.beginPath();
