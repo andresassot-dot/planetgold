@@ -319,11 +319,15 @@
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
       const en = document.getElementById("homeEn");
       if (en) en.textContent = getEnergy() + "/" + MAX_EN;
-      const last = localStorage.getItem("pg_lastPack");
       const wrap = document.getElementById("lastWrap");
-      if (wrap && last) {
-        const j = JSON.parse(last);
+      if (wrap) {
         wrap.style.display = "flex";
+        let j = null;
+        try { j = JSON.parse(localStorage.getItem("pg_lastPack")||"null"); } catch(e) {}
+        if (!j) {
+          const h = HEROES[0];
+          j = { img: h.img, name: h.name, note: (RANKS[rankOf(h.id)]||"Bronce") + " · " + dustOf(h.id) + "/3" };
+        }
         document.getElementById("lastImg").src = j.img;
         document.getElementById("lastName").textContent = j.name;
         document.getElementById("lastNote").textContent = j.note;
