@@ -192,16 +192,21 @@
     const EN_MS = 8 * 60 * 1000;
 
     function getEnergy() {
-      let n = Number(localStorage.getItem("pg_en"));
+      const raw = localStorage.getItem("pg_en");
+      let n = raw === null ? MAX_EN : Number(raw);
+      if (Number.isNaN(n) || n < 0) n = MAX_EN;
       let at = Number(localStorage.getItem("pg_enAt") || Date.now());
-      if (Number.isNaN(n)) n = MAX_EN;
       const add = Math.floor((Date.now() - at) / EN_MS);
       if (add > 0) {
         n = Math.min(MAX_EN, n + add);
         at += add * EN_MS;
-        localStorage.setItem("pg_en", n);
-        localStorage.setItem("pg_enAt", at);
       }
+      if (raw === null || localStorage.getItem("pg_enFix") !== "1") {
+        if (n <= 0) n = MAX_EN;
+        localStorage.setItem("pg_enFix", "1");
+      }
+      localStorage.setItem("pg_en", n);
+      localStorage.setItem("pg_enAt", String(at));
       return n;
     }
     function spendEnergy() {
