@@ -646,7 +646,7 @@
       const s = state.shot;
       if (!s) return;
       if (s.who === "me") {
-        const dx = s.x - en.x(), dy = s.y - (en.y() + 26);
+        const dx = s.x - keeperX(), dy = s.y - (en.y() + 40);
         const rad = 58 * (hero.acc || 1);
         if (Math.hypot(dx, dy) < rad) {
           const dmg = Math.round((20 + state.power / 4.5) * hero.dmg);
@@ -766,39 +766,58 @@
       ctx.restore();
     }
 
+    function keeperX() {
+      return en.x() + Math.sin(tick / 38) * 42;
+    }
+
     function drawShip(x, y) {
-      const post = 10;
-      const gw = 92, gh = 110;
-      ctx.fillStyle = "#eee";
-      ctx.fillRect(x - gw/2, y - 20, post, gh);
-      ctx.fillRect(x + gw/2 - post, y - 20, post, gh);
-      ctx.fillRect(x - gw/2, y - 20, gw, post);
-      ctx.strokeStyle = "rgba(255,255,255,.35)";
+      const post = 8;
+      const gw = 118, gh = 128;
+      ctx.fillStyle = "#f5f5f5";
+      ctx.fillRect(x - gw/2, y - 18, post, gh);
+      ctx.fillRect(x + gw/2 - post, y - 18, post, gh);
+      ctx.fillRect(x - gw/2, y - 18, gw, post);
+      ctx.strokeStyle = "rgba(255,255,255,.4)";
       ctx.lineWidth = 2;
-      for (let i = 0; i <= 6; i++) {
-        const px = x - gw/2 + 8 + i * ((gw-16)/6);
-        ctx.beginPath(); ctx.moveTo(px, y - 10); ctx.lineTo(px, y + gh - 24); ctx.stroke();
+      for (let i = 0; i <= 7; i++) {
+        const px = x - gw/2 + 8 + i * ((gw-16)/7);
+        ctx.beginPath(); ctx.moveTo(px, y - 8); ctx.lineTo(px, y + gh - 22); ctx.stroke();
       }
-      for (let j = 0; j <= 5; j++) {
-        const py = y - 10 + j * ((gh-14)/5);
+      for (let j = 0; j <= 6; j++) {
+        const py = y - 8 + j * ((gh-14)/6);
         ctx.beginPath(); ctx.moveTo(x - gw/2 + 8, py); ctx.lineTo(x + gw/2 - 8, py); ctx.stroke();
       }
-      ctx.fillStyle = "#8d6e63";
-      ctx.fillRect(x - gw/2 - 6, y + gh - 24, gw + 12, 10);
+      const kx = keeperX();
+      ctx.fillStyle = "#111";
+      ctx.fillRect(kx - 16, y + 28, 32, 44);
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(kx, y + 18, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#c0392b";
+      ctx.fillRect(kx - 14, y + 30, 28, 18);
     }
 
     function draw() {
-      const sky = ctx.createLinearGradient(0, 0, 0, H);
-      sky.addColorStop(0, "#2a1a3a"); sky.addColorStop(.55, "#c0392b"); sky.addColorStop(1, "#f39c12");
+      const sky = ctx.createLinearGradient(0, 0, 0, ground);
+      sky.addColorStop(0, "#1b3a6b"); sky.addColorStop(1, "#7ec8e3");
       ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
 
-      ctx.fillStyle = "rgba(255,255,255,.15)";
-      ctx.beginPath(); ctx.arc(W * 0.78, H * 0.16, 46, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#0d3b1e";
+      ctx.fillRect(0, ground - 8, W, H - ground + 8);
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = i % 2 ? "#1f7a3a" : "#176b32";
+        ctx.fillRect(i * W/8, ground - 8, W/8, 18);
+      }
+      ctx.strokeStyle = "rgba(255,255,255,.35)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W*0.08, ground - 8); ctx.lineTo(W*0.92, ground - 8); ctx.stroke();
+      ctx.beginPath(); ctx.arc(W*0.5, ground - 8, 48, Math.PI, 0); ctx.stroke();
 
-      ctx.fillStyle = "#2d1a0a";
-      ctx.fillRect(0, ground, W, H - ground);
-      ctx.fillStyle = "#1e7a3a";
-      ctx.fillRect(0, ground, W, 12);
+      ctx.fillStyle = "#1a1020";
+      ctx.fillRect(0, 0, W, 36);
+      for (let i = 0; i < 18; i++) {
+        ctx.fillStyle = i % 2 ? "#3b1d2a" : "#2a1520";
+        ctx.fillRect(i * W/18, 20, W/18 - 2, 16);
+      }
 
       drawHero(me.x(), me.y());
       drawShip(en.x(), en.y());
