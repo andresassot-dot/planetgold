@@ -64,7 +64,7 @@
   <div id="hud">
     <div class="box hp"><span id="meName">TÚ</span><div class="bar"><div id="hpMe" class="fill"></div></div></div>
     <div class="box" id="turn">TU TURNO</div>
-    <div class="box hp" style="text-align:right">NAVE<div class="bar"><div id="hpEn" class="fill"></div></div></div>
+    <div class="box hp" style="text-align:right">PORTERÍA<div class="bar"><div id="hpEn" class="fill"></div></div></div>
   </div>
   <canvas id="c"></canvas>
   <div id="bottom">
@@ -179,7 +179,7 @@
       const sy = fromMe ? me.y() - 30 : en.y() + 18;
       state.shot = { who, x: sx, y: sy, vx: Math.cos(rad) * speed, vy: -Math.sin(rad) * speed, r: 10 };
       fireBtn.disabled = true;
-      msg.textContent = fromMe ? hero.name + " dispara…" : "¡La nave responde!";
+      msg.textContent = fromMe ? hero.name + " dispara…" : "¡La portería responde!";
     }
 
     function boomAt(x, y) { state.boom = { x, y, t: 18 }; }
@@ -227,7 +227,7 @@
       }
       if (state.meHp <= 0) {
         turnEl.textContent = "DERROTA";
-        msg.textContent = "La nave gana.";
+        msg.textContent = "No hubo gol.";
         fireBtn.textContent = "REINTENTAR";
         fireBtn.disabled = false;
         fireBtn.onclick = () => reset(true);
@@ -235,7 +235,7 @@
       }
       if (state.turn === "me") {
         state.turn = "en";
-        turnEl.textContent = "NAVE";
+        turnEl.textContent = "PORTERÍA";
         setTimeout(enemyTurn, 650);
       } else {
         state.turn = "me";
@@ -306,12 +306,24 @@
     }
 
     function drawShip(x, y) {
-      ctx.fillStyle = "#5d6d7e";
-      ctx.beginPath(); ctx.ellipse(x, y + 30, 54, 24, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#85929e";
-      ctx.fillRect(x - 16, y + 2, 32, 28);
-      ctx.fillStyle = "#e74c3c";
-      ctx.beginPath(); ctx.arc(x, y + 14, 8, 0, Math.PI * 2); ctx.fill();
+      const post = 10;
+      const gw = 92, gh = 110;
+      ctx.fillStyle = "#eee";
+      ctx.fillRect(x - gw/2, y - 20, post, gh);
+      ctx.fillRect(x + gw/2 - post, y - 20, post, gh);
+      ctx.fillRect(x - gw/2, y - 20, gw, post);
+      ctx.strokeStyle = "rgba(255,255,255,.35)";
+      ctx.lineWidth = 2;
+      for (let i = 0; i <= 6; i++) {
+        const px = x - gw/2 + 8 + i * ((gw-16)/6);
+        ctx.beginPath(); ctx.moveTo(px, y - 10); ctx.lineTo(px, y + gh - 24); ctx.stroke();
+      }
+      for (let j = 0; j <= 5; j++) {
+        const py = y - 10 + j * ((gh-14)/5);
+        ctx.beginPath(); ctx.moveTo(x - gw/2 + 8, py); ctx.lineTo(x + gw/2 - 8, py); ctx.stroke();
+      }
+      ctx.fillStyle = "#8d6e63";
+      ctx.fillRect(x - gw/2 - 6, y + gh - 24, gw + 12, 10);
     }
 
     function draw() {
