@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   if (msg.chat.type === "group" || msg.chat.type === "supergroup") {
     body.reply_markup = {
       inline_keyboard: [
-        [{ text: "🎮 JUGAR AHORA", url: "https://t.me/Planetgoldgame_bot?startapp" }]
+        [{ text: "🎮 JUGAR AHORA", url: "https://t.me/PlanetgoldGringotts?startapp" }]
       ]
     };
   }
