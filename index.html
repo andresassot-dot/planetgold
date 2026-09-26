@@ -82,6 +82,8 @@
     .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 16px 0; }
     .act { background: #161a26; border: 1px solid #3a4258; border-radius: 14px; padding: 14px 8px; text-align: center; font-size: 12px; }
     .act b { display: block; font-size: 20px; margin-bottom: 4px; }
+    .act img { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; display: block; margin: 0 auto 6px; }
+
     input.wal { width: 100%; margin: 10px 0; padding: 12px; border-radius: 10px; border: 1px solid #3a4258; background: #12141c; color: #fff; }
     #nav {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
@@ -169,9 +171,9 @@
       <div class="muted" id="tkMeta">precio en vivo</div>
     </div>
     <div class="actions">
-      <div class="act" data-tab="pick"><b>🃏</b>Cartas</div>
-      <div class="act" data-tab="packs"><b>📦</b>Sobres</div>
-      <div class="act" data-tab="wallet"><b>💰</b>Cobrar</div>
+      <div class="act" data-tab="pick"><img src="cards/icon-cartas.png" alt="" />Cartas</div>
+      <div class="act" data-tab="packs"><img src="cards/icon-sobres.png" alt="" />Sobres</div>
+      <div class="act" data-tab="wallet"><img src="cards/icon-cobrar.png" alt="" />Cobrar</div>
     </div>
     <p class="muted">Gana partidas para sumar puntos. Al cobrar envías tgold a tu wallet Solana.</p>
     <button class="main" data-tab="pick">EMPEZAR PARTIDA</button>
