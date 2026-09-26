@@ -119,6 +119,8 @@
     #mercado.on { display: flex; }
     .offer { display:flex; gap:10px; align-items:center; background:#161a26; border:1px solid #3a4258; border-radius:12px; padding:10px; margin:8px 0; }
     .offer img { width:48px; height:62px; object-fit:cover; border-radius:6px; border:1px solid #d4af37; }
+        #duel { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
+    #duel.on { display: flex; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
     .pack {
@@ -187,7 +189,22 @@
     <h1>PLANET GOLD</h1>
     <p>Elige ficha · 3 copias suben de marco</p>
     <div class="grid" id="grid"></div>
-    <button class="main" id="go">JUGAR</button>
+    <button class="main" id="go">FARMEAR TGOLD</button>
+    <button class="main" id="duelBtn" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">DUELO DE CARTAS</button>
+  </div>
+
+  <div id="duel">
+    <h1 style="color:#ffe08a;text-align:center">Duelo</h1>
+    <p class="muted" style="text-align:center">Tu mazo contra la máquina. 3 cartas. Gana la de más rango + poder.</p>
+    <div id="duelBoard" style="display:flex;justify-content:space-around;align-items:center;margin:18px 0;min-height:180px">
+      <div style="text-align:center"><small class="muted">Tú</small><img id="duelMe" style="width:110px;border-radius:10px;border:2px solid #d4af37;display:block" /></div>
+      <b style="font-size:22px;color:#ffe08a">VS</b>
+      <div style="text-align:center"><small class="muted">Rival</small><img id="duelEn" style="width:110px;border-radius:10px;border:2px solid #888;display:block" /></div>
+    </div>
+    <p id="duelMsg" class="muted" style="text-align:center">Elige 3 cartas abajo y dale a EMPEZAR.</p>
+    <div id="duelPick" class="grid" style="grid-template-columns:repeat(5,1fr);gap:6px"></div>
+    <button class="main" id="duelStart">EMPEZAR DUELO</button>
+    <button class="main" id="duelNext" style="display:none">SIGUIENTE CARTA</button>
   </div>
 
 
@@ -334,7 +351,7 @@
 
 
     function showTab(name) {
-      ["home","pick","wallet","arena","packs","mercado"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado","duel"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -561,6 +578,57 @@
       });
     }
     renderGrid();
+
+    let duelDeck = [];
+    let duelAI = [];
+    let duelI = 0;
+    let duelWins = 0;
+    function powerOf(h) { return Math.round((h.dmg||1)*100 + rankOf(h.id)*20); }
+    function renderDuelPick() {
+      const box = document.getElementById("duelPick");
+      box.innerHTML = HEROES.map(h => `<div class="card${duelDeck.includes(h.id)?" on":""}" data-id="${h.id}" style="padding:4px"><img src="${h.img}" style="height:70px;margin:0" /></div>`).join("");
+      box.querySelectorAll(".card").forEach(el => el.onclick = () => {
+        const id = el.getAttribute("data-id");
+        if (duelDeck.includes(id)) duelDeck = duelDeck.filter(x => x!==id);
+        else if (duelDeck.length < 3) duelDeck.push(id);
+        renderDuelPick();
+      });
+    }
+    function showDuelRound() {
+      if (duelI >= 3) {
+        document.getElementById("duelMsg").textContent = duelWins>=2 ? "Ganaste el duelo +400 pts" : "Perdiste el duelo";
+        if (duelWins>=2) {
+          localStorage.setItem("pg_pts", Number(localStorage.getItem("pg_pts")||0)+400);
+        }
+        document.getElementById("duelNext").style.display = "none";
+        document.getElementById("duelStart").style.display = "block";
+        return;
+      }
+      const me = HEROES.find(h => h.id===duelDeck[duelI]);
+      const en = HEROES.find(h => h.id===duelAI[duelI]);
+      document.getElementById("duelMe").src = me.img;
+      document.getElementById("duelEn").src = en.img;
+      const pw = powerOf(me), pe = powerOf(en) + Math.floor(Math.random()*15);
+      const win = pw >= pe;
+      if (win) duelWins++;
+      document.getElementById("duelMsg").textContent = (win?"Ganas":"Pierdes") + " ronda " + (duelI+1) + " · " + pw + " vs " + pe;
+      document.getElementById("duelNext").style.display = "block";
+      document.getElementById("duelStart").style.display = "none";
+    }
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); renderDuelPick(); };
+    document.getElementById("duelStart").onclick = () => {
+      if (duelDeck.length < 3) { document.getElementById("duelMsg").textContent = "Elige 3 cartas."; return; }
+      const pool = HEROES.map(h=>h.id);
+      duelAI = [];
+      while (duelAI.length < 3) {
+        const id = pool[Math.floor(Math.random()*pool.length)];
+        if (!duelAI.includes(id)) duelAI.push(id);
+      }
+      duelI = 0; duelWins = 0;
+      showDuelRound();
+    };
+    document.getElementById("duelNext").onclick = () => { duelI++; showDuelRound(); };
+
     document.getElementById("go").onclick = () => {
       showTab("arena");
       document.getElementById("meName").textContent = "TÚ · " + hero.name;
