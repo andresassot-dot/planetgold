@@ -92,6 +92,17 @@
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">tgold pendiente: <b id="homePend">0</b></div>
     </div>
+    <div class="heroBan" id="ticker" style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="muted">TGOLD · Solana</div>
+          <div class="big" id="tkPrice">—</div>
+        </div>
+        <div id="tkChg" style="font-weight:800;font-size:18px">—</div>
+      </div>
+      <canvas id="spark" width="320" height="56" style="width:100%;height:56px;margin-top:8px"></canvas>
+      <div class="muted" id="tkMeta">precio en vivo</div>
+    </div>
     <div class="actions">
       <div class="act" data-tab="pick"><b>🃏</b>Cartas</div>
       <div class="act" data-tab="pick"><b>▶️</b>Jugar</div>
@@ -187,6 +198,60 @@
     document.querySelectorAll("[data-tab]").forEach(el => {
       el.addEventListener("click", () => showTab(el.getAttribute("data-tab")));
     });
+
+    async function loadTicker() {
+      const priceEl = document.getElementById("tkPrice");
+      const chgEl = document.getElementById("tkChg");
+      const meta = document.getElementById("tkMeta");
+      try {
+        let d;
+        try {
+          const r = await fetch("/api/price");
+          d = await r.json();
+        } catch(_) {
+          const r2 = await fetch("https://api.geckoterminal.com/api/v2/networks/solana/pools/GXjeLNKFiwh3pfbYWS3Cn7GMKxSNJXBeGvymaVWc5cHS");
+          const j = await r2.json();
+          const a = j.data.attributes;
+          d = { price: Number(a.base_token_price_usd), change24: Number(a.price_change_percentage.h24||0), liq: Number(a.reserve_in_usd), vol: Number(a.volume_usd.h24||0) };
+        }
+        if (!d || !d.price) throw new Error("sin precio");
+        priceEl.textContent = "$" + d.price.toPrecision(4);
+        const up = d.change24 >= 0;
+        chgEl.textContent = (up?"+":"") + Number(d.change24).toFixed(2) + "%";
+        chgEl.style.color = up ? "#2ecc71" : "#e74c3c";
+        meta.textContent = "liq $" + Math.round(d.liq||0) + " · 24h vol $" + Math.round(d.vol||0);
+        const hist = JSON.parse(localStorage.getItem("pg_px")||"[]");
+        hist.push(d.price);
+        if (hist.length > 36) hist.shift();
+        localStorage.setItem("pg_px", JSON.stringify(hist));
+        drawSpark(hist);
+      } catch(e) {
+        priceEl.textContent = "—";
+        meta.textContent = "No se pudo leer el precio";
+      }
+    }
+    function drawSpark(hist) {
+      const c = document.getElementById("spark");
+      if (!c || hist.length < 2) return;
+      const ctx = c.getContext("2d");
+      const w = c.width, h = c.height;
+      ctx.clearRect(0,0,w,h);
+      const min = Math.min(...hist), max = Math.max(...hist);
+      const span = (max-min) || (hist[0]*0.01) || 1e-9;
+      ctx.beginPath();
+      hist.forEach((v,i) => {
+        const x = i/(hist.length-1)*w;
+        const y = h - ((v-min)/span)* (h-8) - 4;
+        i? ctx.lineTo(x,y) : ctx.moveTo(x,y);
+      });
+      const up = hist[hist.length-1] >= hist[0];
+      ctx.strokeStyle = up ? "#2ecc71" : "#e74c3c";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    loadTicker();
+    setInterval(loadTicker, 30000);
+
     refreshHome();
 
     document.getElementById("claimBtn").onclick = async () => {
