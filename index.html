@@ -145,10 +145,15 @@
       <div class="muted" style="margin-top:8px">Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
       <div class="lastPack" id="lastWrap" style="display:none">
         <div class="fifa"><img id="lastImg" alt="" /></div>
-        <div>
+        <div style="flex:1">
           <div class="muted">Último sobre</div>
           <div class="big" id="lastName" style="font-size:20px;margin:4px 0">—</div>
           <div class="muted" id="lastNote"></div>
+        </div>
+        <div id="meBox" style="text-align:center;min-width:72px">
+          <img id="meAva" alt="" style="width:52px;height:52px;border-radius:50%;border:2px solid #d4af37;object-fit:cover;background:#222" />
+          <div id="meWho" style="font-size:11px;margin-top:4px;font-weight:700">Tú</div>
+          <div class="muted" id="meRank" style="font-size:10px">#—</div>
         </div>
       </div>
     </div>
@@ -331,6 +336,17 @@
         document.getElementById("lastImg").src = j.img;
         document.getElementById("lastName").textContent = j.name;
         document.getElementById("lastNote").textContent = j.note;
+        const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+        const ava = document.getElementById("meAva");
+        const who = document.getElementById("meWho");
+        const rk = document.getElementById("meRank");
+        if (who) who.textContent = u.first_name || u.username || "Tú";
+        if (ava) {
+          if (u.photo_url) ava.src = u.photo_url;
+          else ava.src = "cards/capitan.jpg";
+        }
+        const pts = Number(localStorage.getItem("pg_pts")||0);
+        if (rk) rk.textContent = pts >= 20000 ? "#1 local" : (pts >= 5000 ? "Top local" : "Novato");
       }
     }
     document.querySelectorAll("[data-tab]").forEach(el => {
