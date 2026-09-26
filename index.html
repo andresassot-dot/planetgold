@@ -218,6 +218,7 @@
     <div id="duelHand">
     <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
     <div id="duelPick" class="grid" style="grid-template-columns:repeat(6,1fr);gap:4px"></div>
+    <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px"></div>
     <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
     </div>
     <button class="main" id="duelNext" style="display:none">PASAR TURNO</button>
@@ -614,6 +615,56 @@
     let targets = {};
     let falls = { me:0, en:0 };
     let turnN = 1;
+    let fxMe = [];
+    let fxEn = [];
+    let selectedFx = null;
+    const FXCARDS = [
+      { id:"grietas", name:"Grietas", need:"row", txt:"fila −2 vida" },
+      { id:"viento", name:"Viento", need:"col", txt:"col −2 atk" },
+      { id:"fortin", name:"Fortín", need:"row", txt:"fila +2 vida" },
+      { id:"tesoro", name:"Tesoro", need:"all", txt:"tus +1 atk" }
+    ];
+    function tickFx() {
+      fxMe = fxMe.map(f => ({...f, left:f.left-1})).filter(f => f.left>0);
+      fxEn = fxEn.map(f => ({...f, left:f.left-1})).filter(f => f.left>0);
+    }
+    function atkMod(who, col) {
+      let n = 0;
+      const list = fxMe.concat(fxEn);
+      list.forEach(f => {
+        if (f.id==="viento" && f.col===col) n -= 2;
+        if (f.id==="tesoro" && f.who===who) n += 1;
+      });
+      return n;
+    }
+    function applyLineFx(fx, i) {
+      const row = Math.floor(i/6), col = i%6;
+      if (fx.id==="grietas") {
+        for (let c=0;c<6;c++) {
+          const u = board[row*6+c];
+          if (u) u.hp = Math.max(1, u.hp-2);
+        }
+        fxMe.push({ id:fx.id, name:fx.name, row, left:2, who:"me" });
+        return "Grietas fila "+(row+1)+" −2 vida";
+      }
+      if (fx.id==="viento") {
+        fxMe.push({ id:fx.id, name:fx.name, col, left:2, who:"me" });
+        return "Viento col "+(col+1)+" −2 atk";
+      }
+      if (fx.id==="fortin") {
+        for (let c=0;c<6;c++) {
+          const u = board[row*6+c];
+          if (u && u.who==="me") u.hp += 2;
+        }
+        fxMe.push({ id:fx.id, name:fx.name, row, left:2, who:"me" });
+        return "Fortín fila "+(row+1)+" +2 vida";
+      }
+      if (fx.id==="tesoro") {
+        fxMe.push({ id:fx.id, name:fx.name, left:2, who:"me" });
+        return "Tesoro +1 ataque (2 turnos)";
+      }
+      return "";
+    }
     const DIR = { N:[-1,0], S:[1,0], O:[0,-1], E:[0,1], NO:[-1,-1], NE:[-1,1], SO:[1,-1], SE:[1,1] };
     const RANGE = { corta:1, media:2, larga:3 };
     function statsOf(id) {
@@ -642,7 +693,11 @@
       Object.keys(dots).forEach(dir => {
         const kind = dots[dir];
         const t = stepCell(i, dir, RANGE[kind]||1);
-        if (t>=0) out[t] = { dir, kind, dmg: st.atk[kind]||1 };
+        if (t>=0) {
+          const who = u.who;
+          const col = i%6;
+          out[t] = { dir, kind, dmg: Math.max(1, (st.atk[kind]||1) + atkMod(who, col)) };
+        }
       });
       return out;
     }
@@ -685,8 +740,21 @@
       setTimeout(()=>{ el.remove(); }, 260);
     }
     function renderFx() {
-      document.getElementById("fxEn").innerHTML = [1,2,3,4,5].map(i=>`<div class="fx">E${i}</div>`).join("");
-      document.getElementById("fxMe").innerHTML = [1,2,3,4,5].map(i=>`<div class="fx">E${i}</div>`).join("");
+      const slot = (arr,n) => arr[n] ? arr[n].name.slice(0,3)+" "+arr[n].left : "E"+(n+1);
+      document.getElementById("fxEn").innerHTML = [0,1,2,3,4].map(i=>`<div class="fx">${slot(fxEn,i)}</div>`).join("");
+      document.getElementById("fxMe").innerHTML = [0,1,2,3,4].map(i=>`<div class="fx">${slot(fxMe,i)}</div>`).join("");
+    }
+    function renderFxPick() {
+      const box = document.getElementById("fxPick");
+      if (!box) return;
+      box.innerHTML = FXCARDS.map(f => `<button class="fx" data-fx="${f.id}" style="height:32px;border-style:solid;${selectedFx===f.id?"background:#2a2410;":""}">${f.name}</button>`).join("");
+      box.querySelectorAll("button").forEach(b => b.onclick = () => {
+        selectedFx = b.getAttribute("data-fx");
+        selectedCard = null; targets = {};
+        const f = FXCARDS.find(x=>x.id===selectedFx);
+        document.getElementById("duelMsg").textContent = f.name + " · " + f.txt + (f.need==="all" ? " · toca el tablero" : " · toca fila/col");
+        renderFxPick();
+      });
     }
     function renderBoard() {
       const box = document.getElementById("board66");
@@ -699,6 +767,14 @@
         if (u) d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span>`;
         d.onclick = () => {
           if (checkWin() && falls.en>=3) return;
+          if (selectedFx) {
+            if (fxMe.length>=5) { document.getElementById("duelMsg").textContent = "E1–E5 llenos."; return; }
+            const fx = FXCARDS.find(x=>x.id===selectedFx);
+            const msg = applyLineFx(fx, i);
+            selectedFx = null; selectedCard = null; targets = {};
+            document.getElementById("duelMsg").textContent = msg;
+            renderFx(); renderBoard(); renderFxPick(); return;
+          }
           if (selectedCard) {
             if (row < 3) { document.getElementById("duelMsg").textContent = "Solo tu mitad (abajo)."; return; }
             if (board[i]) { document.getElementById("duelMsg").textContent = "Casilla ocupada."; return; }
@@ -722,8 +798,8 @@
             if (dead && cell) cell.classList.add("fall");
             setTimeout(() => {
               if (dead) { board[to]=null; falls.en++; }
-              selectedIdx = null; targets = {}; turnN++;
-              checkWin(); renderBoard();
+              selectedIdx = null; targets = {}; turnN++; tickFx();
+              checkWin(); renderBoard(); renderFx();
               if (!checkWin()) document.getElementById("duelMsg").textContent = txt + " · caídas " + falls.en + "/3 · t"+turnN+"/12";
             }, dead ? 480 : 280);
             return;
@@ -754,8 +830,9 @@
     document.getElementById("duelStart").onclick = () => {
       board = Array(36).fill(null); spawnAI();
       selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1;
-      document.getElementById("duelMsg").textContent = "Rival colocado. Pon una carta y tócala para atacar.";
-      renderFx(); renderBoard(); renderDuelPick();
+      fxMe=[]; fxEn=[]; selectedFx=null;
+      document.getElementById("duelMsg").textContent = "Rival colocado. Carta, ataque o efecto.";
+      renderFx(); renderBoard(); renderDuelPick(); renderFxPick();
     };
     document.getElementById("duelNext").onclick = () => { turnN++; document.getElementById("duelMsg").textContent = "Turno " + turnN + "/12"; };
 
