@@ -321,6 +321,8 @@
 
     const heroImg = {};
     const heroSprite = {};
+    const keeperImg = new Image();
+    keeperImg.src = "cards/keeper.jpg";
     HEROES.forEach(h => {
       const im = new Image();
       im.src = h.img;
@@ -788,17 +790,15 @@
         const py = y - 8 + j * ((gh-14)/6);
         ctx.beginPath(); ctx.moveTo(x - gw/2 + 8, py); ctx.lineTo(x + gw/2 - 8, py); ctx.stroke();
       }
-      const kx = keeperX(), ky = y + 52;
-      ctx.fillStyle = "#f1c27d";
-      ctx.beginPath(); ctx.arc(kx, ky - 28, 11, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(kx - 13, ky - 16, 26, 22);
-      ctx.fillStyle = "#111";
-      ctx.fillRect(kx - 13, ky + 6, 10, 20);
-      ctx.fillRect(kx + 3, ky + 6, 10, 20);
-      ctx.fillStyle = "#ffce54";
-      ctx.fillRect(kx - 22, ky - 10, 10, 10);
-      ctx.fillRect(kx + 12, ky - 10, 10, 10);
+      const kx = keeperX(), ky = y + 58;
+      if (keeperImg.complete && keeperImg.naturalWidth) {
+        ctx.drawImage(keeperImg, kx - 36, ky - 78, 72, 96);
+      } else {
+        ctx.fillStyle = "#f1c27d";
+        ctx.beginPath(); ctx.arc(kx, ky - 28, 11, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(kx - 13, ky - 16, 26, 22);
+      }
     }
 
     function draw() {
