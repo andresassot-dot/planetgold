@@ -96,6 +96,23 @@
     #arena.on { display: block; }
     #bottom { bottom: 62px; }
     .card img { object-position: center 18%; }
+    .fifa {
+      position: relative; overflow: hidden; border-radius: 14px;
+      border: 3px solid #f3d077;
+      background: linear-gradient(180deg,#3b2a08,#8a6914 40%,#e8c547);
+      box-shadow: 0 0 18px rgba(243,208,119,.45);
+    }
+    .fifa img { width: 100%; display: block; }
+    .fifa::after {
+      content: ""; position: absolute; inset: -40%;
+      background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.55) 50%, transparent 60%);
+      animation: shine 2.4s ease-in-out infinite;
+    }
+    @keyframes shine { 0%{transform:translateX(-30%)} 100%{transform:translateX(30%)} }
+    .lastPack { display:flex; gap:12px; align-items:center; margin-top:12px; }
+    .lastPack .fifa { width: 92px; flex-shrink: 0; }
+    .lastPack img { height: 118px; object-fit: cover; object-position: top; }
+
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
     .pack {
@@ -126,6 +143,14 @@
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">tgold pendiente: <b id="homePend">0</b></div>
       <div class="muted" style="margin-top:8px">Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
+      <div class="lastPack" id="lastWrap" style="display:none">
+        <div class="fifa"><img id="lastImg" alt="" /></div>
+        <div>
+          <div class="muted">Último sobre</div>
+          <div class="big" id="lastName" style="font-size:20px;margin:4px 0">—</div>
+          <div class="muted" id="lastNote"></div>
+        </div>
+      </div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -160,7 +185,7 @@
     <p class="muted" style="text-align:center">1 sobre gratis al día. Puede tocar copia de carta o tgold.</p>
     <div class="pack" id="packBox">SOBRE<br>GOLD</div>
     <div id="packCard">
-      <img id="packImg" alt="" />
+      <div class="fifa" style="width:180px;margin:0 auto"><img id="packImg" alt="" style="height:220px;object-fit:cover;object-position:top" /></div>
       <b id="packName" style="display:block;margin-top:8px"></b>
       <small class="muted" id="packNote"></small>
     </div>
@@ -294,6 +319,15 @@
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
       const en = document.getElementById("homeEn");
       if (en) en.textContent = getEnergy() + "/" + MAX_EN;
+      const last = localStorage.getItem("pg_lastPack");
+      const wrap = document.getElementById("lastWrap");
+      if (wrap && last) {
+        const j = JSON.parse(last);
+        wrap.style.display = "flex";
+        document.getElementById("lastImg").src = j.img;
+        document.getElementById("lastName").textContent = j.name;
+        document.getElementById("lastNote").textContent = j.note;
+      }
     }
     document.querySelectorAll("[data-tab]").forEach(el => {
       el.addEventListener("click", () => showTab(el.getAttribute("data-tab")));
@@ -374,8 +408,10 @@
       const box = document.getElementById("packCard");
       box.style.display = "block";
       document.getElementById("packImg").src = h.img;
+      document.getElementById("packImg").parentElement.classList.add("fifa");
       document.getElementById("packName").textContent = h.name;
       document.getElementById("packNote").textContent = note + extra;
+      localStorage.setItem("pg_lastPack", JSON.stringify({ img:h.img, name:h.name, note: note + extra }));
       msg.textContent = jackpot ? "¡Sobre bueno!" : "Copia añadida a tu álbum.";
       refreshHome();
     };
