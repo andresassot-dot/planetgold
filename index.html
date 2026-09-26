@@ -579,7 +579,7 @@
       H = cvs.height = innerHeight * devicePixelRatio;
       cvs.style.width = innerWidth + "px";
       cvs.style.height = innerHeight + "px";
-      ground = H * 0.76;
+      ground = H * 0.62;
     }
     addEventListener("resize", resize);
     resize();
@@ -592,7 +592,7 @@
     };
 
     const me = { x: () => W * 0.16, y: () => ground - 8 };
-    const en = { x: () => W * 0.84, y: () => ground - 78 };
+    const en = { x: () => W * 0.82, y: () => ground - 118 };
 
     function setHp() {
       document.getElementById("hpMe").style.width = state.meHp + "%";
@@ -757,6 +757,9 @@
       ctx.save();
       ctx.translate(x, y - 6 + bob);
       ctx.rotate(kick);
+      ctx.beginPath();
+      ctx.ellipse(0, -ih*0.42, iw*0.38, ih*0.48, 0, 0, Math.PI*2);
+      ctx.clip();
       if (im && im.complete && im.naturalWidth) {
         ctx.drawImage(im, -iw / 2, -ih, iw, ih);
       } else {
