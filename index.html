@@ -209,7 +209,7 @@
     <p class="muted" style="text-align:center">Vende una copia (1/3) por puntos. La compra real entre jugadores llega después.</p>
     <div class="heroBan">
       <div class="muted">Poner a la venta</div>
-      <select id="sellWho" class="wal" style="margin-top:8px"></select>
+      <input type="hidden" id="sellWho" value="capitan" /><div id="sellGrid" class="grid" style="grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0"></div>
       <input class="wal" id="sellPrice" type="number" placeholder="Precio en pts" value="800" />
       <button class="main" id="sellBtn">PUBLICAR</button>
       <p class="muted" id="sellMsg" style="text-align:center"></p>
@@ -459,9 +459,19 @@
       try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]"); } catch(e){ return []; }
     }
     function renderMarket() {
-      const sel = document.getElementById("sellWho");
-      if (!sel) return;
-      sel.innerHTML = HEROES.map(h => `<option value="${h.id}">${h.name} · ${dustOf(h.id)}/3</option>`).join("");
+      if (!document.getElementById("sellWho")) return;
+      const grid = document.getElementById("sellGrid");
+      if (grid) {
+        grid.innerHTML = HEROES.map(h => `<div class="card" data-id="${h.id}" style="padding:4px"><img src="${h.img}" style="height:72px;margin:0" /><small>${dustOf(h.id)}/3</small></div>`).join("");
+        grid.querySelectorAll(".card").forEach(el => {
+          if (el.getAttribute("data-id") === document.getElementById("sellWho").value) el.classList.add("on");
+          el.onclick = () => {
+            document.getElementById("sellWho").value = el.getAttribute("data-id");
+            grid.querySelectorAll(".card").forEach(c => c.classList.remove("on"));
+            el.classList.add("on");
+          };
+        });
+      }
       const box = document.getElementById("offers");
       const list = marketList();
       if (!list.length) { box.innerHTML = '<p class="muted">No hay ofertas. Publica la primera.</p>'; return; }
