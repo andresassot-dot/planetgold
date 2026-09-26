@@ -122,8 +122,12 @@
         #duel { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 12px 10px 108px; overflow: auto; }
     #duel.on { display: flex; }
     .b66 { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; margin:4px 0; }
-    .cell { height:52px; background:#161a26; border:1px solid #3a4258; border-radius:6px; overflow:hidden; }
+    .cell { height:52px; background:#161a26; border:1px solid #3a4258; border-radius:6px; overflow:hidden; position:relative; }
     .cell.mine { border-color:#d4af37; }
+    .cell.tgt { box-shadow: inset 0 0 0 3px #ffe08a, 0 0 14px #ffb000; }
+    .cell.tgt.hit { box-shadow: inset 0 0 0 3px #fff, 0 0 18px #ff3b3b; animation: pulseHit .7s infinite; }
+    @keyframes pulseHit { 50% { box-shadow: inset 0 0 0 4px #ffe08a, 0 0 22px #ff4d4d; } }
+    .cell .hp { position:absolute; bottom:1px; right:2px; font-size:9px; color:#ffe08a; }
     .cell img { width:100%; height:100%; object-fit:cover; display:block; }
     .fxrow { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:4px 0; }
     .fx { height:26px; border:1px dashed #d4af37; border-radius:8px; background:#12141c; font-size:10px; color:#ffe08a; display:flex; align-items:center; justify-content:center; }
@@ -602,8 +606,62 @@
     let duelDeck = [];
     let board = Array(36).fill(null);
     let selectedCard = null;
+    let selectedIdx = null;
+    let targets = {};
     let falls = { me:0, en:0 };
     let turnN = 1;
+    const DIR = { N:[-1,0], S:[1,0], O:[0,-1], E:[0,1], NO:[-1,-1], NE:[-1,1], SO:[1,-1], SE:[1,1] };
+    const RANGE = { corta:1, media:2, larga:3 };
+    function statsOf(id) {
+      const h = HEROES.find(x=>x.id===id) || {};
+      return {
+        hp: h.hp || 7,
+        atk: h.atk || { corta:5, media:4, larga:3 },
+        dots: h.dots || { N:"corta", NE:"media", NO:"media" }
+      };
+    }
+    function stepCell(i, dir, steps) {
+      let r = Math.floor(i/6), c = i%6;
+      const d = DIR[dir];
+      if (!d) return -1;
+      for (let s=0;s<steps;s++) { r += d[0]; c += d[1]; }
+      if (r<0||r>5||c<0||c>5) return -1;
+      return r*6+c;
+    }
+    function targetsOf(i) {
+      const u = board[i]; if (!u) return {};
+      const st = statsOf(u.id);
+      const dots = Array.isArray(st.dots)
+        ? { N:"corta", NE:"media", NO:"media", O:"larga" }
+        : st.dots;
+      const out = {};
+      Object.keys(dots).forEach(dir => {
+        const kind = dots[dir];
+        const t = stepCell(i, dir, RANGE[kind]||1);
+        if (t>=0) out[t] = { dir, kind, dmg: st.atk[kind]||1 };
+      });
+      return out;
+    }
+    function spawnAI() {
+      const pool = HEROES.filter(h=>h.id!=="rocaverde");
+      const spots = [1, 4, 11];
+      spots.forEach((i,n) => {
+        const h = pool[n%pool.length];
+        const st = statsOf(h.id);
+        board[i] = { id:h.id, img:h.img, hp:st.hp, who:"en" };
+      });
+    }
+    function checkWin() {
+      if (falls.en >= 3) { document.getElementById("duelMsg").textContent = "GANAS · 3 caídas"; return true; }
+      if (falls.me >= 3) { document.getElementById("duelMsg").textContent = "PIERDES · 3 caídas"; return true; }
+      if (turnN > 12) {
+        const me = board.filter(u=>u&&u.who==="me").reduce((a,u)=>a+u.hp,0);
+        const en = board.filter(u=>u&&u.who==="en").reduce((a,u)=>a+u.hp,0);
+        document.getElementById("duelMsg").textContent = me>=en ? "GANAS por vida "+me+"-"+en : "PIERDES por vida "+me+"-"+en;
+        return true;
+      }
+      return false;
+    }
     function renderFx() {
       document.getElementById("fxEn").innerHTML = [1,2,3,4,5].map(i=>`<div class="fx">E${i}</div>`).join("");
       document.getElementById("fxMe").innerHTML = [1,2,3,4,5].map(i=>`<div class="fx">E${i}</div>`).join("");
@@ -614,18 +672,39 @@
       for (let i=0;i<36;i++) {
         const row = Math.floor(i/6);
         const d = document.createElement("div");
-        d.className = "cell" + (row>=3?" mine":"");
+        d.className = "cell" + (row>=3?" mine":"") + (targets[i]?" tgt":"") + (targets[i]&&u&&u.who==="en"?" hit":"");
         const u = board[i];
-        if (u) d.innerHTML = `<img src="${u.img}" alt="">`;
+        if (u) d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span>`;
         d.onclick = () => {
-          if (!selectedCard) { document.getElementById("duelMsg").textContent = "Elige una carta abajo."; return; }
-          if (row < 3) { document.getElementById("duelMsg").textContent = "Solo tu mitad (abajo)."; return; }
-          if (board[i]) { document.getElementById("duelMsg").textContent = "Casilla ocupada."; return; }
-          const h = HEROES.find(x=>x.id===selectedCard);
-          board[i] = { id:h.id, img:h.img, hp: 8, who:"me" };
-          selectedCard = null;
-          document.getElementById("duelMsg").textContent = h.name + " en mesa · turnos " + turnN + "/12 · caídas " + falls.en + "/3";
-          renderBoard(); renderDuelPick();
+          if (checkWin() && falls.en>=3) return;
+          if (selectedCard) {
+            if (row < 3) { document.getElementById("duelMsg").textContent = "Solo tu mitad (abajo)."; return; }
+            if (board[i]) { document.getElementById("duelMsg").textContent = "Casilla ocupada."; return; }
+            const h = HEROES.find(x=>x.id===selectedCard);
+            const st = statsOf(h.id);
+            board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" };
+            selectedCard = null; selectedIdx = null; targets = {};
+            document.getElementById("duelMsg").textContent = h.name + " en mesa. Tócala para atacar.";
+            renderBoard(); renderDuelPick(); return;
+          }
+          if (targets[i] && board[i] && board[i].who==="en") {
+            const hit = targets[i];
+            board[i].hp -= hit.dmg;
+            let txt = hit.kind + " " + hit.dmg + " → " + board[i].id;
+            if (board[i].hp <= 0) { board[i]=null; falls.en++; txt += " · CAE"; }
+            selectedIdx = null; targets = {}; turnN++;
+            document.getElementById("duelMsg").textContent = txt + " · caídas " + falls.en + "/3 · t"+turnN+"/12";
+            checkWin(); renderBoard(); return;
+          }
+          if (board[i] && board[i].who==="me") {
+            selectedIdx = i; targets = targetsOf(i);
+            const n = Object.keys(targets).length;
+            document.getElementById("duelMsg").textContent = "Ataca: casillas doradas ("+n+").";
+            renderBoard(); return;
+          }
+          selectedIdx = null; targets = {};
+          document.getElementById("duelMsg").textContent = "Elige carta abajo o una tuya en mesa.";
+          renderBoard();
         };
         box.appendChild(d);
       }
@@ -639,11 +718,11 @@
         renderDuelPick();
       });
     }
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); renderFx(); renderBoard(); renderDuelPick(); };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); board=Array(36).fill(null); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
     document.getElementById("duelStart").onclick = () => {
-      board = Array(36).fill(null);
-      selectedCard = null; falls = {me:0,en:0}; turnN = 1;
-      document.getElementById("duelMsg").textContent = "Nuevo duelo. Elige carta y casilla.";
+      board = Array(36).fill(null); spawnAI();
+      selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1;
+      document.getElementById("duelMsg").textContent = "Rival colocado. Pon una carta y tócala para atacar.";
       renderFx(); renderBoard(); renderDuelPick();
     };
     document.getElementById("duelNext").onclick = () => { turnN++; document.getElementById("duelMsg").textContent = "Turno " + turnN + "/12"; };
