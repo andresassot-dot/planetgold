@@ -35,8 +35,8 @@
     #msg { text-align: center; margin-top: 6px; min-height: 18px; font-size: 13px; color: #ffe08a; }
     canvas { display: block; width: 100%; height: 100%; }
     #pick {
-      position: fixed; inset: 0; z-index: 20; background: #0b1020;
-      display: flex; flex-direction: column; padding: 16px 12px 20px;
+      position: fixed; inset: 0; z-index: 19; background: #0b1020;
+      display: none; flex-direction: column; padding: 16px 12px 20px;
     }
     #pick h1 { margin: 0 0 6px; font-size: 22px; color: #ffe08a; text-align: center; }
     #pick p { margin: 0 0 12px; text-align: center; color: #bbb; font-size: 13px; }
@@ -51,15 +51,76 @@
     .card b { display: block; }
     .card small { color: #aaa; }
     #go { margin-top: 12px; }
+    #home, #wallet {
+      position: fixed; inset: 0; z-index: 18; background: #0b1020;
+      display: none; flex-direction: column; padding: 16px 14px 88px;
+      overflow: auto;
+    }
+    #home.on, #wallet.on, #pick.on { display: flex; }
+    #pick { z-index: 19; padding-bottom: 88px; }
+    .heroBan {
+      background: linear-gradient(135deg,#1a1408,#2b2110);
+      border: 1px solid #d4af37; border-radius: 16px; padding: 16px;
+    }
+    .heroBan h2 { margin: 0; color: #ffe08a; font-size: 15px; font-weight: 600; }
+    .heroBan .big { font-size: 28px; font-weight: 800; margin: 8px 0 4px; }
+    .muted { color: #9aa0b4; font-size: 13px; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 16px 0; }
+    .act { background: #161a26; border: 1px solid #3a4258; border-radius: 14px; padding: 14px 8px; text-align: center; font-size: 12px; }
+    .act b { display: block; font-size: 20px; margin-bottom: 4px; }
+    input.wal { width: 100%; margin: 10px 0; padding: 12px; border-radius: 10px; border: 1px solid #3a4258; background: #12141c; color: #fff; }
+    #nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      display: flex; background: #0e1220; border-top: 1px solid #2a3146;
+      padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    }
+    #nav button {
+      flex: 1; background: none; border: 0; color: #8b90a5; font-size: 11px; padding: 8px 4px;
+    }
+    #nav button.on { color: #ffe08a; font-weight: 700; }
+    #arena { display: none; height: 100%; }
+    #arena.on { display: block; }
+    #bottom { bottom: 62px; }
+    .card img { object-position: center 18%; }
+
   </style>
 </head>
 <body>
+  <div id="home" class="on">
+    <div class="heroBan">
+      <h2>PLANET GOLD</h2>
+      <div class="big" id="homePts">0 pts</div>
+      <div class="muted">tgold pendiente: <b id="homePend">0</b></div>
+    </div>
+    <div class="actions">
+      <div class="act" data-tab="pick"><b>🃏</b>Cartas</div>
+      <div class="act" data-tab="pick"><b>▶️</b>Jugar</div>
+      <div class="act" data-tab="wallet"><b>💰</b>Cobrar</div>
+    </div>
+    <p class="muted">Gana partidas para sumar puntos. Al cobrar envías tgold a tu wallet Solana.</p>
+    <button class="main" data-tab="pick">EMPEZAR PARTIDA</button>
+  </div>
+
   <div id="pick">
     <h1>PLANET GOLD</h1>
     <p>Elige ficha · marco oro</p>
     <div class="grid" id="grid"></div>
     <button class="main" id="go">JUGAR</button>
   </div>
+
+  <div id="wallet">
+    <h1 style="color:#ffe08a;text-align:center">Cobrar</h1>
+    <p class="muted" style="text-align:center">Pega tu wallet de Solana (la de recibir tgold)</p>
+    <div class="heroBan">
+      <div class="muted">Pendiente</div>
+      <div class="big" id="walPend">0</div>
+    </div>
+    <input class="wal" id="walletIn" placeholder="Wallet Solana" />
+    <button class="main" id="claimBtn">RECLAMAR TGOLD</button>
+    <p class="muted" id="claimMsg" style="text-align:center;margin-top:10px"></p>
+  </div>
+
+  <div id="arena">
 
   <div id="hud">
     <div class="box hp"><span id="meName">TÚ</span><div class="bar"><div id="hpMe" class="fill"></div></div></div>
@@ -74,6 +135,13 @@
     <div id="msg">Elige ángulo y carga</div>
   </div>
 
+  </div>
+  <nav id="nav">
+    <button data-tab="home" class="on">Inicio</button>
+    <button data-tab="pick">Jugar</button>
+    <button data-tab="pick">Cartas</button>
+    <button data-tab="wallet">Cobrar</button>
+  </nav>
   <script>
     const tg = window.Telegram && window.Telegram.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
@@ -97,6 +165,51 @@
       heroSprite[h.id] = sp;
     });
 
+
+    function showTab(name) {
+      ["home","pick","wallet","arena"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("on", id === name);
+      });
+      document.querySelectorAll("#nav button").forEach(b => {
+        b.classList.toggle("on", b.getAttribute("data-tab") === name || (name==="arena" && b.getAttribute("data-tab")==="pick"));
+      });
+      if (name === "home") refreshHome();
+      if (name === "wallet") {
+        document.getElementById("walPend").textContent = Number(localStorage.getItem("pg_pend")||0);
+        document.getElementById("walletIn").value = localStorage.getItem("pg_wallet")||"";
+      }
+    }
+    function refreshHome() {
+      document.getElementById("homePts").textContent = (localStorage.getItem("pg_pts")||0) + " pts";
+      document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
+    }
+    document.querySelectorAll("[data-tab]").forEach(el => {
+      el.addEventListener("click", () => showTab(el.getAttribute("data-tab")));
+    });
+    refreshHome();
+
+    document.getElementById("claimBtn").onclick = async () => {
+      const w = document.getElementById("walletIn").value.trim();
+      const msg = document.getElementById("claimMsg");
+      if (w.length < 32) { msg.textContent = "Wallet inválida"; return; }
+      localStorage.setItem("pg_wallet", w);
+      msg.textContent = "Enviando…";
+      try {
+        const r = await fetch("/api/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallet: w })
+        });
+        const j = await r.json();
+        if (j.ok) {
+          localStorage.setItem("pg_pend", "0");
+          document.getElementById("walPend").textContent = "0";
+          msg.textContent = "Enviado. " + (j.sig||"").slice(0,18);
+        } else msg.textContent = j.error || "Error";
+      } catch(e) { msg.textContent = "Error de red"; }
+    };
+
     let hero = HEROES[0];
     const grid = document.getElementById("grid");
     HEROES.forEach(h => {
@@ -111,7 +224,7 @@
       grid.appendChild(el);
     });
     document.getElementById("go").onclick = () => {
-      document.getElementById("pick").style.display = "none";
+      showTab("arena");
       document.getElementById("meName").textContent = "TÚ · " + hero.name;
       reset(false);
     };
@@ -218,6 +331,8 @@
       if (state.enHp <= 0) {
         state.pts += 500;
         localStorage.setItem("pg_pts", state.pts);
+        const pend = Number(localStorage.getItem("pg_pend")||0) + 1;
+        localStorage.setItem("pg_pend", pend);
         turnEl.textContent = "VICTORIA";
         msg.textContent = "+500 pts · total " + state.pts;
         fireBtn.textContent = "OTRA RONDA";
