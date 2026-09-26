@@ -209,7 +209,14 @@
     <p class="muted" style="text-align:center">Vende una copia (1/3) por puntos. La compra real entre jugadores llega después.</p>
     <div class="heroBan">
       <div class="muted">Poner a la venta</div>
-      <input type="hidden" id="sellWho" value="capitan" /><div id="sellGrid" class="grid" style="grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0"></div>
+      <input type="hidden" id="sellWho" value="capitan" />
+      <div id="sellGrid" class="grid" style="grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0">
+        <div class="card on" data-id="capitan" style="padding:4px"><img src="cards/capitan.jpg" style="height:72px;margin:0" /></div>
+        <div class="card" data-id="diez" style="padding:4px"><img src="cards/diez.jpg" style="height:72px;margin:0" /></div>
+        <div class="card" data-id="samba" style="padding:4px"><img src="cards/samba.jpg" style="height:72px;margin:0" /></div>
+        <div class="card" data-id="pibe" style="padding:4px"><img src="cards/pibe.jpg" style="height:72px;margin:0" /></div>
+        <div class="card" data-id="rayo" style="padding:4px"><img src="cards/rayo.jpg" style="height:72px;margin:0" /></div>
+      </div>
       <input class="wal" id="sellPrice" type="number" placeholder="Precio en pts" value="800" />
       <button class="main" id="sellBtn">PUBLICAR</button>
       <p class="muted" id="sellMsg" style="text-align:center"></p>
@@ -454,7 +461,9 @@
       document.getElementById("packNote").textContent = note + extra;
       localStorage.setItem("pg_lastPack", JSON.stringify({ img:h.img, name:h.name, note: note + extra }));
       msg.textContent = jackpot ? "¡Sobre bueno!" : "Copia añadida a tu álbum.";
-  
+      refreshHome();
+    };
+
     function marketList() {
       try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]"); } catch(e){ return []; }
     }
