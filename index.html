@@ -131,7 +131,12 @@
     .cell.fall { animation: fallCard .45s ease forwards; }
     @keyframes fallCard { to { transform: rotate(18deg) scale(.2); opacity:0; } }
     #beam { position:absolute; height:4px; background:linear-gradient(90deg,#fff,#ffe08a,#ff7a00); border-radius:4px; pointer-events:none; z-index:8; transform-origin:left center; box-shadow:0 0 10px #ffe08a; }
-    .cell .hp { position:absolute; bottom:1px; right:2px; font-size:9px; color:#ffe08a; }
+    .cell .hp { position:absolute; right:3px; bottom:10px; font-size:10px; font-weight:800; color:#fff; text-shadow:0 1px 2px #000; }
+    .hpbar { position:absolute; left:3px; right:3px; bottom:2px; height:5px; background:#2a2a2a; border-radius:3px; overflow:hidden; }
+    .hpbar i { display:block; height:100%; background:#2ecc71; }
+    .hpbar.low i { background:#e74c3c; }
+    .floater { position:absolute; left:50%; top:8px; transform:translateX(-50%); color:#ff4d4d; font-weight:900; font-size:14px; text-shadow:0 0 4px #000; animation: floatDmg .7s ease forwards; pointer-events:none; z-index:6; }
+    @keyframes floatDmg { to { transform:translate(-50%,-16px); opacity:0; } }
     .cell img { width:100%; height:100%; object-fit:cover; display:block; }
     .fxrow { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:4px 0; }
     .fx { height:26px; border:1px dashed #d4af37; border-radius:8px; background:#12141c; font-size:10px; color:#ffe08a; display:flex; align-items:center; justify-content:center; }
@@ -764,7 +769,11 @@
         const d = document.createElement("div");
         const u = board[i];
         d.className = "cell" + (row>=3?" mine":"") + (u && u.who==="me"?" blue":"") + (u && u.who==="en"?" red":"") + (targets[i]?" tgt":"") + (targets[i] && u && u.who==="en"?" hit":"");
-        if (u) d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span>`;
+        if (u) {
+          const max = (statsOf(u.id).hp)||7;
+          const pct = Math.max(4, Math.round(u.hp/max*100));
+          d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span><div class="hpbar${u.hp<=3?" low":""}"><i style="width:${pct}%"></i></div>`;
+        }
         d.onclick = () => {
           if (checkWin() && falls.en>=3) return;
           if (selectedFx) {
@@ -795,6 +804,11 @@
             const dead = board[to].hp <= 0;
             document.getElementById("duelMsg").textContent = txt + (dead ? " · CAE" : " · vida "+board[to].hp);
             const cell = document.getElementById("board66").children[to];
+            if (cell) {
+              const f = document.createElement("div");
+              f.className = "floater"; f.textContent = "-"+hit.dmg;
+              cell.appendChild(f);
+            }
             if (dead && cell) cell.classList.add("fall");
             setTimeout(() => {
               if (dead) { board[to]=null; falls.en++; }
