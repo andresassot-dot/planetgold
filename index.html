@@ -750,8 +750,6 @@
       const s = Math.max(1, devicePixelRatio);
       const bob = Math.sin(tick / 12) * 5;
       const kick = state.charging ? -0.1 : (state.shot && state.shot.who === "me" ? 0.16 : 0);
-      ctx.fillStyle = "#6b4a22";
-      ctx.fillRect(x - 50, y, 100, 14);
       const im = heroSprite[hero.id] || heroImg[hero.id];
       const iw = 100 * s, ih = 130 * s;
       ctx.save();
@@ -790,13 +788,17 @@
         const py = y - 8 + j * ((gh-14)/6);
         ctx.beginPath(); ctx.moveTo(x - gw/2 + 8, py); ctx.lineTo(x + gw/2 - 8, py); ctx.stroke();
       }
-      const kx = keeperX();
-      ctx.fillStyle = "#111";
-      ctx.fillRect(kx - 16, y + 28, 32, 44);
+      const kx = keeperX(), ky = y + 52;
+      ctx.fillStyle = "#f1c27d";
+      ctx.beginPath(); ctx.arc(kx, ky - 28, 11, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#fff";
-      ctx.beginPath(); ctx.arc(kx, y + 18, 12, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#c0392b";
-      ctx.fillRect(kx - 14, y + 30, 28, 18);
+      ctx.fillRect(kx - 13, ky - 16, 26, 22);
+      ctx.fillStyle = "#111";
+      ctx.fillRect(kx - 13, ky + 6, 10, 20);
+      ctx.fillRect(kx + 3, ky + 6, 10, 20);
+      ctx.fillStyle = "#ffce54";
+      ctx.fillRect(kx - 22, ky - 10, 10, 10);
+      ctx.fillRect(kx + 12, ky - 10, 10, 10);
     }
 
     function draw() {
