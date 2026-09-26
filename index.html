@@ -126,6 +126,9 @@
     .cell.mine { border-color:#d4af37; }
     .cell.tgt { box-shadow: inset 0 0 0 2px #ffb000; }
     .cell.hit::after { content:''; position:absolute; inset:0; border:3px solid #ffe08a; box-shadow:inset 0 0 0 2px #fff; border-radius:6px; pointer-events:none; }
+    .cell.fall { animation: fallCard .45s ease forwards; }
+    @keyframes fallCard { to { transform: rotate(18deg) scale(.2); opacity:0; } }
+    #beam { position:absolute; height:4px; background:linear-gradient(90deg,#fff,#ffe08a,#ff7a00); border-radius:4px; pointer-events:none; z-index:8; transform-origin:left center; box-shadow:0 0 10px #ffe08a; }
     .cell .hp { position:absolute; bottom:1px; right:2px; font-size:9px; color:#ffe08a; }
     .cell img { width:100%; height:100%; object-fit:cover; display:block; }
     .fxrow { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:4px 0; }
@@ -208,7 +211,7 @@
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
     <p class="muted" style="text-align:center;margin:6px 0">3 caídas o más vida a 12 turnos. Efectos en los 5 huecos.</p>
     <div id="fxEn" class="fxrow"></div>
-    <div id="board66" class="b66"></div>
+    <div id="board66" class="b66" style="position:relative"></div>
     <div id="fxMe" class="fxrow"></div>
     <div id="duelHand">
     <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
@@ -662,6 +665,23 @@
       }
       return false;
     }
+    function fireBeam(from, to, kind) {
+      const box = document.getElementById("board66");
+      const a = box.children[from]; const b = box.children[to];
+      if (!a || !b) return;
+      const br = box.getBoundingClientRect();
+      const ar = a.getBoundingClientRect(); const cr = b.getBoundingClientRect();
+      const x1 = ar.left+ar.width/2-br.left, y1 = ar.top+ar.height/2-br.top;
+      const x2 = cr.left+cr.width/2-br.left, y2 = cr.top+cr.height/2-br.top;
+      const len = Math.hypot(x2-x1,y2-y1);
+      const ang = Math.atan2(y2-y1,x2-x1)*180/Math.PI;
+      const el = document.createElement("div");
+      el.id = "beam";
+      el.style.left = x1+"px"; el.style.top = (y1-2)+"px";
+      el.style.width = len+"px"; el.style.transform = "rotate("+ang+"deg)";
+      box.appendChild(el);
+      setTimeout(()=>{ el.remove(); }, 260);
+    }
     function renderFx() {
       document.getElementById("fxEn").innerHTML = [1,2,3,4,5].map(i=>`<div class="fx">E${i}</div>`).join("");
       document.getElementById("fxMe").innerHTML = [1,2,3,4,5].map(i=>`<div class="fx">E${i}</div>`).join("");
@@ -689,12 +709,22 @@
           }
           if (targets[i] && board[i] && board[i].who==="en") {
             const hit = targets[i];
-            board[i].hp -= hit.dmg;
-            let txt = hit.kind + " " + hit.dmg + " → " + board[i].id;
-            if (board[i].hp <= 0) { board[i]=null; falls.en++; txt += " · CAE"; }
-            selectedIdx = null; targets = {}; turnN++;
-            document.getElementById("duelMsg").textContent = txt + " · caídas " + falls.en + "/3 · t"+turnN+"/12";
-            checkWin(); renderBoard(); return;
+            const from = selectedIdx;
+            const to = i;
+            fireBeam(from, to, hit.kind);
+            board[to].hp -= hit.dmg;
+            let txt = "Rayo " + hit.kind + " " + hit.dmg;
+            const dead = board[to].hp <= 0;
+            document.getElementById("duelMsg").textContent = txt + (dead ? " · CAE" : " · vida "+board[to].hp);
+            const cell = document.getElementById("board66").children[to];
+            if (dead && cell) cell.classList.add("fall");
+            setTimeout(() => {
+              if (dead) { board[to]=null; falls.en++; }
+              selectedIdx = null; targets = {}; turnN++;
+              checkWin(); renderBoard();
+              if (!checkWin()) document.getElementById("duelMsg").textContent = txt + " · caídas " + falls.en + "/3 · t"+turnN+"/12";
+            }, dead ? 480 : 280);
+            return;
           }
           if (board[i] && board[i].who==="me") {
             selectedIdx = i; targets = targetsOf(i);
