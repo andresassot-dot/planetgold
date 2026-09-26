@@ -111,6 +111,7 @@
       <h2>PLANET GOLD</h2>
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">tgold pendiente: <b id="homePend">0</b></div>
+      <div class="muted" style="margin-top:8px">Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -134,7 +135,7 @@
 
   <div id="pick">
     <h1>PLANET GOLD</h1>
-    <p>Elige ficha · marco oro</p>
+    <p>Elige ficha · 3 copias suben de marco</p>
     <div class="grid" id="grid"></div>
     <button class="main" id="go">JUGAR</button>
   </div>
@@ -185,6 +186,42 @@
     const tg = window.Telegram && window.Telegram.WebApp;
     if (tg) { tg.ready(); tg.expand(); }
 
+
+    const RANKS = ["Bronce","Plata","Oro","Platino"];
+    const MAX_EN = 5;
+    const EN_MS = 8 * 60 * 1000;
+
+    function getEnergy() {
+      let n = Number(localStorage.getItem("pg_en"));
+      let at = Number(localStorage.getItem("pg_enAt") || Date.now());
+      if (Number.isNaN(n)) n = MAX_EN;
+      const add = Math.floor((Date.now() - at) / EN_MS);
+      if (add > 0) {
+        n = Math.min(MAX_EN, n + add);
+        at += add * EN_MS;
+        localStorage.setItem("pg_en", n);
+        localStorage.setItem("pg_enAt", at);
+      }
+      return n;
+    }
+    function spendEnergy() {
+      const n = getEnergy();
+      if (n <= 0) return false;
+      localStorage.setItem("pg_en", n - 1);
+      if (n === MAX_EN) localStorage.setItem("pg_enAt", Date.now());
+      return true;
+    }
+    function rankOf(id) { return Number(localStorage.getItem("pg_rk_"+id)||0); }
+    function dustOf(id) { return Number(localStorage.getItem("pg_du_"+id)||0); }
+    function addDust(id) {
+      let r = rankOf(id), d = dustOf(id) + 1;
+      let note = "+1 " + RANKS[r];
+      if (d >= 3 && r < 3) { r += 1; d = 0; note = "¡" + RANKS[r] + "!"; }
+      localStorage.setItem("pg_rk_"+id, r);
+      localStorage.setItem("pg_du_"+id, d);
+      return note;
+    }
+
     const HEROES = [
       { id: "capitan", name: "Capitán", role: "potencia", img: "cards/capitan.jpg", sprite: "cards/sprite-capitan.jpg", shirt: "#c0392b", shorts: "#1e7a3a", skin: "#e0ac69", hair: "#2b1b12", dmg: 1.25 },
       { id: "diez", name: "Diez", role: "preciso", img: "cards/diez.jpg", sprite: "cards/sprite-diez.jpg", shirt: "#5dade2", shorts: "#111", skin: "#e0ac69", hair: "#5a3a22", dmg: 1.05, acc: 1.15 },
@@ -214,6 +251,7 @@
         b.classList.toggle("on", b.getAttribute("data-tab") === name || (name==="arena" && b.getAttribute("data-tab")==="pick"));
       });
       if (name === "home") refreshHome();
+      if (name === "pick") renderGrid();
       if (name === "wallet") {
         document.getElementById("walPend").textContent = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walletIn").value = localStorage.getItem("pg_wallet")||"";
@@ -222,6 +260,8 @@
     function refreshHome() {
       document.getElementById("homePts").textContent = (localStorage.getItem("pg_pts")||0) + " pts";
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
+      const en = document.getElementById("homeEn");
+      if (en) en.textContent = getEnergy() + "/" + MAX_EN;
     }
     document.querySelectorAll("[data-tab]").forEach(el => {
       el.addEventListener("click", () => showTab(el.getAttribute("data-tab")));
@@ -305,17 +345,23 @@
 
     let hero = HEROES[0];
     const grid = document.getElementById("grid");
-    HEROES.forEach(h => {
-      const el = document.createElement("div");
-      el.className = "card" + (h.id === hero.id ? " on" : "");
-      el.innerHTML = `<img src="${h.img}" alt="${h.name}" /><b>${h.name}</b><small>${h.role}</small>`;
-      el.onclick = () => {
-        hero = h;
-        document.querySelectorAll(".card").forEach(c => c.classList.remove("on"));
-        el.classList.add("on");
-      };
-      grid.appendChild(el);
-    });
+    function renderGrid() {
+      grid.innerHTML = "";
+      HEROES.forEach(h => {
+        const el = document.createElement("div");
+        el.className = "card" + (h.id === hero.id ? " on" : "");
+        const rk = RANKS[rankOf(h.id)] || "Bronce";
+        const du = dustOf(h.id);
+        el.innerHTML = `<img src="${h.img}" alt="${h.name}" /><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
+        el.onclick = () => {
+          hero = h;
+          document.querySelectorAll(".card").forEach(c => c.classList.remove("on"));
+          el.classList.add("on");
+        };
+        grid.appendChild(el);
+      });
+    }
+    renderGrid();
     document.getElementById("go").onclick = () => {
       showTab("arena");
       document.getElementById("meName").textContent = "TÚ · " + hero.name;
@@ -359,6 +405,10 @@
     let hold = null;
     function startCharge(e) {
       if (state.turn !== "me" || state.shot) return;
+      if (getEnergy() <= 0) {
+        msg.textContent = "Sin energía. Espera o vuelve más tarde.";
+        return;
+      }
       e.preventDefault();
       state.charging = true; state.power = 8;
       hold = setInterval(() => {
@@ -370,6 +420,11 @@
     function release() {
       if (!state.charging) return;
       clearInterval(hold); state.charging = false;
+      if (!spendEnergy()) {
+        msg.textContent = "Sin energía.";
+        return;
+      }
+      refreshHome();
       shoot("me", Number(angEl.value), state.power);
     }
     fireBtn.addEventListener("touchstart", startCharge, { passive: false });
@@ -426,8 +481,9 @@
         localStorage.setItem("pg_pts", state.pts);
         const pend = Number(localStorage.getItem("pg_pend")||0) + 1;
         localStorage.setItem("pg_pend", pend);
+        const up = addDust(hero.id);
         turnEl.textContent = "VICTORIA";
-        msg.textContent = "+500 pts · total " + state.pts;
+        msg.textContent = "+500 pts · " + up + " · " + state.pts;
         fireBtn.textContent = "OTRA RONDA";
         fireBtn.disabled = false;
         fireBtn.onclick = () => reset(true);
