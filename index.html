@@ -127,7 +127,7 @@
     .cell img { width:100%; height:100%; object-fit:cover; display:block; }
     .fxrow { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:4px 0; }
     .fx { height:26px; border:1px dashed #d4af37; border-radius:8px; background:#12141c; font-size:10px; color:#ffe08a; display:flex; align-items:center; justify-content:center; }
-    #duelHand { position:sticky; bottom:62px; z-index:5; background:#0b1020; padding:6px 0 8px; }
+    #duelHand { position:sticky; bottom:58px; z-index:5; background:#0b1020; padding:4px 0 6px; }
     #duelHand img { height:88px !important; width:auto; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
@@ -207,8 +207,8 @@
     <div id="fxEn" class="fxrow"></div>
     <div id="board66" class="b66"></div>
     <div id="fxMe" class="fxrow"></div>
-    <p id="duelMsg" class="muted" style="text-align:center;margin:4px 0">Elige carta del mazo.</p>
     <div id="duelHand">
+    <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
     <div id="duelPick" class="grid" style="grid-template-columns:repeat(6,1fr);gap:4px"></div>
     <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
     </div>
@@ -241,7 +241,7 @@
         <div class="card" data-id="samba" style="padding:4px"><img src="cards/samba.jpg" style="height:72px;margin:0" /></div>
         <div class="card" data-id="pibe" style="padding:4px"><img src="cards/pibe.jpg" style="height:72px;margin:0" /></div>
         <div class="card" data-id="rayo" style="padding:4px"><img src="cards/rayo.jpg" style="height:72px;margin:0" /></div>
-        <div class="card" data-id="rocaverde" style="padding:4px"><img src="cards/mago-tierra.jpg" style="height:72px;margin:0" /></div>
+        <div class="card" data-id="rocaverde" style="padding:4px"><img src="cards/mago-tierra.JPG" style="height:72px;margin:0" /></div>
       </div>
       <input class="wal" id="sellPrice" type="number" placeholder="Precio en pts" value="800" />
       <button class="main" id="sellBtn">PUBLICAR</button>
@@ -343,13 +343,18 @@
       { id: "samba", name: "Samba", role: "efecto", img: "cards/samba.jpg", sprite: "cards/sprite-samba.jpg", shirt: "#f1c40f", shorts: "#1e7a3a", skin: "#8d5524", hair: "#1a1a1a", dmg: 1.1 },
       { id: "pibe", name: "Pibe", role: "sube rango", img: "cards/pibe.jpg", sprite: "cards/sprite-pibe.jpg", shirt: "#1f4e79", shorts: "#1a365d", skin: "#c68642", hair: "#111", dmg: 1.0 },
       { id: "rayo", name: "Rayo", role: "rápido", img: "cards/rayo.jpg", sprite: "cards/sprite-rayo.jpg", shirt: "#f5f5f5", shorts: "#f5f5f5", skin: "#8d5524", hair: "#111", dmg: 0.95, spd: 1.2 },
-      { id: "rocaverde", name: "Rocaverde", role: "mago tierra", img: "cards/mago-tierra.jpg", sprite: "cards/mago-tierra.jpg", shirt: "#1e7a3a", shorts: "#0d3b1e", skin: "#c0c0c0", hair: "#ddd", dmg: 1.25, hp: 8, atk: { corta:6, media:9, larga:11 }, dots: ["N","NE","NO","O"] }
+      { id: "rocaverde", name: "Rocaverde", role: "mago tierra", img: "cards/mago-tierra.JPG", sprite: "cards/mago-tierra.JPG", shirt: "#1e7a3a", shorts: "#0d3b1e", skin: "#c0c0c0", hair: "#ddd", dmg: 1.25, hp: 8, atk: { corta:6, media:9, larga:11 }, dots: ["N","NE","NO","O"] }
     ];
 
     const heroImg = {};
     const heroSprite = {};
     const keeperImg = new Image();
     keeperImg.src = "cards/cards-keeper.jpg";
+    function cardImg(h){ return h.img; }
+    function imgTag(src, extra){
+      extra = extra || "";
+      return `<img src="${src}" ${extra} onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" />`;
+    }
     HEROES.forEach(h => {
       const im = new Image();
       im.src = h.img;
@@ -573,7 +578,12 @@
     const grid = document.getElementById("grid");
     function renderGrid() {
       grid.innerHTML = "";
-      HEROES.forEach(h => {
+      function cardImg(h){ return h.img; }
+    function imgTag(src, extra){
+      extra = extra || "";
+      return `<img src="${src}" ${extra} onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" />`;
+    }
+    HEROES.forEach(h => {
         const el = document.createElement("div");
         el.className = "card" + (h.id === hero.id ? " on" : "");
         const rk = RANKS[rankOf(h.id)] || "Bronce";
@@ -622,7 +632,7 @@
     }
     function renderDuelPick() {
       const box = document.getElementById("duelPick");
-      box.innerHTML = HEROES.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}" style="padding:3px"><img src="${h.img}" style="height:92px;margin:0;object-fit:cover;object-position:top" /></div>`).join("");
+      box.innerHTML = HEROES.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}" style="padding:3px"><img src="${h.img}" style="height:92px;margin:0;object-fit:cover;object-position:top" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" /></div>`).join("");
       box.querySelectorAll(".card").forEach(el => el.onclick = () => {
         selectedCard = el.getAttribute("data-id");
         document.getElementById("duelMsg").textContent = "Coloca " + (HEROES.find(x=>x.id===selectedCard)||{}).name + " en tu mitad.";
