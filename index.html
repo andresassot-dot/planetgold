@@ -130,8 +130,17 @@
     }
     @keyframes shine { 0%{transform:translateX(-30%)} 100%{transform:translateX(30%)} }
     .meRow { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
-    .bestCard { text-align:center; margin-top:12px; }
+    .bestCard { text-align:center; margin-top:12px; position:relative; }
     .bestCard img { width:min(58vw,220px); height:auto; border-radius:12px; border:2px solid #d4af37; display:block; margin:0 auto; background:#0b0d14; }
+    .bestCard.holo { position:relative; }
+    .bestCard.holo img { border-color:#9be7ff; box-shadow:0 0 18px rgba(180,80,255,.45),0 0 8px rgba(255,220,80,.35); }
+    .bestCard.holo::after {
+      content:""; pointer-events:none; position:absolute; left:50%; top:0; width:min(58vw,220px); height:100%;
+      transform:translateX(-50%); border-radius:12px;
+      background:linear-gradient(115deg,transparent 20%,rgba(255,80,180,.28) 35%,rgba(80,220,255,.35) 50%,rgba(255,230,80,.28) 65%,transparent 80%);
+      background-size:220% 100%; animation:holoSweep 2.2s linear infinite; mix-blend-mode:screen;
+    }
+    @keyframes holoSweep { 0%{background-position:120% 0} 100%{background-position:-120% 0} }
 
     #ads { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #ads.on { display: flex; }
@@ -555,8 +564,23 @@
     function rankOf(id) { return Number(localStorage.getItem("pg_rk_"+id)||0); }
     function dustOf(id) { return Number(localStorage.getItem("pg_du_"+id)||0); }
     function addDust(id) {
+      const card = HEROES.find(x => x.id === id) || {};
+      if (card.evo) {
+        const d = dustOf(id) + 1;
+        localStorage.setItem("pg_du_"+id, d);
+        localStorage.setItem("pg_rk_"+id, Math.max(rankOf(id), 3));
+        return "¡" + (card.name||"Holo") + "!";
+      }
       let r = rankOf(id), d = dustOf(id) + 1;
       let note = "+1 " + RANKS[r];
+      if (card.fusesTo && d >= 3) {
+        d = d - 3;
+        localStorage.setItem("pg_rk_"+id, r);
+        localStorage.setItem("pg_du_"+id, d);
+        addDust(card.fusesTo);
+        const ev = HEROES.find(x => x.id === card.fusesTo);
+        return "¡Fusión! " + ((ev && ev.name) || "Holo");
+      }
       if (d >= 3 && r < 3) { r += 1; d = 0; note = "¡" + RANKS[r] + "!"; }
       localStorage.setItem("pg_rk_"+id, r);
       localStorage.setItem("pg_du_"+id, d);
@@ -565,31 +589,57 @@
 
     const KINDICO = { corta:"⚔", media:"🗡", larga:"🏹" };
     const HEROES = [
-      { id:"capitan", deck:"futbol", name:"Capitán", rare:"rara", syn:"fuego", role:"potencia", img:"cards/capitan.jpg", dmg:1.2, hp:5, atk:{corta:5,media:3,larga:2}, dots:{N:"corta",NE:"media",E:"corta"} },
-      { id:"diez", deck:"futbol", name:"Diez", rare:"rara", syn:"aire", role:"preciso", img:"cards/diez.jpg", dmg:1.05, acc:1.15, hp:4, atk:{corta:2,media:6,larga:3}, dots:{N:"media",NO:"media",O:"larga"} },
-      { id:"samba", deck:"futbol", name:"Samba", rare:"normal", syn:"tierra", role:"efecto", img:"cards/samba.jpg", dmg:1.05, hp:4, atk:{corta:3,media:3,larga:3}, dots:{N:"corta",NE:"media",NO:"media"} },
-      { id:"pibe", deck:"futbol", name:"Pibe", rare:"normal", syn:"agua", role:"pase", img:"cards/pibe.jpg", dmg:1.0, hp:5, atk:{corta:2,media:4,larga:4}, dots:{N:"media",E:"larga",O:"larga"} },
-      { id:"rayo", deck:"futbol", name:"Rayo", rare:"ultra", syn:"aire", role:"rápido", img:"cards/rayo.jpg", dmg:1.1, spd:1.2, hp:4, atk:{corta:6,media:3,larga:2}, dots:{N:"corta",NE:"corta",SE:"media"} },
-      { id:"rocaverde", deck:"magos", name:"Gaia", rare:"rara", syn:"tierra", role:"tierra", img:"cards/gaia.jpg", dmg:1.1, hp:5, atk:{corta:1,media:5,larga:6}, dots:{N:"media",NE:"larga",NO:"larga",O:"media"} },
-      { id:"brasas", deck:"magos", name:"Viuda Carmesí", rare:"normal", syn:"fuego", role:"fuego", img:"cards/viuda-carmesi.jpg", dmg:1.15, hp:4, atk:{corta:1,media:4,larga:5}, dots:{N:"media",NE:"larga",E:"media"} },
-      { id:"marea", deck:"magos", name:"Atenas", rare:"normal", syn:"agua", role:"agua", img:"cards/atenas.jpg", dmg:1.05, hp:5, atk:{corta:0,media:4,larga:6}, dots:{N:"larga",NO:"media",O:"larga"} },
-      { id:"vendaval", deck:"magos", name:"Zephyra", rare:"rara", syn:"aire", role:"aire", img:"cards/zephyra.jpg", dmg:1.05, spd:1.2, hp:4, atk:{corta:0,media:5,larga:5}, dots:{N:"media",NE:"larga",NO:"larga"} },
-      { id:"aurora", deck:"magos", name:"Solaria", rare:"ultra", syn:"luz", role:"luz", img:"cards/solaria.jpg", dmg:1.15, hp:5, atk:{corta:1,media:4,larga:8}, dots:{N:"larga",E:"media",O:"media"} },
-      { id:"musgo", deck:"duendes", name:"Musgo", rare:"normal", syn:"tierra", role:"bosque", img:"cards/duende-musgo.jpg", dmg:1.0, hp:5, atk:{corta:3,media:3,larga:2}, dots:{N:"corta",NO:"media",SO:"corta"} },
-      { id:"seta", deck:"duendes", name:"Seta", rare:"normal", syn:"veneno", role:"veneno", img:"cards/duende-seta.jpg", dmg:1.05, hp:4, atk:{corta:4,media:3,larga:2}, dots:{N:"corta",NE:"media",SE:"corta"} },
-      { id:"orohoja", deck:"duendes", name:"Orojoja", rare:"rara", syn:"tesoro", role:"tesoro", img:"cards/duende-oro.jpg", dmg:1.05, hp:4, atk:{corta:2,media:6,larga:3}, dots:{N:"media",E:"media",O:"larga"} },
-      { id:"sombralin", deck:"duendes", name:"Sombralín", rare:"rara", syn:"noche", role:"noche", img:"cards/duende-noche.jpg", dmg:1.1, hp:3, atk:{corta:4,media:2,larga:5}, dots:{NO:"media",O:"larga",SO:"corta"} },
-      { id:"yunque", deck:"duendes", name:"Yunque", rare:"ultra", syn:"fuego", role:"forja", img:"cards/duende-yunque.jpg", dmg:1.2, hp:6, atk:{corta:6,media:3,larga:2}, dots:{N:"corta",NE:"corta",E:"media"} },
-      { id:"aguila", deck:"lideres", name:"Águila", rare:"rara", syn:"aire", role:"lider", img:"cards/lider-aguila.jpg", dmg:1.1, hp:5, atk:{corta:2,media:5,larga:5}, dots:{N:"larga",NE:"media",NO:"media"} },
-      { id:"leon", deck:"lideres", name:"León", rare:"ultra", syn:"fuego", role:"mando", img:"cards/lider-leon.jpg", dmg:1.2, hp:6, atk:{corta:6,media:4,larga:3}, dots:{N:"corta",E:"media",SE:"corta"} },
-      { id:"lobo", deck:"lideres", name:"Lobo", rare:"rara", syn:"noche", role:"norte", img:"cards/lider-lobo.jpg", dmg:1.1, hp:5, atk:{corta:3,media:6,larga:3}, dots:{N:"media",NO:"media",O:"larga"} },
-      { id:"sol", deck:"lideres", name:"Sol", rare:"normal", syn:"luz", role:"sur", img:"cards/lider-sol.jpg", dmg:1.0, hp:4, atk:{corta:2,media:3,larga:6}, dots:{N:"larga",NE:"media",E:"larga"} },
-      { id:"roble", deck:"lideres", name:"Roble", rare:"normal", syn:"tierra", role:"union", img:"cards/lider-roble.jpg", dmg:1.0, hp:5, atk:{corta:3,media:3,larga:3}, dots:{N:"corta",E:"media",O:"media"} },
-      { id:"chispa", deck:"mascotas", name:"Chispa", rare:"normal", syn:"aire", role:"mascota", img:"cards/bestia-chispa.jpg", dmg:1.1, spd:1.3, hp:3, atk:{corta:4,media:2,larga:2}, dots:{N:"corta",NE:"corta",E:"media"} },
-      { id:"brote", deck:"mascotas", name:"Brote", rare:"normal", syn:"tierra", role:"mascota", img:"cards/bestia-brote.jpg", dmg:1.0, hp:4, atk:{corta:2,media:4,larga:2}, dots:{N:"media",NO:"corta",SO:"corta"} },
-      { id:"gota", deck:"mascotas", name:"Gota", rare:"normal", syn:"agua", role:"mascota", img:"cards/bestia-gota.jpg", dmg:1.0, hp:4, atk:{corta:1,media:3,larga:4}, dots:{N:"larga",O:"media",SE:"media"} },
-      { id:"ember", deck:"mascotas", name:"Ember", rare:"rara", syn:"fuego", role:"mascota", img:"cards/bestia-ember.jpg", dmg:1.15, hp:3, atk:{corta:5,media:3,larga:2}, dots:{N:"corta",NE:"media",NO:"corta"} },
-      { id:"roca", deck:"monturas", name:"Roca", rare:"rara", syn:"tierra", role:"montura", img:"cards/bestia-roca.jpg", dmg:1.2, hp:6, atk:{corta:4,media:2,larga:1}, dots:{N:"corta",E:"corta",O:"corta"} }
+{ id:"capitan", deck:"futbol", name:"Capitán", rare:"rara", syn:"fuego", role:"potencia", img:"cards/capitan.jpg", dmg:1.2, hp:5, atk:{corta:5,media:3,larga:2}, dots:{N:"corta",NE:"media",E:"corta"}, fusesTo:"capitan-holo" }
+      { id:"capitan-holo", deck:"futbol", name:"Capitán Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/capitan-holo.jpg", dmg:1.4, hp:7, atk:{corta:7,media:5,larga:4}, dots:{N:"corta",NE:"media",E:"corta"}, evo:true, holo:true }
+{ id:"diez", deck:"futbol", name:"Diez", rare:"rara", syn:"aire", role:"preciso", img:"cards/diez.jpg", dmg:1.05, acc:1.15, hp:4, atk:{corta:2,media:6,larga:3}, dots:{N:"media",NO:"media",O:"larga"}, fusesTo:"diez-holo" }
+      { id:"diez-holo", deck:"futbol", name:"Diez Holo", rare:"ultra", syn:"aire", role:"holo", img:"cards/diez-holo.jpg", dmg:1.25, acc:1.15, hp:6, atk:{corta:4,media:8,larga:5}, dots:{N:"media",NO:"media",O:"larga"}, evo:true, holo:true }
+{ id:"samba", deck:"futbol", name:"Samba", rare:"normal", syn:"tierra", role:"efecto", img:"cards/samba.jpg", dmg:1.05, hp:4, atk:{corta:3,media:3,larga:3}, dots:{N:"corta",NE:"media",NO:"media"}, fusesTo:"samba-holo" }
+      { id:"samba-holo", deck:"futbol", name:"Samba Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/samba-holo.jpg", dmg:1.25, hp:6, atk:{corta:5,media:5,larga:5}, dots:{N:"corta",NE:"media",NO:"media"}, evo:true, holo:true }
+, dots:{N:"corta",NE:"media",NO:"media",E:"media"}, evo:true, holo:true }
+{ id:"pibe", deck:"futbol", name:"Pibe", rare:"normal", syn:"agua", role:"pase", img:"cards/pibe.jpg", dmg:1.0, hp:5, atk:{corta:2,media:4,larga:4}, dots:{N:"media",E:"larga",O:"larga"}, fusesTo:"pibe-holo" }
+      { id:"pibe-holo", deck:"futbol", name:"Pibe Holo", rare:"ultra", syn:"agua", role:"holo", img:"cards/pibe-holo.jpg", dmg:1.2, hp:7, atk:{corta:4,media:6,larga:6}, dots:{N:"media",E:"larga",O:"larga"}, evo:true, holo:true }
+{ id:"rayo", deck:"futbol", name:"Rayo", rare:"ultra", syn:"aire", role:"rápido", img:"cards/rayo.jpg", dmg:1.1, spd:1.2, hp:4, atk:{corta:6,media:3,larga:2}, dots:{N:"corta",NE:"corta",SE:"media"}, fusesTo:"rayo-holo" }
+      { id:"rayo-holo", deck:"futbol", name:"Rayo Holo", rare:"ultra", syn:"aire", role:"holo", img:"cards/rayo-holo.jpg", dmg:1.3, spd:1.2, hp:6, atk:{corta:8,media:5,larga:4}, dots:{N:"corta",NE:"corta",SE:"media"}, evo:true, holo:true }
+{ id:"rocaverde", deck:"magos", name:"Gaia", rare:"rara", syn:"tierra", role:"tierra", img:"cards/gaia.jpg", dmg:1.1, hp:5, atk:{corta:1,media:5,larga:6}, dots:{N:"media",NE:"larga",NO:"larga",O:"media"}, fusesTo:"rocaverde-holo" }
+      { id:"rocaverde-holo", deck:"magos", name:"Gaia Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/rocaverde-holo.jpg", dmg:1.3, hp:7, atk:{corta:3,media:7,larga:8}, dots:{N:"media",NE:"larga",NO:"larga",O:"media"}, evo:true, holo:true }
+{ id:"brasas", deck:"magos", name:"Viuda Carmesí", rare:"normal", syn:"fuego", role:"fuego", img:"cards/viuda-carmesi.jpg", dmg:1.15, hp:4, atk:{corta:1,media:4,larga:5}, dots:{N:"media",NE:"larga",E:"media"}, fusesTo:"brasas-holo" }
+      { id:"brasas-holo", deck:"magos", name:"Viuda Carmesí Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/brasas-holo.jpg", dmg:1.35, hp:6, atk:{corta:3,media:6,larga:7}, dots:{N:"media",NE:"larga",E:"media"}, evo:true, holo:true }
+{ id:"marea", deck:"magos", name:"Atenas", rare:"normal", syn:"agua", role:"agua", img:"cards/atenas.jpg", dmg:1.05, hp:5, atk:{corta:0,media:4,larga:6}, dots:{N:"larga",NO:"media",O:"larga"}, fusesTo:"marea-holo" }
+      { id:"marea-holo", deck:"magos", name:"Atenas Holo", rare:"ultra", syn:"agua", role:"holo", img:"cards/marea-holo.jpg", dmg:1.25, hp:7, atk:{corta:2,media:6,larga:8}, dots:{N:"larga",NO:"media",O:"larga"}, evo:true, holo:true }
+{ id:"vendaval", deck:"magos", name:"Zephyra", rare:"rara", syn:"aire", role:"aire", img:"cards/zephyra.jpg", dmg:1.05, spd:1.2, hp:4, atk:{corta:0,media:5,larga:5}, dots:{N:"media",NE:"larga",NO:"larga"}, fusesTo:"vendaval-holo" }
+      { id:"vendaval-holo", deck:"magos", name:"Zephyra Holo", rare:"ultra", syn:"aire", role:"holo", img:"cards/vendaval-holo.jpg", dmg:1.25, spd:1.2, hp:6, atk:{corta:2,media:7,larga:7}, dots:{N:"media",NE:"larga",NO:"larga"}, evo:true, holo:true }
+{ id:"aurora", deck:"magos", name:"Solaria", rare:"ultra", syn:"luz", role:"luz", img:"cards/solaria.jpg", dmg:1.15, hp:5, atk:{corta:1,media:4,larga:8}, dots:{N:"larga",E:"media",O:"media"}, fusesTo:"aurora-holo" }
+      { id:"aurora-holo", deck:"magos", name:"Solaria Holo", rare:"ultra", syn:"luz", role:"holo", img:"cards/aurora-holo.jpg", dmg:1.35, hp:7, atk:{corta:3,media:6,larga:10}, dots:{N:"larga",E:"media",O:"media"}, evo:true, holo:true }
+{ id:"musgo", deck:"duendes", name:"Musgo", rare:"normal", syn:"tierra", role:"bosque", img:"cards/duende-musgo.jpg", dmg:1.0, hp:5, atk:{corta:3,media:3,larga:2}, dots:{N:"corta",NO:"media",SO:"corta"}, fusesTo:"musgo-holo" }
+      { id:"musgo-holo", deck:"duendes", name:"Musgo Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/musgo-holo.jpg", dmg:1.2, hp:7, atk:{corta:5,media:5,larga:4}, dots:{N:"corta",NO:"media",SO:"corta"}, evo:true, holo:true }
+{ id:"seta", deck:"duendes", name:"Seta", rare:"normal", syn:"veneno", role:"veneno", img:"cards/duende-seta.jpg", dmg:1.05, hp:4, atk:{corta:4,media:3,larga:2}, dots:{N:"corta",NE:"media",SE:"corta"}, fusesTo:"seta-holo" }
+      { id:"seta-holo", deck:"duendes", name:"Seta Holo", rare:"ultra", syn:"veneno", role:"holo", img:"cards/seta-holo.jpg", dmg:1.25, hp:6, atk:{corta:6,media:5,larga:4}, dots:{N:"corta",NE:"media",SE:"corta"}, evo:true, holo:true }
+{ id:"orohoja", deck:"duendes", name:"Orojoja", rare:"rara", syn:"tesoro", role:"tesoro", img:"cards/duende-oro.jpg", dmg:1.05, hp:4, atk:{corta:2,media:6,larga:3}, dots:{N:"media",E:"media",O:"larga"}, fusesTo:"orohoja-holo" }
+      { id:"orohoja-holo", deck:"duendes", name:"Orojoja Holo", rare:"ultra", syn:"tesoro", role:"holo", img:"cards/orohoja-holo.jpg", dmg:1.25, hp:6, atk:{corta:4,media:8,larga:5}, dots:{N:"media",E:"media",O:"larga"}, evo:true, holo:true }
+{ id:"sombralin", deck:"duendes", name:"Sombralín", rare:"rara", syn:"noche", role:"noche", img:"cards/duende-noche.jpg", dmg:1.1, hp:3, atk:{corta:4,media:2,larga:5}, dots:{NO:"media",O:"larga",SO:"corta"}, fusesTo:"sombralin-holo" }
+      { id:"sombralin-holo", deck:"duendes", name:"Sombralín Holo", rare:"ultra", syn:"noche", role:"holo", img:"cards/sombralin-holo.jpg", dmg:1.3, hp:5, atk:{corta:6,media:4,larga:7}, dots:{NO:"media",O:"larga",SO:"corta"}, evo:true, holo:true }
+{ id:"yunque", deck:"duendes", name:"Yunque", rare:"ultra", syn:"fuego", role:"forja", img:"cards/duende-yunque.jpg", dmg:1.2, hp:6, atk:{corta:6,media:3,larga:2}, dots:{N:"corta",NE:"corta",E:"media"}, fusesTo:"yunque-holo" }
+      { id:"yunque-holo", deck:"duendes", name:"Yunque Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/yunque-holo.jpg", dmg:1.4, hp:8, atk:{corta:8,media:5,larga:4}, dots:{N:"corta",NE:"corta",E:"media"}, evo:true, holo:true }
+{ id:"aguila", deck:"lideres", name:"Águila", rare:"rara", syn:"aire", role:"lider", img:"cards/lider-aguila.jpg", dmg:1.1, hp:5, atk:{corta:2,media:5,larga:5}, dots:{N:"larga",NE:"media",NO:"media"}, fusesTo:"aguila-holo" }
+      { id:"aguila-holo", deck:"lideres", name:"Águila Holo", rare:"ultra", syn:"aire", role:"holo", img:"cards/aguila-holo.jpg", dmg:1.3, hp:7, atk:{corta:4,media:7,larga:7}, dots:{N:"larga",NE:"media",NO:"media"}, evo:true, holo:true }
+{ id:"leon", deck:"lideres", name:"León", rare:"ultra", syn:"fuego", role:"mando", img:"cards/lider-leon.jpg", dmg:1.2, hp:6, atk:{corta:6,media:4,larga:3}, dots:{N:"corta",E:"media",SE:"corta"}, fusesTo:"leon-holo" }
+      { id:"leon-holo", deck:"lideres", name:"León Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/leon-holo.jpg", dmg:1.4, hp:8, atk:{corta:8,media:6,larga:5}, dots:{N:"corta",E:"media",SE:"corta"}, evo:true, holo:true }
+{ id:"lobo", deck:"lideres", name:"Lobo", rare:"rara", syn:"noche", role:"norte", img:"cards/lider-lobo.jpg", dmg:1.1, hp:5, atk:{corta:3,media:6,larga:3}, dots:{N:"media",NO:"media",O:"larga"}, fusesTo:"lobo-holo" }
+      { id:"lobo-holo", deck:"lideres", name:"Lobo Holo", rare:"ultra", syn:"noche", role:"holo", img:"cards/lobo-holo.jpg", dmg:1.3, hp:7, atk:{corta:5,media:8,larga:5}, dots:{N:"media",NO:"media",O:"larga"}, evo:true, holo:true }
+{ id:"sol", deck:"lideres", name:"Sol", rare:"normal", syn:"luz", role:"sur", img:"cards/lider-sol.jpg", dmg:1.0, hp:4, atk:{corta:2,media:3,larga:6}, dots:{N:"larga",NE:"media",E:"larga"}, fusesTo:"sol-holo" }
+      { id:"sol-holo", deck:"lideres", name:"Sol Holo", rare:"ultra", syn:"luz", role:"holo", img:"cards/sol-holo.jpg", dmg:1.2, hp:6, atk:{corta:4,media:5,larga:8}, dots:{N:"larga",NE:"media",E:"larga"}, evo:true, holo:true }
+{ id:"roble", deck:"lideres", name:"Roble", rare:"normal", syn:"tierra", role:"union", img:"cards/lider-roble.jpg", dmg:1.0, hp:5, atk:{corta:3,media:3,larga:3}, dots:{N:"corta",E:"media",O:"media"}, fusesTo:"roble-holo" }
+      { id:"roble-holo", deck:"lideres", name:"Roble Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/roble-holo.jpg", dmg:1.2, hp:7, atk:{corta:5,media:5,larga:5}, dots:{N:"corta",E:"media",O:"media"}, evo:true, holo:true }
+{ id:"chispa", deck:"mascotas", name:"Chispa", rare:"normal", syn:"aire", role:"mascota", img:"cards/bestia-chispa.jpg", dmg:1.1, spd:1.3, hp:3, atk:{corta:4,media:2,larga:2}, dots:{N:"corta",NE:"corta",E:"media"}, fusesTo:"chispa-holo" }
+      { id:"chispa-holo", deck:"mascotas", name:"Chispa Holo", rare:"ultra", syn:"aire", role:"holo", img:"cards/chispa-holo.jpg", dmg:1.3, spd:1.3, hp:5, atk:{corta:6,media:4,larga:4}, dots:{N:"corta",NE:"corta",E:"media"}, evo:true, holo:true }
+{ id:"brote", deck:"mascotas", name:"Brote", rare:"normal", syn:"tierra", role:"mascota", img:"cards/bestia-brote.jpg", dmg:1.0, hp:4, atk:{corta:2,media:4,larga:2}, dots:{N:"media",NO:"corta",SO:"corta"}, fusesTo:"brote-holo" }
+      { id:"brote-holo", deck:"mascotas", name:"Brote Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/brote-holo.jpg", dmg:1.2, hp:6, atk:{corta:4,media:6,larga:4}, dots:{N:"media",NO:"corta",SO:"corta"}, evo:true, holo:true }
+{ id:"gota", deck:"mascotas", name:"Gota", rare:"normal", syn:"agua", role:"mascota", img:"cards/bestia-gota.jpg", dmg:1.0, hp:4, atk:{corta:1,media:3,larga:4}, dots:{N:"larga",O:"media",SE:"media"}, fusesTo:"gota-holo" }
+      { id:"gota-holo", deck:"mascotas", name:"Gota Holo", rare:"ultra", syn:"agua", role:"holo", img:"cards/gota-holo.jpg", dmg:1.2, hp:6, atk:{corta:3,media:5,larga:6}, dots:{N:"larga",O:"media",SE:"media"}, evo:true, holo:true }
+{ id:"ember", deck:"mascotas", name:"Ember", rare:"rara", syn:"fuego", role:"mascota", img:"cards/bestia-ember.jpg", dmg:1.15, hp:3, atk:{corta:5,media:3,larga:2}, dots:{N:"corta",NE:"media",NO:"corta"}, fusesTo:"ember-holo" }
+      { id:"ember-holo", deck:"mascotas", name:"Ember Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/ember-holo.jpg", dmg:1.35, hp:5, atk:{corta:7,media:5,larga:4}, dots:{N:"corta",NE:"media",NO:"corta"}, evo:true, holo:true }
+{ id:"roca", deck:"monturas", name:"Roca", rare:"rara", syn:"tierra", role:"montura", img:"cards/bestia-roca.jpg", dmg:1.2, hp:6, atk:{corta:4,media:2,larga:1}, dots:{N:"corta",E:"corta",O:"corta"}, fusesTo:"roca-holo" }
+      { id:"roca-holo", deck:"monturas", name:"Roca Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/roca-holo.jpg", dmg:1.4, hp:8, atk:{corta:6,media:4,larga:3}, dots:{N:"corta",E:"corta",O:"corta"}, evo:true, holo:true }
     ];
 
     const heroImg = {};
@@ -704,7 +754,10 @@
       if (rk) rk.textContent = pts >= 20000 ? "#1 local" : (pts >= 5000 ? "Top local" : "Novato");
       const order = {Bronce:0, Plata:1, Oro:2, Platino:3};
       const rare = {normal:0, rara:1, ultra:2};
-      const best = HEROES.slice().sort((a,b)=>{
+      const owned = HEROES.filter(h => dustOf(h.id)>0 || rankOf(h.id)>0 || !h.evo);
+      const best = owned.slice().sort((a,b)=>{
+        const ha = a.holo ? 1 : 0, hb = b.holo ? 1 : 0;
+        if (hb!==ha) return hb-ha;
         const ra = order[RANKS[rankOf(a.id)]||"Bronce"]||0;
         const rb = order[RANKS[rankOf(b.id)]||"Bronce"]||0;
         if (rb!==ra) return rb-ra;
@@ -715,9 +768,11 @@
       const bi = document.getElementById("bestImg");
       const bn = document.getElementById("bestName");
       const bt = document.getElementById("bestNote");
-      if (bi) { bi.src = best.img; bi.onerror = function(){ this.onerror=null; this.src=(best.img||"").replace('.jpg','.JPG'); }; }
+      const wrap = document.getElementById("bestWrap");
+      if (wrap) wrap.classList.toggle("holo", !!best.holo);
+      if (bi) { bi.src = best.img; bi.onerror = function(){ this.onerror=null; this.src=best.img && best.img.indexOf("holo")>=0 ? "cards/samba.jpg" : (best.img||"").replace('.jpg','.JPG'); }; }
       if (bn) bn.textContent = best.name;
-      if (bt) bt.textContent = (RANKS[rankOf(best.id)]||"Bronce") + " · " + dustOf(best.id) + "/3";
+      if (bt) bt.textContent = best.holo ? "Holográfica · fusión" : ((RANKS[rankOf(best.id)]||"Bronce") + " · " + dustOf(best.id) + "/3");
     }
     document.querySelectorAll("[data-tab]").forEach(el => {
       el.addEventListener("click", () => { sfx("menu"); showTab(el.getAttribute("data-tab")); });
@@ -785,7 +840,8 @@
         return;
       }
       localStorage.setItem("pg_packDay", day);
-      const h = HEROES[Math.floor(Math.random()*HEROES.length)];
+      const pool = HEROES.filter(x => !x.evo);
+      const h = pool[Math.floor(Math.random()*pool.length)];
       const jackpot = Math.random() < 0.18;
       const note = addDust(h.id);
       let extra = "";
@@ -1008,7 +1064,7 @@
       extra = extra || "";
       return `<img src="${src}" ${extra} onerror="(function(i){var s=i.getAttribute('data-try')||'0';var n=+s+1;i.setAttribute('data-try',n);var base=i.src.split('/').pop();var map={'gaia.jpg':['mago-tierra.JPG','mago-tierra.jpg'],'viuda-carmesi.jpg':['mago-fuego.jpg','mago-fuego.JPG'],'atenas.jpg':['mago-agua.jpg'],'zephyra.jpg':['mago-aire.jpg'],'solaria.jpg':['mago-luz.jpg'],'mago-tierra.JPG':['gaia.jpg','mago-tierra.jpg']};var list=map[base]||[];if(base.indexOf('.JPG')>=0)list.push(base.replace('.JPG','.jpg'));else list.push(base.replace('.jpg','.JPG'));if(n<=list.length){i.src='cards/'+list[n-1];}else{i.onerror=null;}})(this)" />`;
     }
-    HEROES.filter(h => deckFilter==="all" || h.deck===deckFilter || (deckFilter==="mascotas" && (h.deck==="mascotas"||h.deck==="monturas"))).forEach(h => {
+    HEROES.filter(h => (!h.evo || dustOf(h.id)>0) && (deckFilter==="all" || h.deck===deckFilter || (deckFilter==="mascotas" && (h.deck==="mascotas"||h.deck==="monturas")))).forEach(h => {
         const el = document.createElement("div");
         el.className = "card" + (h.id === hero.id ? " on" : "");
         const rk = RANKS[rankOf(h.id)] || "Bronce";
