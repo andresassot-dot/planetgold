@@ -1334,6 +1334,12 @@
       localStorage.setItem("pg_board", JSON.stringify(board));
       return board;
     }
+    try {
+      if (localStorage.getItem("pg_board_v2")!=="1") {
+        localStorage.removeItem("pg_board");
+        localStorage.setItem("pg_board_v2","1");
+      }
+    } catch(e) {}
     async function pushRank() {
       const me = myProfile();
       let remote = [];
