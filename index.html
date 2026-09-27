@@ -231,10 +231,15 @@
           <div id="meWho" style="font-weight:800;font-size:16px">Tú</div>
           <div class="muted" id="meRank" style="font-size:12px">Novato</div>
         </div>
+        <div style="text-align:right">
+          <div class="muted" style="font-size:10px">TGOLD</div>
+          <div class="big" id="meTgold" style="font-size:20px;color:#ffe08a">0</div>
+        </div>
       </div>
       <h2>PLANET GOLD</h2>
       <div class="big" id="homePts">0 pts</div>
-      <div class="muted">tgold pendiente: <b id="homePend">0</b></div>
+      <div class="muted">tgold en juego: <b id="homePend">0</b></div>
+      <button class="main" id="swapBtn" style="margin-top:10px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
       <div class="muted" style="margin-top:8px">Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:10px">
@@ -402,13 +407,15 @@
   </div>
   <div id="wallet">
     <h1 style="color:#ffe08a;text-align:center">Cobrar</h1>
-    <p class="muted" style="text-align:center">Pega tu wallet de Solana (la de recibir tgold)</p>
+    <p class="muted" style="text-align:center">Mínimo para retirar fuera: 10 $ según precio en vivo. Swap: 20.000 pts = 10 tgold.</p>
     <div class="heroBan">
-      <div class="muted">Pendiente</div>
+      <div class="muted">TGOLD en juego</div>
       <div class="big" id="walPend">0</div>
+      <div class="muted" id="walUsd">≈ $0</div>
     </div>
+    <button class="main" id="swapBtn2" style="margin-bottom:10px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
     <input class="wal" id="walletIn" placeholder="Wallet Solana" />
-    <button class="main" id="claimBtn">RECLAMAR TGOLD</button>
+    <button class="main" id="claimBtn">RETIRAR A WALLET</button>
     <div class="heroBan" id="loadBox" style="margin-top:16px">
       <div class="muted">Cargar TGOLD al juego</div>
       <p class="muted">Envía TGOLD a esta tesorería (igual para todos) y pega la firma.</p>
@@ -882,7 +889,10 @@
       if (name === "ads") renderAds();
       if (name === "mine") renderMine();
       if (name === "wallet") {
-        document.getElementById("walPend").textContent = Number(localStorage.getItem("pg_pend")||0);
+        const p = Number(localStorage.getItem("pg_pend")||0);
+        document.getElementById("walPend").textContent = p;
+        const wu = document.getElementById("walUsd");
+        if (wu) wu.textContent = "≈ $" + (p*lastPx()).toFixed(6) + " · mínimo retiro $"+MIN_USD;
         document.getElementById("walletIn").value = localStorage.getItem("pg_wallet")||"";
       }
     }
@@ -914,9 +924,24 @@
       msg.textContent = "Anuncio publicado. -100 tgold";
       refreshHome();
     };
+    const SWAP_PTS = 20000, SWAP_TG = 10, MIN_USD = 10;
+    function lastPx(){ const n=Number(localStorage.getItem("pg_lastPx")||0); return n>0?n:0.000005; }
+    function doSwap(){
+      let pts = Number(localStorage.getItem("pg_pts")||0);
+      if (pts < SWAP_PTS) { alert("Necesitas "+SWAP_PTS+" pts. Ahora: "+pts); return; }
+      pts -= SWAP_PTS;
+      const pend = Number(localStorage.getItem("pg_pend")||0) + SWAP_TG;
+      localStorage.setItem("pg_pts", pts);
+      localStorage.setItem("pg_pend", pend);
+      refreshHome();
+      const wp = document.getElementById("walPend"); if (wp) wp.textContent = pend;
+      const wu = document.getElementById("walUsd"); if (wu) wu.textContent = "≈ $" + (pend*lastPx()).toFixed(6);
+    }
     function refreshHome() {
       document.getElementById("homePts").textContent = (localStorage.getItem("pg_pts")||0) + " pts";
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
+      const mt = document.getElementById("meTgold");
+      if (mt) mt.textContent = localStorage.getItem("pg_pend")||0;
       const en = document.getElementById("homeEn");
       if (en) en.textContent = getEnergy() + "/" + MAX_EN;
       const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
@@ -972,6 +997,7 @@
           d = { price: Number(a.base_token_price_usd), change24: Number(a.price_change_percentage.h24||0), liq: Number(a.reserve_in_usd), vol: Number(a.volume_usd.h24||0) };
         }
         if (!d || !d.price) throw new Error("sin precio");
+        localStorage.setItem("pg_lastPx", String(d.price));
         priceEl.textContent = "$" + d.price.toPrecision(4);
         const up = d.change24 >= 0;
         chgEl.textContent = (up?"+":"") + Number(d.change24).toFixed(2) + "%";
@@ -1179,10 +1205,19 @@
       refreshHome();
       const wp = document.getElementById("walPend"); if (wp) wp.textContent = pend;
     };
+    document.getElementById("swapBtn").onclick = doSwap;
+    document.getElementById("swapBtn2").onclick = doSwap;
     document.getElementById("claimBtn").onclick = async () => {
       const w = document.getElementById("walletIn").value.trim();
       const msg = document.getElementById("claimMsg");
       if (w.length < 32) { msg.textContent = "Wallet inválida"; return; }
+      const pend = Number(localStorage.getItem("pg_pend")||0);
+      const usd = pend * lastPx();
+      if (usd < MIN_USD) {
+        const need = Math.ceil(MIN_USD / lastPx());
+        msg.textContent = "Mínimo $10 para retirar. Tienes ≈ $"+usd.toFixed(4)+" ("+pend+" tgold). Faltan ~"+need+" tgold.";
+        return;
+      }
       localStorage.setItem("pg_wallet", w);
       msg.textContent = "Enviando…";
       try {
