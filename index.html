@@ -625,8 +625,8 @@
     const ORES = [
       { id:"madera", name:"Madera", ico:"🪵" },
       { id:"piedra", name:"Piedra", ico:"🪨" },
-      { id:"oro", name:"Oro", ico:"🪙" },
-      { id:"platino", name:"Platino", ico:"⚪" },
+      { id:"oro", name:"Oro", ico:"🪙", img:"cards/lingote-oro.png" },
+      { id:"platino", name:"Platino", ico:"⚪", img:"cards/lingote-platino.png" },
       { id:"niobio", name:"Niobio", ico:"💠" }
     ];
     const EGGS = [
@@ -802,12 +802,16 @@
     }
     function renderMine(){
       const bagEl = document.getElementById("oreBag");
-      bagEl.innerHTML = ORES.map(o => `<div>${o.ico}<b>${oreOf(o.id)}</b>${o.name}</div>`).join("");
+      function orePic(id, size){
+        const o = ORES.find(x=>x.id===id) || {};
+        if (o.img) return `<img src="${o.img}" alt="" style="width:${size||28}px;height:${size||28}px;object-fit:contain;display:block;margin:0 auto" onerror="this.outerHTML='${o.ico||''}'" />`;
+        return `<span style="font-size:${size||22}px">${o.ico||""}</span>`;
+      }
+      bagEl.innerHTML = ORES.map(o => `<div>${orePic(o.id,26)}<b>${oreOf(o.id)}</b>${o.name}</div>`).join("");
       const gb = gearBonus();
       document.getElementById("mineBonus").textContent = "Bonus forja: +" + gb.hp + " HP · +" + gb.corta + " C · +" + gb.media + " M · +" + gb.larga + " L";
-      const ico = {madera:"🪵",piedra:"🪨",oro:"🪙",platino:"⚪",niobio:"💠"};
       document.getElementById("veins").innerHTML = VEINS.map(v =>
-        `<div class="vein"><div style="font-size:28px">${ico[v.ore]||"⛏"}</div><div style="flex:1"><b>${v.name}</b><small>Toca PICAR · ${v.cost} energía · ${v.chance}% · ${v.min}-${v.max} ${v.ore}</small></div><button class="pico" data-vein="${v.id}">PICAR</button></div>`
+        `<div class="vein"><div style="width:40px;text-align:center">${orePic(v.ore,36)}</div><div style="flex:1"><b>${v.name}</b><small>Toca PICAR · ${v.cost} energía · ${v.chance}% · ${v.min}-${v.max} ${v.ore}</small></div><button class="pico" data-vein="${v.id}">PICAR</button></div>`
       ).join("");
       document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => doMine(el.getAttribute("data-vein")));
       const forge = document.getElementById("forge");
