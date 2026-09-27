@@ -450,7 +450,11 @@
         <div class="card" data-id="rayo" style="padding:4px"><img src="cards/rayo.jpg" style="height:72px;margin:0" /></div>
         <div class="card" data-id="rocaverde" style="padding:4px"><img src="cards/gaia.jpg" style="height:72px;margin:0" /></div>
       </div>
-      <input class="wal" id="sellPrice" type="number" placeholder="Precio en pts" value="800" />
+      <div style="display:flex;gap:8px">
+        <input class="wal" id="sellQty" type="number" placeholder="Cantidad" value="1" style="flex:1" />
+        <input class="wal" id="sellPrice" type="number" placeholder="Pts por unidad" value="800" style="flex:1" />
+      </div>
+      <p class="muted" style="margin:4px 0 8px">Cantidad a la izquierda · precio de cada pieza a la derecha. Sale 1 sola oferta tuya por objeto.</p>
       <button class="main" id="sellBtn">PUBLICAR</button>
       <p class="muted" id="sellMsg" style="text-align:center"></p>
     </div>
@@ -1295,25 +1299,27 @@
     }
     function offerLabel(o){
       const kind = o.kind || "card";
+      const qty = o.qty || 1;
+      const unit = o.unit || o.price || 0;
       if (kind==="ore") {
         const ore = ORES.find(x=>x.id===o.id);
-        return { name: (ore?ore.ico+" ":"")+(ore?ore.name:o.id), img:"", sub:"mineral" };
+        return { name: (ore?ore.name:o.id)+" x"+qty, img: ore && ore.img ? ore.img : "", ico: ore?ore.ico:"🪵", sub: unit+" pts/u" };
       }
       if (kind==="gear") {
         const g = GEAR.find(x=>x.id===o.id);
-        return { name: g?g.name:o.id, img:"", sub:"reliquia / arma" };
+        return { name: (g?g.name:o.id)+" x"+qty, img: g?g.img:"", ico:"", sub: (g?(g.tier+" · "):"")+unit+" pts/u" };
       }
       const h = HEROES.find(x => x.id===o.id) || HEROES[0];
-      return { name:h.name, img:h.img, sub:"carta" };
+      return { name:h.name+(qty>1?" x"+qty:""), img:h.img, ico:"", sub: unit+" pts/u" };
     }
     function renderSellGrid(){
       const kind = document.getElementById("sellKind").value || "card";
       const grid = document.getElementById("sellGrid");
       if (!grid) return;
       if (kind==="ore") {
-        grid.innerHTML = ORES.map(o => `<div class="card" data-id="${o.id}" style="padding:8px"><div style="font-size:22px">${o.ico}</div><small>${o.name}<br>${oreOf(o.id)}</small></div>`).join("");
+        grid.innerHTML = ORES.map(o => `<div class="card" data-id="${o.id}" style="padding:8px">${o.img?`<img src="${o.img}" style="height:48px;margin:0;object-fit:contain" />`:`<div style="font-size:22px">${o.ico}</div>`}<small>${o.name}<br>${oreOf(o.id)}</small></div>`).join("");
       } else if (kind==="gear") {
-        grid.innerHTML = GEAR.map(g => `<div class="card" data-id="${g.id}" style="padding:8px"><b style="font-size:11px">${g.name}</b><small>x${gearOf(g.id)}</small></div>`).join("");
+        grid.innerHTML = GEAR.map(g => `<div class="card" data-id="${g.id}" style="padding:6px"><img src="${g.img}" style="height:56px;margin:0;object-fit:contain" onerror="this.style.display='none'" /><small>${g.name}<br>x${gearOf(g.id)}</small></div>`).join("");
       } else {
         grid.innerHTML = HEROES.filter(h=>!h.holo).map(h => `<div class="card" data-id="${h.id}" style="padding:4px"><img src="${h.img}" style="height:72px;margin:0" /><small>${dustOf(h.id)}</small></div>`).join("");
       }
@@ -1335,8 +1341,9 @@
       if (!list.length) { box.innerHTML = '<p class="muted">No hay ofertas. Publica la primera.</p>'; return; }
       box.innerHTML = list.map((o,i) => {
         const L = offerLabel(o);
-        const pic = L.img ? `<img src="${L.img}" />` : `<div style="width:36px;text-align:center;font-size:22px">•</div>`;
-        return `<div class="offer">${pic}<div style="flex:1"><b>${L.name}</b><div class="muted">${o.price} pts · ${L.sub} · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
+        const pic = L.img ? `<img src="${L.img}" style="width:42px;height:42px;object-fit:contain" />` : `<div style="width:36px;text-align:center;font-size:22px">${L.ico||"•"}</div>`;
+        const total = (o.unit||o.price||0) * (o.qty||1);
+        return `<div class="offer">${pic}<div style="flex:1"><b>${L.name}</b><div class="muted">${total} pts · ${L.sub} · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
       }).join("");
       box.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
         const i = Number(b.getAttribute("data-buy"));
@@ -1344,12 +1351,14 @@
         const o = list[i];
         if (!o) return;
         const pts = Number(localStorage.getItem("pg_pts")||0);
-        if (pts < o.price) { document.getElementById("sellMsg").textContent = "No te llegan los puntos."; return; }
-        localStorage.setItem("pg_pts", pts - o.price);
+        const qty = o.qty || 1;
+        const cost = (o.unit || o.price || 0) * qty;
+        if (pts < cost) { document.getElementById("sellMsg").textContent = "No te llegan los puntos."; return; }
+        localStorage.setItem("pg_pts", pts - cost);
         const kind = o.kind || "card";
-        if (kind==="ore") addOre(o.id, o.qty||1);
-        else if (kind==="gear") addGear(o.id, 1);
-        else addDust(o.id);
+        if (kind==="ore") addOre(o.id, qty);
+        else if (kind==="gear") addGear(o.id, qty);
+        else for (let n=0;n<qty;n++) addDust(o.id);
         list.splice(i,1);
         localStorage.setItem("pg_mkt", JSON.stringify(list));
         refreshHome(); renderMarket(); renderMine();
@@ -1362,35 +1371,45 @@
       const k = b.getAttribute("data-sk");
       document.getElementById("sellKind").value = k;
       document.getElementById("sellWho").value = k==="ore"?"madera":(k==="gear"?"espada-madera":"capitan");
-      document.getElementById("sellPrice").value = k==="ore"?200:(k==="gear"?1500:800);
+      document.getElementById("sellPrice").value = k==="ore"?10:(k==="gear"?200:800);
+      document.getElementById("sellQty").value = k==="ore"?10:1;
       renderSellGrid();
     });
     const sellBtn = document.getElementById("sellBtn");
     if (sellBtn) sellBtn.onclick = () => {
       const kind = document.getElementById("sellKind").value || "card";
       const id = document.getElementById("sellWho").value;
-      const price = Math.max(50, Number(document.getElementById("sellPrice").value||0));
+      const unit = Math.max(1, Number(document.getElementById("sellPrice").value||0));
+      let qty = Math.max(1, Number(document.getElementById("sellQty").value||1));
       const msg = document.getElementById("sellMsg");
+      const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+      const by = u.username || u.first_name || "tú";
       if (kind==="ore") {
-        if (oreOf(id) <= 0) { msg.textContent = "No tienes ese mineral."; return; }
-        addOre(id, -1);
+        if (oreOf(id) < qty) { msg.textContent = "Solo tienes "+oreOf(id)+"."; return; }
+        addOre(id, -qty);
       } else if (kind==="gear") {
-        if (!ownsGear(id)) { msg.textContent = "No tienes esa reliquia."; return; }
-        addGear(id, -1);
+        if (gearOf(id) < qty) { msg.textContent = "Solo tienes x"+gearOf(id)+"."; return; }
+        addGear(id, -qty);
         if (!ownsGear(id)) {
           const w = wear();
           Object.keys(w).forEach(s => { if (w[s]===id) delete w[s]; });
           saveWear(w);
         }
       } else {
-        if (dustOf(id) <= 0) { msg.textContent = "No tienes copias de esa carta."; return; }
-        localStorage.setItem("pg_du_"+id, dustOf(id)-1);
+        if (dustOf(id) < qty) { msg.textContent = "Solo tienes "+dustOf(id)+" copias."; return; }
+        localStorage.setItem("pg_du_"+id, dustOf(id)-qty);
       }
       const list = marketList();
-      const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
-      list.unshift({ kind, id, qty:1, price, by: u.first_name || "tú" });
+      const same = list.findIndex(o => o.kind===kind && o.id===id && o.by===by);
+      if (same >= 0) {
+        list[same].qty = (list[same].qty||1) + qty;
+        list[same].unit = unit;
+        list[same].price = unit * list[same].qty;
+      } else {
+        list.unshift({ kind, id, qty, unit, price: unit*qty, by });
+      }
       localStorage.setItem("pg_mkt", JSON.stringify(list));
-      msg.textContent = "Publicada en el mercado.";
+      msg.textContent = "Oferta: "+qty+" × "+unit+" pts = "+(qty*unit)+" pts.";;
       renderMarket(); renderGrid(); renderMine();
     };
 
