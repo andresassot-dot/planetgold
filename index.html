@@ -247,7 +247,7 @@
   </div>
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
-    <p class="muted" style="text-align:center;margin:6px 0">3 caídas o más vida a 12 turnos. Efectos en los 5 huecos.</p>
+    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno. Rival empieza con 3. 3 caídas o 12 turnos.</p>
     <div id="fxEn" class="fxrow"></div>
     <div id="board66" class="b66" style="position:relative"></div>
     <div id="fxMe" class="fxrow"></div>
@@ -1040,17 +1040,18 @@
     const DIRFLIP = {N:"S",S:"N",NE:"SE",SE:"NE",NO:"SO",SO:"NO",E:"E",O:"O"};
     let duelBusy = false;
     function dirsOf(st, who) {
+      if (who === "en") return ["S","SE","SO","E","O"];
       let list = Array.isArray(st.dots) ? st.dots.slice() : Object.keys(st.dots||{N:1});
-      if (!list.length) list = ["N"];
-      if (who === "en") list = list.map(d => DIRFLIP[d] || d);
+      if (!list.length) list = ["N","NE","NO"];
       return list;
     }
     function targetsOf(i) {
       const u = board[i]; if (!u) return {};
       const st = statsOf(u.id);
       const out = {};
+      const maxR = u.who==="en" ? 5 : 3;
       dirsOf(st, u.who).forEach(dir => {
-        for (let steps=1; steps<=3; steps++) {
+        for (let steps=1; steps<=maxR; steps++) {
           const t = stepCell(i, dir, steps);
           if (t<0) break;
           const kind = steps===1 ? "corta" : (steps===2 ? "media" : "larga");
@@ -1122,24 +1123,21 @@
           if (board[j] && board[j].who==="me") atks.push({from:i,to:j,hit:tg[j]});
         });
       });
+      if (!atks.length) {
+        const mes = [];
+        board.forEach((u,i)=>{ if(u&&u.who==="me") mes.push(i); });
+        if (ens.length && mes.length) {
+          const from = ens[0], to = mes[0];
+          atks.push({ from, to, hit:{ dir:"S", kind:"media", dmg:4 } });
+        }
+      }
       if (atks.length) {
         const a = atks[Math.floor(Math.random()*atks.length)];
         sfx("ray");
         applyHit(a.from, a.to, a.hit, "en");
-        document.getElementById("duelMsg").textContent = "Rival ataca "+a.hit.kind+" "+a.hit.dmg;
+        document.getElementById("duelMsg").textContent = "Rival ataca −"+a.hit.dmg;
       } else {
-        const empty = [];
-        for (let i=0;i<18;i++) if (!board[i]) empty.push(i);
-        if (empty.length) {
-          const i = empty[Math.floor(Math.random()*empty.length)];
-          const h = HEROES[Math.floor(Math.random()*HEROES.length)];
-          const st = statsOf(h.id);
-          board[i] = { id:h.id, img:h.img, hp:st.hp, who:"en" };
-          sfx("place");
-          document.getElementById("duelMsg").textContent = "Rival coloca "+h.name;
-        } else {
-          document.getElementById("duelMsg").textContent = "Rival pasa.";
-        }
+        document.getElementById("duelMsg").textContent = "Rival no tiene a quién pegar. Coloca tú.";
       }
       turnN++;
       tickFx();
@@ -1148,7 +1146,7 @@
     }
     function spawnAI() {
       const pool = HEROES.filter(h=>h.id!=="rocaverde");
-      let spots = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17];
+      let spots = [12,13,14,15,16,17,6,7,8,9,10,11];
       for (let n=0;n<3;n++) {
         const i = spots.splice(Math.floor(Math.random()*spots.length),1)[0];
         const h = pool[n%pool.length];
