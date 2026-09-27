@@ -131,6 +131,9 @@
     @keyframes shine { 0%{transform:translateX(-30%)} 100%{transform:translateX(30%)} }
     .meRow { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
     .bestRow { display:flex; align-items:center; gap:8px; margin-top:10px; }
+    .bolt { display:inline-block; vertical-align:-3px; filter:drop-shadow(0 0 4px rgba(255,224,138,.7)); }
+    .icoRow { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:6px 0; font-size:13px; color:#ffe08a; }
+    .icoRow span { display:inline-flex; align-items:center; gap:4px; }
     .freeBtn { display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:8px 14px;border:2px solid #d4af37;border-radius:10px;background:#1a1408;color:#ffe08a;font-weight:800;letter-spacing:1px;font-size:13px; }
     .freeBtn span.ico { width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ffe08a,#d4af37 60%,#8a6a10); display:inline-block; box-shadow:0 0 10px rgba(212,175,55,.7); }
     .bestCard { text-align:center; margin-top:0; position:relative; flex:1; min-width:0; }
@@ -253,7 +256,7 @@
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">tgold en juego: <b id="homePend">0</b></div>
       <button class="main" id="swapBtn" style="margin-top:10px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
-      <div class="muted" style="margin-top:8px">Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
+      <div class="muted" style="margin-top:8px;display:flex;align-items:center;gap:6px"><svg class="bolt" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ffe08a" d="M13 2L4 14h7l-2 8 11-14h-7l2-6z"/></svg> Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -376,6 +379,8 @@
     <h1 style="color:#ffe08a;text-align:center;margin:0">Cofre</h1>
     <p class="muted" style="text-align:center;margin:6px 0 10px">Tu inventario · arma · mascota · reliquia</p>
     <div id="eqNow" class="heroBan" style="margin-bottom:10px"></div>
+    <h2 style="color:#ffe08a;font-size:15px">Regalos 🎁</h2>
+    <div id="cofGifts"></div>
     <h2 style="color:#ffe08a;font-size:15px">Armas</h2>
     <div id="cofArmas"></div>
     <h2 style="color:#ffe08a;font-size:15px;margin-top:12px">Reliquias</h2>
@@ -895,7 +900,28 @@
     });
 
 
-    function loadAds(){ try { return JSON.parse(localStorage.getItem("pg_ads")||"[]"); } catch(e){ return []; } }
+    function giftCount(){ return Number(localStorage.getItem("pg_gifts")||0); }
+    function addGift(n){ localStorage.setItem("pg_gifts", Math.max(0, giftCount()+(n||1))); }
+    function openGift(){
+      if (giftCount()<=0) return "Sin regalos";
+      addGift(-1);
+      const roll = Math.random();
+      if (roll < 0.35) {
+        const n = Math.min(5, getEnergy()+1);
+        localStorage.setItem("pg_en", n);
+        return "⚡ +1 energía";
+      }
+      if (roll < 0.7) {
+        const o = ORES[Math.floor(Math.random()*ORES.length)];
+        addOre(o.id, 2);
+        return (o.ico||"")+" +2 "+o.name;
+      }
+      const pool = HEROES.filter(h=>!h.holo && !h.evo);
+      const h = pool[Math.floor(Math.random()*pool.length)];
+      addDust(h.id);
+      return "Carta: "+h.name;
+    }
+        function loadAds(){ try { return JSON.parse(localStorage.getItem("pg_ads")||"[]"); } catch(e){ return []; } }
     function saveAds(a){ localStorage.setItem("pg_ads", JSON.stringify((a||[]).filter(x=>(x.left==null?100:x.left)>0))); }
     let adKind = "canal";
     function claimedSet(){ try { return JSON.parse(localStorage.getItem("pg_adClaim")||"[]"); } catch(e){ return []; } }
@@ -928,7 +954,7 @@
       box.innerHTML = ads.map((a,i) => {
         const left = (a.left==null?100:a.left);
         const ok = done.includes(a.id);
-        return `<div class="offer"><div style="flex:1"><b>${a.title||a.kind}</b><div class="muted">${a.kind} · ${left}/100 visitas · ${ok?"ya cobrado":"+1 energía"}</div></div>
+        return `<div class="offer"><div style="flex:1"><b>${a.title||a.kind}</b><div class="muted">${a.kind} · ${left}/100 visitas</div><div class="icoRow" style="justify-content:flex-start;margin:4px 0 0">${ok?"ya cobrado":'<span><svg class="bolt" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ffe08a" d="M13 2L4 14h7l-2 8 11-14h-7l2-6z"/></svg> +1 energía</span>'}</div></div>
           <button class="main" style="width:auto;margin:0;padding:8px 10px;font-size:12px" data-open="${a.id}">ABRIR</button></div>`;
       }).join("");
       box.querySelectorAll("[data-open]").forEach(b => b.onclick = async () => {
@@ -945,7 +971,8 @@
           a.left = Math.max(0, (a.left==null?100:a.left)-1);
           saveAds(loadAds().map(x=>x.id===a.id?a:x).filter(x=>(x.left==null?100:x.left)>0));
           await syncAds({ act:"hit", id:a.id, who: whoAd() });
-          alert("Gracias. +1 energía · queda "+(a.left)+" del anuncio");
+          if (Math.random()<0.25) { addGift(1); alert("Gracias. +1 energía y 🎁 regalo · queda "+(a.left)); }
+          else alert("Gracias. +1 energía · queda "+(a.left)+" del anuncio");
         }
         renderAds(); refreshHome();
       });
@@ -1005,6 +1032,7 @@
         addEgg(eg.id);
         extra = " · "+eg.ico+" huevo "+eg.id;
       }
+      if (Math.random()<0.12) { addGift(1); extra += " · 🎁"; }
       msg.textContent = "+"+n+" "+v.ore+extra;
       try{sfx("pack");}catch(e){}
       renderMine(); refreshHome();
@@ -1052,6 +1080,13 @@
         (gR?`<div style='text-align:center'><img src='${gR.img}' style='height:72px;object-fit:contain' /><div><b>${gR.name}</b></div></div>`:"")+
         (pet?`<div style='text-align:center'><img src='${pet.img}' style='height:72px;object-fit:contain;border-radius:8px' /><div><b>${pet.name}</b></div></div>`:"")+
         "</div>";
+      const gf = document.getElementById("cofGifts");
+      if (gf) {
+        const n = giftCount();
+        gf.innerHTML = n ? `<div class="craft" style="text-align:center"><div style="font-size:42px">🎁</div><b>${n} regalo${n>1?"s":""}</b><div class="muted">Ábrelo y sale energía, mineral o carta</div><button class="main" id="openGiftBtn">ABRIR REGALO</button></div>` : `<p class="muted">Aún no hay regalos. Salen en ads, minería o partidas.</p>`;
+        const gb = document.getElementById("openGiftBtn");
+        if (gb) gb.onclick = () => { showLoot("🎁", openGift()); renderCofre(); refreshHome(); };
+      }
       function gearList(slot, el){
         const items = GEAR.filter(g=>g.slot===slot && ownsGear(g.id));
         el.innerHTML = items.length ? items.map(g=>{
@@ -1355,6 +1390,8 @@
       return {
         id, name: playerName(),
         photo: u.photo_url || "",
+        en: (typeof getEnergy==="function")?getEnergy():0,
+        gifts: Number(localStorage.getItem("pg_gifts")||0),
         pts: Number(localStorage.getItem("pg_pts")||0),
         pend: Number(localStorage.getItem("pg_pend")||0),
         tgold: Number(localStorage.getItem("pg_tgold")||0),
@@ -1413,7 +1450,13 @@
       if (!p) return;
       document.getElementById("whoPhoto").src = p.photo || "cards/icon-cartas.jpg";
       document.getElementById("whoName").textContent = p.name || "Jugador";
-      document.getElementById("whoPts").textContent = (p.pts||0)+" pts · "+(p.tgold||p.pend||0)+" tgold";
+      const gifts = Number(localStorage.getItem("pg_gifts")||0);
+      const en = (typeof getEnergy==="function")?getEnergy():0;
+      document.getElementById("whoPts").innerHTML = '<div class="icoRow">'+
+        '<span>🪙 '+(p.pts||0)+' pts</span>'+
+        '<span><svg class="bolt" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ffe08a" d="M13 2L4 14h7l-2 8 11-14h-7l2-6z"/></svg> '+(p.en!=null?p.en:en)+'/5</span>'+
+        '<span>🎁 '+(p.gifts!=null?p.gifts:gifts)+'</span></div>'+
+        '<div class="muted">'+(p.tgold||p.pend||0)+' tgold</div>';
       const c = document.getElementById("whoCard");
       const img = p.cardImg || "";
       if (img) { c.src = img; c.style.display="block"; c.style.width="200px"; c.style.border="3px solid #d4af37"; c.style.borderRadius="12px"; c.style.boxShadow="0 0 16px rgba(212,175,55,.45)"; }
