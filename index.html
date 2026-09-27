@@ -1296,10 +1296,24 @@
       } catch(e) {}
       return localStorage.getItem("pg_name") || "Tú";
     }
+    function pickBest(){
+      const order = {Bronce:0, Plata:1, Oro:2, Platino:3};
+      const rare = {normal:0, rara:1, ultra:2};
+      const owned = HEROES.filter(h => dustOf(h.id)>0 || rankOf(h.id)>0);
+      const list = owned.length ? owned : HEROES.filter(h=>!h.evo);
+      return list.slice().sort((a,b)=>{
+        const ha = a.holo ? 1 : 0, hb = b.holo ? 1 : 0;
+        if (hb!==ha) return hb-ha;
+        const ra = order[RANKS[rankOf(a.id)]||"Bronce"]||0;
+        const rb = order[RANKS[rankOf(b.id)]||"Bronce"]||0;
+        if (rb!==ra) return rb-ra;
+        return (rare[b.rare]||0)-(rare[a.rare]||0);
+      })[0] || HEROES[0];
+    }
     function myProfile() {
       const u = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) || {};
       const id = String(playerName()).toLowerCase().replace(/^@/,"");
-      const best = (typeof bestCard==="function") ? bestCard() : null;
+      const best = pickBest();
       const w = (typeof wear==="function") ? wear() : {};
       const gW = GEAR.find(x=>x.id===w.weapon);
       const gR = GEAR.find(x=>x.id===w.relic);
@@ -1363,13 +1377,15 @@
     }
     function showWho(p) {
       if (!p) return;
-      document.getElementById("whoPhoto").src = p.photo || p.cardImg || "cards/icon-cartas.jpg";
+      document.getElementById("whoPhoto").src = p.photo || "cards/icon-cartas.jpg";
       document.getElementById("whoName").textContent = p.name || "Jugador";
       document.getElementById("whoPts").textContent = (p.pts||0)+" pts · "+(p.tgold||p.pend||0)+" tgold";
       const c = document.getElementById("whoCard");
-      if (p.cardImg) { c.src = p.cardImg; c.style.display="block"; } else c.style.display="none";
-      document.getElementById("whoGear").textContent =
-        (p.card?("Carta: "+p.card+" · "):"")+(p.weapon||"—")+" / "+(p.relic||"—")+" / "+(p.pet||"—");
+      const img = p.cardImg || "";
+      if (img) { c.src = img; c.style.display="block"; c.style.width="200px"; c.style.border="3px solid #d4af37"; c.style.borderRadius="12px"; c.style.boxShadow="0 0 16px rgba(212,175,55,.45)"; }
+      else c.style.display="none";
+      document.getElementById("whoGear").innerHTML =
+        (p.card?("<b style='color:#ffe08a'>"+p.card+"</b><br>"):"")+(p.weapon||"—")+" / "+(p.relic||"—")+" / "+(p.pet||"—");
       document.getElementById("whoBox").style.display = "flex";
     }
     async function renderRank() {
@@ -1381,6 +1397,7 @@
           <div style="width:28px;color:#ffe08a;font-weight:800">${i+1}</div>
           ${r.photo?`<img src="${r.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover" />`:""}
           <div style="flex:1"><b>${r.name}</b><div class="muted">${r.pts||0} pts · ${r.card||""}</div></div>
+          ${r.cardImg?`<img src="${r.cardImg}" style="width:36px;height:50px;object-fit:cover;border-radius:6px;border:1px solid #d4af37" />`:""}
         </div>`).join("");
       box.querySelectorAll("[data-who]").forEach(el => {
         el.onclick = () => showWho(board[Number(el.getAttribute("data-who"))]);
