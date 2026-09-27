@@ -252,6 +252,7 @@
       <i id="turnBar" style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#d4af37,#ffe08a);width:100%"></i>
       <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0b1020">Tu turno 12s</b>
     </div>
+    <button class="main" id="rivalGo" style="margin:0 10px 8px;padding:8px;background:#8b1e1e;color:#fff">TURNO DEL RIVAL</button>
     <div id="fxEn" class="fxrow"></div>
     <div id="board66" class="b66" style="position:relative"></div>
     <div id="fxMe" class="fxrow"></div>
@@ -974,10 +975,16 @@
     let turnT = null;
     function setClock(who, sec) {
       turnWho = who; turnSec = sec;
+      const box = document.getElementById("turnClock");
       const bar = document.getElementById("turnBar");
       const txt = document.getElementById("turnTxt");
-      if (bar) { bar.style.width = Math.max(0, sec/12*100)+"%"; bar.style.background = who==="me" ? "linear-gradient(90deg,#d4af37,#ffe08a)" : "linear-gradient(90deg,#c0392b,#ff7675)"; }
-      if (txt) { txt.textContent = (who==="me"?"Tu turno ":"Rival ")+sec+"s"; txt.style.color = who==="me"?"#0b1020":"#fff"; }
+      if (box) box.style.borderColor = who==="me" ? "#d4af37" : "#e74c3c";
+      if (bar) {
+        const max = who==="me" ? 12 : 3;
+        bar.style.width = Math.max(0, sec/max*100)+"%";
+        bar.style.background = who==="me" ? "linear-gradient(90deg,#d4af37,#ffe08a)" : "linear-gradient(90deg,#8b1e1e,#e74c3c)";
+      }
+      if (txt) { txt.textContent = (who==="me"?"TU TURNO ":"RIVAL ")+sec+"s"; txt.style.color = "#fff"; }
     }
     function stopClock(){ if (turnT) { clearInterval(turnT); turnT=null; } }
     function startMyClock(){
@@ -1163,14 +1170,15 @@
         sfx("ray");
         applyHit(from, to, {kind:"media", dmg:dmg}, "en");
         const left = board[to] ? board[to].hp : 0;
-        document.getElementById("duelMsg").textContent = "RIVAL ATACA −"+dmg+(left>0?" · te quedan "+left:" · CAE");
+        document.getElementById("duelMsg").textContent = "RIVAL ATACA −"+dmg+(left>0?" · vida "+left:" · CAE");
         turnN++;
         tickFx();
-        renderBoard(); renderFx();
+        renderFx();
+        setTimeout(() => { renderBoard(); if (!checkEnded()) startMyClock(); }, 1200);
       } catch(e) {
         document.getElementById("duelMsg").textContent = "Rival ataca (error "+(e.message||e)+")";
+        startMyClock();
       }
-      if (!checkEnded()) setTimeout(startMyClock, 900);
     }
     function spawnAI() {
       const pool = HEROES.filter(h=>h.id!=="rocaverde");
@@ -1349,6 +1357,7 @@
       duelBusy=false;
       showTab("play");
     };
+    const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); enemyTurn(); };
     document.getElementById("duelStart").onclick = () => {
       document.getElementById("duelEnd").style.display="none"; duelBusy=false;
       board = Array(36).fill(null); dealHand(); placedTurn=false; spawnAI();
