@@ -127,7 +127,6 @@
     .cell.blue { border:2px solid #3b9eff; box-shadow:0 0 8px rgba(59,158,255,.55); }
     .cell.red { border:2px solid #ff4d4d; box-shadow:0 0 8px rgba(255,77,77,.55); }
     .cell.tgt { box-shadow: inset 0 0 0 2px #ffb000; }
-    .cell.place { box-shadow: inset 0 0 0 2px #3b9eff; background:#16324d; }
     .cell.hit::after { content:''; position:absolute; inset:0; border:3px solid #ffe08a; box-shadow:inset 0 0 0 2px #fff; border-radius:6px; pointer-events:none; }
     .cell.fall { animation: fallCard .45s ease forwards; }
     @keyframes fallCard { to { transform: rotate(18deg) scale(.2); opacity:0; } }
@@ -237,10 +236,6 @@
     <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
     <div id="duelPick" class="grid" style="grid-template-columns:repeat(6,1fr);gap:4px"></div>
     <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px"></div>
-    <div id="duelZoom" style="display:none;margin-top:8px;text-align:center">
-      <img id="duelZoomImg" alt="" style="height:120px;border-radius:10px;border:3px solid #3b9eff;object-fit:cover" />
-      <div id="duelZoomTxt" class="muted" style="margin-top:4px;font-size:12px"></div>
-    </div>
     <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
     </div>
     <button class="main" id="duelNext" style="display:none">PASAR TURNO</button>
@@ -801,8 +796,7 @@
         const row = Math.floor(i/6);
         const d = document.createElement("div");
         const u = board[i];
-        const canPlace = selectedCard && row>=3 && !u;
-        d.className = "cell" + (row>=3?" mine":"") + (u && u.who==="me"?" blue":"") + (u && u.who==="en"?" red":"") + (targets[i]?" tgt":"") + (targets[i] && u && u.who==="en"?" hit":"") + (canPlace?" place":"");
+        d.className = "cell" + (row>=3?" mine":"") + (u && u.who==="me"?" blue":"") + (u && u.who==="en"?" red":"") + (targets[i]?" tgt":"") + (targets[i] && u && u.who==="en"?" hit":"");
         if (u) {
           const max = (statsOf(u.id).hp)||7;
           const pct = Math.max(4, Math.round(u.hp/max*100));
@@ -825,7 +819,6 @@
             const st = statsOf(h.id);
             board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" };
             selectedCard = null; selectedIdx = null; targets = {};
-            const z = document.getElementById("duelZoom"); if (z) z.style.display="none";
             document.getElementById("duelMsg").textContent = h.name + " en mesa. Tócala para atacar.";
             renderBoard(); renderDuelPick(); return;
           }
@@ -871,14 +864,8 @@
       box.innerHTML = HEROES.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}" style="padding:3px"><img src="${h.img}" style="height:92px;margin:0;object-fit:cover;object-position:top" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" /></div>`).join("");
       box.querySelectorAll(".card").forEach(el => el.onclick = () => {
         selectedCard = el.getAttribute("data-id");
-        selectedFx = null; targets = {};
-        const h = HEROES.find(x=>x.id===selectedCard)||{};
-        const z = document.getElementById("duelZoom");
-        const zi = document.getElementById("duelZoomImg");
-        const zt = document.getElementById("duelZoomTxt");
-        if (z) { z.style.display="block"; zi.src=h.img; const st=h.atk||{corta:5,media:4,larga:3}; zt.textContent=(h.name||"")+" · vida "+(h.hp||7)+" · C"+st.corta+" M"+st.media+" L"+st.larga; }
-        document.getElementById("duelMsg").textContent = "Casillas azules = puedes poner a " + h.name;
-        renderDuelPick(); renderBoard();
+        document.getElementById("duelMsg").textContent = "Coloca " + (HEROES.find(x=>x.id===selectedCard)||{}).name + " en tu mitad.";
+        renderDuelPick();
       });
     }
     document.getElementById("duelBtn").onclick = () => { showTab("duel"); board=Array(36).fill(null); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
