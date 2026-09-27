@@ -191,8 +191,11 @@
     #deckPile span { position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#ffe08a; font-size:9px; font-weight:800; text-align:center; padding:2px 0; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
-    #mine { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 14px 12px 88px; overflow: auto; }
-    #mine.on { display: flex; }
+    #mine, #cofre { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 14px 12px 88px; overflow: auto; }
+    #mine.on, #cofre.on { display: flex; }
+    #lootPop { display:none; position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.78); align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px; }
+    #lootPop.on { display:flex; }
+    #lootPop .box { background:#161a26; border:3px solid #d4af37; border-radius:16px; padding:18px 16px; width:min(86vw,320px); }
     .vein { border:1px solid #3a4258; border-radius:12px; padding:10px; background:#141824; display:flex; align-items:center; gap:10px; }
     .vein b { color:#ffe08a; display:block; }
     .vein small { color:#9aa3b8; }
@@ -299,6 +302,7 @@
     <button class="main" id="go">FARMEAR TGOLD</button>
     <button class="main" id="duelBtn" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">DUELO DE CARTAS</button>
     <button class="main" id="mineBtn" style="margin-top:8px;background:#3a2a12;color:#ffe08a">MINERÍA</button>
+    <button class="main" id="cofreBtn" style="margin-top:8px;background:#2a2414;color:#ffe08a">COFRE</button>
   </div>
 
   <div id="duelFloat" style="display:none;position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:60;width:150px;text-align:center;pointer-events:auto;top:auto">
@@ -345,7 +349,28 @@
     <div id="forge"></div>
     <h2 style="color:#ffe08a;font-size:16px;margin:14px 0 8px">Nido · 3 huevos = mascota</h2>
     <div id="nest"></div>
-    <button class="main" id="mineBack" style="margin-top:12px;background:#2a3146;color:#ffe08a">VOLVER</button>
+    <button class="main" id="goCofre" style="margin-top:10px;background:#2a2414;color:#ffe08a">ABRIR COFRE</button>
+    <button class="main" id="mineBack" style="margin-top:8px;background:#2a3146;color:#ffe08a">VOLVER</button>
+  </div>
+  <div id="cofre">
+    <h1 style="color:#ffe08a;text-align:center;margin:0">Cofre</h1>
+    <p class="muted" style="text-align:center;margin:6px 0 10px">Tu inventario · arma · mascota · reliquia</p>
+    <div id="eqNow" class="heroBan" style="margin-bottom:10px"></div>
+    <h2 style="color:#ffe08a;font-size:15px">Armas</h2>
+    <div id="cofArmas"></div>
+    <h2 style="color:#ffe08a;font-size:15px;margin-top:12px">Reliquias</h2>
+    <div id="cofRelics"></div>
+    <h2 style="color:#ffe08a;font-size:15px;margin-top:12px">Mascotas</h2>
+    <div id="cofPets"></div>
+    <button class="main" id="cofreBack" style="margin-top:12px;background:#2a3146;color:#ffe08a">VOLVER</button>
+  </div>
+  <div id="lootPop">
+    <div class="box">
+      <div class="muted">Has ganado</div>
+      <div class="big" id="lootName" style="margin:8px 0">—</div>
+      <p class="muted" id="lootNote"></p>
+      <button class="main" id="lootOk">GUARDAR EN EL COFRE</button>
+    </div>
   </div>
   <div id="packs">
     <h1 style="color:#ffe08a;text-align:center">Sobres</h1>
@@ -645,7 +670,7 @@
     ];
     const GEAR = [
       { id:"amuleto", name:"Amuleto de roble", need:{madera:8}, bonus:{hp:1}, slot:"relic" },
-      { id:"yelmo", name:"Yelmo de piedra", need:{piedra:10}, bonus:{hp:1,corta:1}, slot:"armor" },
+      { id:"yelmo", name:"Yelmo de piedra", need:{piedra:10}, bonus:{hp:1,corta:1}, slot:"relic" },
       { id:"baston", name:"Bastón carmesí", need:{oro:6,madera:4}, bonus:{larga:2}, slot:"weapon" },
       { id:"espada", name:"Espada dorada", need:{oro:8,piedra:6}, bonus:{corta:2}, slot:"weapon" },
       { id:"corona", name:"Corona de platino", need:{platino:4,oro:4}, bonus:{corta:1,media:1,larga:1}, slot:"relic" },
@@ -864,7 +889,7 @@
       if (!ownsGear(id)) {
         if (!takeOre(g.need)) { msg.textContent = "Faltan materiales"; renderMine(); return; }
         localStorage.setItem("pg_g_"+id,"1");
-        msg.textContent = "Forjado: "+g.name;
+        showLoot(g.name, "Guardado en el Cofre · "+g.slot);
       }
       const w = wear();
       if (w[g.slot]===id) delete w[g.slot];
@@ -878,13 +903,61 @@
       if ((bagE[id]||0) < 3) return;
       bagE[id]-=3; saveEggs(bagE);
       const note = addDust(e.pet);
-      document.getElementById("mineMsg").textContent = "Nació "+e.pet+" · "+note;
+      const pet = HEROES.find(h => h.id===e.pet);
+      showLoot((pet&&pet.name)||e.pet, "Mascota al Cofre · "+note);
       try{sfx("pack");}catch(e){}
       renderMine(); renderGrid();
     }
+    function showLoot(name, note){
+      const p = document.getElementById("lootPop");
+      document.getElementById("lootName").textContent = name;
+      document.getElementById("lootNote").textContent = note || "";
+      p.classList.add("on");
+    }
+    function renderCofre(){
+      const w = wear();
+      const gW = GEAR.find(x=>x.id===w.weapon);
+      const gR = GEAR.find(x=>x.id===w.relic);
+      const pet = HEROES.find(h=>h.id===w.pet);
+      document.getElementById("eqNow").innerHTML =
+        "<div class='muted'>Equipado ahora</div>"+
+        "<div>Arma: <b>"+(gW?gW.name:"—")+"</b></div>"+
+        "<div>Reliquia: <b>"+(gR?gR.name:"—")+"</b></div>"+
+        "<div>Mascota: <b>"+(pet?pet.name:"—")+"</b></div>";
+      function gearList(slot, el){
+        const items = GEAR.filter(g=>g.slot===slot && ownsGear(g.id));
+        el.innerHTML = items.length ? items.map(g=>{
+          const on = w[slot]===g.id;
+          const bon = Object.keys(g.bonus).map(k=>"+"+g.bonus[k]+" "+k).join(" ");
+          return `<div class="craft"><b>${g.name}</b><div class="muted">${bon}</div>
+            <button class="main" data-wear="${g.id}">${on?"QUITAR":"EQUIPAR"}</button></div>`;
+        }).join("") : `<p class="muted">Aún no hay. Forja en Minería.</p>`;
+        el.querySelectorAll("[data-wear]").forEach(b=>b.onclick=()=>{
+          const g = GEAR.find(x=>x.id===b.getAttribute("data-wear"));
+          const ww = wear();
+          if (ww[g.slot]===g.id) delete ww[g.slot]; else ww[g.slot]=g.id;
+          saveWear(ww); renderCofre();
+        });
+      }
+      gearList("weapon", document.getElementById("cofArmas"));
+      gearList("relic", document.getElementById("cofRelics"));
+      const pets = HEROES.filter(h => (h.deck==="mascotas"||h.deck==="monturas") && !h.holo && dustOf(h.id)>0);
+      const pe = document.getElementById("cofPets");
+      pe.innerHTML = pets.length ? pets.map(h=>{
+        const on = w.pet===h.id;
+        return `<div class="craft"><b>${h.name}</b><div class="muted">${h.syn} · ${dustOf(h.id)} copias</div>
+          <button class="main" data-pet="${h.id}">${on?"QUITAR":"EQUIPAR"}</button></div>`;
+      }).join("") : `<p class="muted">Eclosiona 3 huevos en Minería.</p>`;
+      pe.querySelectorAll("[data-pet]").forEach(b=>b.onclick=()=>{
+        const ww = wear();
+        const id = b.getAttribute("data-pet");
+        if (ww.pet===id) delete ww.pet; else ww.pet=id;
+        saveWear(ww); renderCofre();
+      });
+    }
 
     function showTab(name) {
-      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -896,6 +969,7 @@
       if (name === "mercado") { renderRank(); renderMarket(); }
       if (name === "ads") renderAds();
       if (name === "mine") renderMine();
+      if (name === "cofre") renderCofre();
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walPend").textContent = p;
@@ -1740,6 +1814,10 @@
       renderDuelPick(); renderBoard();
     };
     document.getElementById("mineBtn").onclick = () => { showTab("mine"); try{sfx("menu");}catch(e){} };
+    document.getElementById("cofreBtn").onclick = () => { showTab("cofre"); try{sfx("menu");}catch(e){} };
+    document.getElementById("goCofre").onclick = () => showTab("cofre");
+    document.getElementById("cofreBack").onclick = () => showTab("pick");
+    document.getElementById("lootOk").onclick = () => { document.getElementById("lootPop").classList.remove("on"); showTab("cofre"); };
     document.getElementById("mineBack").onclick = () => showTab("pick");
     document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Tienes 12s: 1 carta y ataca."; };
     document.getElementById("duelEndOk").onclick = () => {
