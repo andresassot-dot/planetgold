@@ -260,11 +260,11 @@
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
     <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · 12 s · rival pega después</p>
-    <div id="turnClock" style="margin:6px 10px 8px;background:#12141c;border:1px solid #d4af37;border-radius:10px;overflow:hidden;height:22px;position:relative">
-      <i id="turnBar" style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#d4af37,#ffe08a);width:100%"></i>
-      <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0b1020">Tu turno 12s</b>
+    <div id="turnClock" style="margin:4px 10px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:36px;position:relative;box-shadow:0 0 12px rgba(212,175,55,.35)">
+      <i id="turnBar" style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a)"></i>
+      <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">12s</b>
     </div>
-    <button class="main" id="rivalGo" style="margin:0 10px 8px;padding:8px;background:#8b1e1e;color:#fff">TURNO DEL RIVAL</button>
+    <button type="button" id="rivalGo" style="margin:0 10px 6px;padding:4px;background:transparent;border:0;color:#8a93a8;font-size:11px;width:auto;display:block">pasar al rival ▸</button>
     <div id="fxEn" class="fxrow"></div>
     <div id="board66" class="b66" style="position:relative"></div>
     <div id="fxMe" class="fxrow"></div>
@@ -997,7 +997,7 @@
         bar.style.width = Math.max(0, sec/max*100)+"%";
         bar.style.background = who==="me" ? "linear-gradient(90deg,#d4af37,#ffe08a)" : "linear-gradient(90deg,#8b1e1e,#e74c3c)";
       }
-      if (txt) { txt.textContent = (who==="me"?"TU TURNO ":"RIVAL ")+sec+"s"; txt.style.color = "#fff"; }
+      if (txt) { txt.textContent = (who==="me"?"TU TURNO  ":"RIVAL  ")+sec+"s"; txt.style.color = "#fff"; }
     }
     function stopClock(){ if (turnT) { clearInterval(turnT); turnT=null; } }
     function startMyClock(){
