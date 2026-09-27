@@ -319,11 +319,10 @@
     <button class="main" id="claimBtn">RECLAMAR TGOLD</button>
     <div class="heroBan" id="loadBox" style="margin-top:16px">
       <div class="muted">Cargar TGOLD al juego</div>
-      <p class="muted">Copia la tesorería, envía TGOLD y pega la firma.</p>
-      <div style="display:flex;gap:6px">
-        <input class="wal" id="treasIn" placeholder="Wallet tesorería" style="margin:10px 0;flex:1" />
-        <button class="main" id="copyTreas" style="width:auto;margin:10px 0;padding:12px 14px">COPIAR</button>
-      </div>
+      <p class="muted">Envía TGOLD a esta tesorería (igual para todos) y pega la firma.</p>
+      <div class="heroBan" style="margin:10px 0;word-break:break-all;font-size:12px" id="treasShow">HxgR9zuogZS8qA2oSu1XArPQvmGJTYyKy8dqTJGbzPZN</div>
+      <input type="hidden" id="treasIn" value="HxgR9zuogZS8qA2oSu1XArPQvmGJTYyKy8dqTJGbzPZN" />
+      <button class="main" id="copyTreas">COPIAR TESORERÍA</button>
       <input class="wal" id="loadAmt" type="number" placeholder="Cantidad enviada" value="100" />
       <input class="wal" id="loadTx" placeholder="Firma de la tx (Solana)" />
       <button class="main" id="loadBtn">VERIFICAR Y CARGAR</button>
