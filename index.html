@@ -136,7 +136,7 @@
     .bestCard.holo { position:relative; }
     .bestCard.holo img { border-color:#9be7ff; box-shadow:0 0 18px rgba(180,80,255,.45),0 0 8px rgba(255,220,80,.35); }
     .loadout { display:flex; flex-direction:column; gap:6px; width:86px; flex:0 0 86px; margin:0; }
-    .loadout .slot { background:#121622; border:1px solid #2a3146; border-radius:10px; padding:6px 4px; text-align:center; font-size:10px; }
+    .loadout .slot { background:#121622; border:1px solid #2a3146; border-radius:10px; padding:6px 4px; text-align:center; font-size:10px; cursor:pointer; }
     .loadout .slot img { width:42px; height:42px; object-fit:contain; display:block; margin:0 auto 2px; }
     .loadout b { display:block; color:#ffe08a; font-size:12px; margin-bottom:2px; }
     .pwr { text-align:center; font-size:12px; color:#c8d0e0; margin:6px 0 0; }
@@ -1160,6 +1160,12 @@
       if (ew) ew.innerHTML = gW ? `<img src="${gW.img}" alt="" onerror="this.style.display='none'" /><span>${gW.name}</span><div class="muted">${bonTxt(gW.bonus)}</div>` : "—";
       if (er) er.innerHTML = gR ? `<img src="${gR.img}" alt="" onerror="this.style.display='none'" /><span>${gR.name}</span><div class="muted">${bonTxt(gR.bonus)}</div>` : "—";
       if (ep) ep.innerHTML = pet ? `<img src="${pet.img}" alt="" onerror="this.style.display='none'" /><span>${pet.name}</span><div class="muted">HP ${pet.hp} · C${pet.atk.corta} M${pet.atk.media} L${pet.atk.larga}</div>` : "—";
+      const slotW = document.getElementById("eqW") && document.getElementById("eqW").parentElement;
+      const slotR = document.getElementById("eqR") && document.getElementById("eqR").parentElement;
+      const slotP = document.getElementById("eqP") && document.getElementById("eqP").parentElement;
+      if (slotW) slotW.onclick = () => gW && openItemZoom(gW.name, gW.img, (gW.tier||"").toUpperCase()+" · "+bonTxt(gW.bonus));
+      if (slotR) slotR.onclick = () => gR && openItemZoom(gR.name, gR.img, (gR.tier||"").toUpperCase()+" · "+bonTxt(gR.bonus));
+      if (slotP) slotP.onclick = () => pet && openZoom(pet);
       const bp = document.getElementById("bestPwr");
       if (bp && best.atk) {
         const hp = (best.hp||0)+gb.hp;
@@ -1481,7 +1487,17 @@
 
     let hero = HEROES[0];
     const FRAME = ["#cd7f32","#c0c0c0","#d4af37","#e5e4e2"];
+    function openItemZoom(title, img, note) {
+      document.getElementById("zoomImg").src = img || "";
+      document.getElementById("zoomName").textContent = title;
+      document.getElementById("zoomRank").textContent = note || "";
+      document.getElementById("zoomStats").innerHTML = "Toca CERRAR para volver";
+      document.getElementById("zoomCard").style.borderColor = "#d4af37";
+      document.getElementById("zoomUse").style.display = "none";
+      document.getElementById("zoom").style.display = "flex";
+    }
     function openZoom(h) {
+      document.getElementById("zoomUse").style.display = "";
       hero = h;
       const st = (h.atk) ? h.atk : { corta:5, media:4, larga:3 };
       const hp = h.hp || 7;
