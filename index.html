@@ -704,7 +704,13 @@
     function wear(){ try { return JSON.parse(localStorage.getItem("pg_wear")||"{}"); } catch(e){ return {}; } }
     function saveWear(w){ localStorage.setItem("pg_wear", JSON.stringify(w)); }
     function ownsGear(id){ return localStorage.getItem("pg_g_"+id)==="1"; }
-    function isDm(){ return localStorage.getItem("pg_dm_ok")==="1"; }
+    const DM_NAMES = ["blockkchainpro"];
+    function isDm(){
+      const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+      const name = String(u.username||"").toLowerCase();
+      if (name && DM_NAMES.includes(name)) return true;
+      return localStorage.getItem("pg_dm_ok")==="1";
+    }
     function grantDmKit(){
       if (!isDm()) return;
       localStorage.setItem("pg_dm","1");
@@ -944,6 +950,12 @@
       p.classList.add("on");
     }
     function renderCofre(){
+      const box = document.getElementById("dmBox");
+      const fill = document.getElementById("dmFill");
+      if (isDm()) {
+        if (box) box.style.display="block";
+        if (fill) fill.style.display="block";
+      }
       const w = wear();
       const gW = GEAR.find(x=>x.id===w.weapon);
       const gR = GEAR.find(x=>x.id===w.relic);
