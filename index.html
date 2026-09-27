@@ -960,8 +960,7 @@
       document.getElementById("zoomName").textContent = h.name;
       document.getElementById("zoomRank").textContent = (RANKS[r]||"Bronce") + " · " + dustOf(h.id) + "/3 · " + h.role;
       document.getElementById("zoomStats").innerHTML =
-        "Vida <b>"+hp+"</b><br>Corta <b>"+st.corta+"</b> · Media <b>"+st.media+"</b> · Larga <b>"+(st.larga===11?"S":st.larga)+"</b>" +
-        (h.dots ? "<br>Puntitos: "+(Array.isArray(h.dots)?h.dots.join(" "):Object.keys(h.dots).join(" ")) : "<br>Puntitos: N NE NO");
+        "Vida <b>"+hp+"</b><br>Corta <b>"+st.corta+"</b> · Media <b>"+st.media+"</b> · Larga <b>"+(st.larga===11?"S":st.larga)+"</b>";
       document.getElementById("zoomCard").style.borderColor = FRAME[r]||FRAME[0];
       document.getElementById("zoom").style.display = "flex";
     }
@@ -990,7 +989,7 @@
         const rk = RANKS[rankOf(h.id)] || "Bronce";
         const du = dustOf(h.id);
         const at = h.atk||{corta:0,media:0,larga:0};
-        el.innerHTML = `<div class="art">${imgTag(h.img,'alt="'+h.name+'"')}${gemsOn(h)}<div class="plate">❤ ${h.hp||7} · ⚔ ${at.corta||0} · 🗡 ${at.media||0} · 🏹 ${at.larga||0}</div></div><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
+        el.innerHTML = `<div class="art">${imgTag(h.img,'alt="'+h.name+'"')}</div><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
         el.onclick = () => { openZoom(h); };
         grid.appendChild(el);
       });
@@ -1323,7 +1322,7 @@
           const hh = HEROES.find(x=>x.id===u.id)||{};
           const synOn = synBonus(u.who).names.includes(hh.syn);
           if (synOn) d.classList.add("synGlow");
-          d.innerHTML = `<img src="${u.img}" alt="">`+gemsHTML(hh,u.who)+`<span class="hp">${u.hp}</span><div class="hpbar${u.hp<=3?" low":""}"><i style="width:${pct}%"></i></div>`;
+          d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span><div class="hpbar${u.hp<=3?" low":""}"><i style="width:${pct}%"></i></div>`;
         }
         d.onclick = () => {
           if (duelBusy) return;
