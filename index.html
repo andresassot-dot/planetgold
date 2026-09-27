@@ -363,7 +363,8 @@
 
   <div id="mine">
     <h1 style="color:#ffe08a;text-align:center;margin:0">Minería</h1>
-    <p class="muted" style="text-align:center;margin:6px 0 10px">1 energía por pico. Materiales → armas, armaduras y huevos.</p>
+    <p class="muted" style="text-align:center;margin:6px 0 10px">La energía del duelo no se gasta aquí. Pico propio · toca la veta varias veces.</p>
+    <div id="picoBar" class="muted" style="text-align:center;margin:0 0 8px">Pico 12/12</div>
     <div class="orebag" id="oreBag"></div>
     <div id="mineBonus" class="muted" style="text-align:center;margin:0 0 10px"></div>
     <div id="veins" style="display:grid;gap:8px"></div>
@@ -701,6 +702,26 @@
       return note;
     }
 
+    const MAX_PICO = 12, PICO_MS = 7000;
+    let veinHits = {};
+    let hotVein = "";
+    function getPico(){
+      let n = Number(localStorage.getItem("pg_pico"));
+      if (Number.isNaN(n) || localStorage.getItem("pg_pico")==null) n = MAX_PICO;
+      let at = Number(localStorage.getItem("pg_picoAt")||Date.now());
+      const add = Math.floor((Date.now()-at)/PICO_MS);
+      if (add>0){ n=Math.min(MAX_PICO,n+add); at+=add*PICO_MS; }
+      localStorage.setItem("pg_pico", n);
+      localStorage.setItem("pg_picoAt", String(at));
+      return n;
+    }
+    function spendPico(){
+      const n=getPico();
+      if (n<=0) return false;
+      localStorage.setItem("pg_pico", n-1);
+      if (n===MAX_PICO) localStorage.setItem("pg_picoAt", Date.now());
+      return true;
+    }
     const ORES = [
       { id:"madera", name:"Madera", ico:"🪵" },
       { id:"piedra", name:"Piedra", ico:"🪨" },
@@ -716,11 +737,11 @@
       { id:"luz", name:"Huevo luz", ico:"✨", pet:"sol" }
     ];
     const VEINS = [
-      { id:"madera", name:"Bosque", ore:"madera", cost:1, chance:92, min:2, max:4, egg:6 },
-      { id:"piedra", name:"Cantera", ore:"piedra", cost:1, chance:80, min:1, max:3, egg:8 },
-      { id:"oro", name:"Veta de oro", ore:"oro", cost:1, chance:48, min:1, max:1, egg:10 },
-      { id:"platino", name:"Mina platino", ore:"platino", cost:2, chance:22, min:1, max:1, egg:12 },
-      { id:"niobio", name:"Cripta niobio", ore:"niobio", cost:2, chance:9, min:1, max:1, egg:16 }
+      { id:"madera", name:"Bosque", ore:"madera", cost:1, hits:2, chance:96, min:2, max:5, egg:8 },
+      { id:"piedra", name:"Cantera", ore:"piedra", cost:1, hits:3, chance:88, min:2, max:4, egg:10 },
+      { id:"oro", name:"Veta de oro", ore:"oro", cost:1, hits:4, chance:70, min:1, max:2, egg:12 },
+      { id:"platino", name:"Mina platino", ore:"platino", cost:1, hits:5, chance:45, min:1, max:1, egg:14 },
+      { id:"niobio", name:"Cripta niobio", ore:"niobio", cost:1, hits:6, chance:28, min:1, max:1, egg:18 }
     ];
     const GEAR = [
       { id:"espada-madera", fam:"espada", tier:"madera", name:"Espada de madera", need:{madera:8}, bonus:{corta:1}, slot:"weapon", img:"cards/item-espada-madera.png", fusesTo:"espada-plata" },
@@ -991,10 +1012,12 @@
         return `<span style="font-size:${size||22}px;line-height:1;display:block;${f}">${o.ico||""}</span>`;
       }
       bagEl.innerHTML = ORES.map(o => `<div>${orePic(o.id,26)}<b>${oreOf(o.id)}</b>${o.name}</div>`).join("");
+      const pb = document.getElementById("picoBar");
+      if (pb) pb.textContent = "Pico "+getPico()+"/"+MAX_PICO+" · se recarga solo (no es la energía del duelo)";
       const gb = gearBonus();
       document.getElementById("mineBonus").textContent = "Bonus forja: +" + gb.hp + " HP · +" + gb.corta + " C · +" + gb.media + " M · +" + gb.larga + " L";
       document.getElementById("veins").innerHTML = VEINS.map(v =>
-        `<div class="vein"><div style="width:40px;text-align:center">${orePic(v.ore,36)}</div><div style="flex:1"><b>${v.name}</b><small>Toca PICAR · ${v.cost} energía · ${v.chance}% · ${v.min}-${v.max} ${v.ore}</small></div><button class="pico" data-vein="${v.id}">PICAR</button></div>`
+        `<div class="vein" style="${hotVein===v.id?'border-color:#ffe08a;box-shadow:0 0 12px rgba(255,200,60,.45)':''}"><div style="width:40px;text-align:center">${orePic(v.ore,36)}</div><div style="flex:1"><b>${v.name}${hotVein===v.id?' · CALIENTE':''}</b><small>Golpes ${(veinHits[v.id]||0)}/${v.hits} · pico ${v.cost} · no gasta energía de duelo</small><div style="height:6px;background:#1a1f2c;border-radius:4px;margin-top:4px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,100*(veinHits[v.id]||0)/v.hits)}%;background:#d4af37"></i></div></div><button class="pico" data-vein="${v.id}">PICAR</button></div>`
       ).join("");
       document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => doMine(el.getAttribute("data-vein")));
       const forge = document.getElementById("forge");
@@ -1017,18 +1040,43 @@
       }).join("");
       nest.querySelectorAll("[data-hatch]").forEach(b => b.onclick = () => doHatch(b.getAttribute("data-hatch")));
     }
+    let mineTimer=null;
+    function stopMineLoop(){ if (mineTimer){ clearInterval(mineTimer); mineTimer=null; } }
+    function startMineLoop(){
+      stopMineLoop();
+      mineTimer=setInterval(()=>{
+        if (!document.getElementById("mine") || !document.getElementById("mine").classList.contains("on")) { stopMineLoop(); return; }
+        getPico();
+        if (Math.random()<0.22) {
+          const v = VEINS[Math.floor(Math.random()*VEINS.length)];
+          addOre(v.ore, 1);
+          const msg=document.getElementById("mineMsg");
+          if (msg) msg.textContent = "La veta gotea +1 "+v.ore;
+        }
+        if (Math.random()<0.18) hotVein = VEINS[Math.floor(Math.random()*VEINS.length)].id;
+        renderMine();
+      }, 4000);
+    }
     function doMine(id){
       const v = VEINS.find(x => x.id===id);
       const msg = document.getElementById("mineMsg");
       if (!v) return;
-      const en = getEnergy();
-      if (en < v.cost) { msg.textContent = "Sin energía ("+en+")"; return; }
-      for (let i=0;i<v.cost;i++) spendEnergy();
-      if (Math.random()*100 > v.chance) {
+      if (!spendPico()) { msg.textContent = "Pico cansado. Espera un poco."; renderMine(); return; }
+      veinHits[v.id] = (veinHits[v.id]||0)+1;
+      const need = v.hits || 1;
+      if (veinHits[v.id] < need) {
+        msg.textContent = "Golpe "+veinHits[v.id]+"/"+need+" en "+v.name;
+        try{sfx("tap");}catch(e){}
+        renderMine(); return;
+      }
+      veinHits[v.id] = 0;
+      let chance = v.chance + (hotVein===v.id ? 25 : 0);
+      if (Math.random()*100 > chance) {
         msg.textContent = "Pico roto. Nada esta vez.";
         renderMine(); refreshHome(); return;
       }
-      const n = v.min + Math.floor(Math.random()*(v.max-v.min+1));
+      let n = v.min + Math.floor(Math.random()*(v.max-v.min+1));
+      if (hotVein===v.id) n += 1;
       addOre(v.ore, n);
       let extra = "";
       if (Math.random()*100 < v.egg) {
@@ -1151,7 +1199,7 @@
       if (name === "pick") renderGrid();
       if (name === "mercado") { renderRank(); renderMarket(); }
       if (name === "ads") renderAds();
-      if (name === "mine") renderMine();
+      if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
