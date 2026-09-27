@@ -145,8 +145,13 @@
     .fx { height:26px; border:1px dashed #d4af37; border-radius:8px; background:#12141c; font-size:10px; color:#ffe08a; display:flex; align-items:center; justify-content:center; }
     #duelHand { position:sticky; bottom:58px; z-index:5; background:#0b1020; padding:2px 0 4px; }
     #duelHand img { height:70px !important; width:48px; object-fit:cover; object-position:top; }
-    #duelPick { display:flex !important; flex-wrap:nowrap !important; overflow-x:auto; gap:6px; grid-template-columns:none !important; padding:2px 4px 6px; -webkit-overflow-scrolling:touch; }
+    #duelPickRow { display:flex; align-items:center; gap:10px; padding:2px 8px 6px; }
+    #duelPick { display:flex !important; flex-wrap:nowrap !important; overflow-x:auto; gap:6px; flex:1; min-width:0; grid-template-columns:none !important; -webkit-overflow-scrolling:touch; }
     #duelPick .card { flex:0 0 52px; padding:2px !important; }
+    #deckPile { flex:0 0 58px; height:78px; border-radius:10px; border:2px solid #d4af37; background:
+      linear-gradient(160deg,#3a2a0a,#d4af37 55%,#fff3c4); box-shadow:6px 6px 0 #1a1408, 10px 10px 0 #0b0b0b;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; color:#1a1200; font-weight:900; font-size:11px; text-align:center; }
+    #deckPile small { font-size:10px; font-weight:700; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
     .pack {
@@ -243,7 +248,7 @@
     <div id="fxMe" class="fxrow"></div>
     <div id="duelHand">
     <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
-    <div id="duelPick"></div>
+    <div id="duelPickRow"><div id="duelPick"></div><div id="deckPile">MAZO<br><small id="deckN">0</small></div></div>
     <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px"></div>
     <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
 </div>
@@ -1181,6 +1186,21 @@
       if (!myHand.length) dealHand();
       const cards = myHand.map(id => HEROES.find(h=>h.id===id)).filter(Boolean);
       box.innerHTML = cards.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}"><img src="${h.img}" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" /></div>`).join("");
+      const rest = HEROES.filter(h => !myHand.includes(h.id));
+      const dn = document.getElementById("deckN");
+      if (dn) dn.textContent = rest.length + " cartas";
+      const pile = document.getElementById("deckPile");
+      if (pile) pile.onclick = () => {
+        if (!rest.length) { document.getElementById("duelMsg").textContent = "Mazo vacío."; return; }
+        const draw = rest[Math.floor(Math.random()*rest.length)];
+        let i = selectedCard ? myHand.indexOf(selectedCard) : -1;
+        if (i < 0) i = 0;
+        myHand[i] = draw.id;
+        selectedCard = draw.id;
+        document.getElementById("duelMsg").textContent = "Del mazo: " + draw.name;
+        sfx("tap");
+        renderDuelPick(); renderBoard();
+      };
       box.querySelectorAll(".card").forEach(el => el.onclick = () => {
         selectedCard = el.getAttribute("data-id");
         selectedFx = null; targets = {};
