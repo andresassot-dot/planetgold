@@ -326,6 +326,35 @@
     }, 1800);
 
     const tg = window.Telegram && window.Telegram.WebApp;
+    let actx;
+    function sfx(type) {
+      try {
+        actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+        if (actx.state === "suspended") actx.resume();
+        const o = actx.createOscillator();
+        const g = actx.createGain();
+        o.connect(g); g.connect(actx.destination);
+        const now = actx.currentTime;
+        const map = {
+          tap: [520, 0.06, "square", 0.05],
+          place: [380, 0.12, "triangle", 0.07],
+          ray: [880, 0.18, "sawtooth", 0.06],
+          hit: [220, 0.16, "square", 0.08],
+          fall: [140, 0.28, "triangle", 0.09],
+          gol: [660, 0.35, "square", 0.08],
+          save: [300, 0.2, "triangle", 0.07],
+          pack: [740, 0.25, "square", 0.07]
+        };
+        const [f,d,w,v] = map[type] || map.tap;
+        o.type = w; o.frequency.setValueAtTime(f, now);
+        if (type==="gol") o.frequency.exponentialRampToValueAtTime(f*1.6, now+d);
+        if (type==="fall") o.frequency.exponentialRampToValueAtTime(80, now+d);
+        g.gain.setValueAtTime(v, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now+d);
+        o.start(now); o.stop(now+d+0.02);
+      } catch(e) {}
+    }
+    document.addEventListener("touchstart", () => { try { actx = actx || new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); } catch(e){} }, { once:true });
     if (tg) { tg.ready(); tg.expand(); }
 
 
@@ -824,7 +853,7 @@
             if (board[i]) { document.getElementById("duelMsg").textContent = "Casilla ocupada."; return; }
             const h = HEROES.find(x=>x.id===selectedCard);
             const st = statsOf(h.id);
-            board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" };
+            sfx("place"); board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" };
             selectedCard = null; selectedIdx = null; targets = {};
             const z = document.getElementById("duelFloat"); if (z) z.style.display="none";
             document.getElementById("duelMsg").textContent = h.name + " en mesa. Tócala para atacar.";
@@ -834,7 +863,7 @@
             const hit = targets[i];
             const from = selectedIdx;
             const to = i;
-            fireBeam(from, to, hit.kind);
+            sfx("ray"); fireBeam(from, to, hit.kind);
             board[to].hp -= hit.dmg;
             let txt = "Rayo " + hit.kind + " " + hit.dmg;
             const dead = board[to].hp <= 0;
@@ -845,7 +874,7 @@
               f.className = "floater"; f.textContent = "-"+hit.dmg;
               cell.appendChild(f);
             }
-            if (dead && cell) cell.classList.add("fall");
+            sfx(dead?"fall":"hit"); if (dead && cell) cell.classList.add("fall");
             setTimeout(() => {
               if (dead) { board[to]=null; falls.en++; }
               selectedIdx = null; targets = {}; turnN++; tickFx();
@@ -877,7 +906,7 @@
         const z = document.getElementById("duelFloat");
         const zi = document.getElementById("duelZoomImg");
         const zt = document.getElementById("duelZoomTxt");
-        if (z) { z.style.display="block"; zi.src=h.img; const st=h.atk||{corta:5,media:4,larga:3}; zt.innerHTML="<b>"+(h.name||"")+"</b><br>Vida "+(h.hp||7)+" · C "+st.corta+" · M "+st.media+" · L "+st.larga+(h.dots?"<br>Puntos "+(Array.isArray(h.dots)?h.dots.join(" "):Object.keys(h.dots).join(" ")):" "); }
+        if (z) { sfx("tap"); z.style.display="block"; zi.src=h.img; const st=h.atk||{corta:5,media:4,larga:3}; zt.innerHTML="<b>"+(h.name||"")+"</b><br>Vida "+(h.hp||7)+" · C "+st.corta+" · M "+st.media+" · L "+st.larga+(h.dots?"<br>Puntos "+(Array.isArray(h.dots)?h.dots.join(" "):Object.keys(h.dots).join(" ")):" "); }
         document.getElementById("duelMsg").textContent = "Casillas azules = puedes poner a " + h.name;
         renderDuelPick(); renderBoard();
       });
@@ -993,21 +1022,21 @@
         const inGoal = s.x > gx-gw/2+8 && s.x < gx+gw/2-8 && s.y > gy-10 && s.y < gy+gh-12;
         if (Math.hypot(dx, dy) < 36) {
           boomAt(s.x, s.y);
-          msg.textContent = "¡Parada!";
+          sfx("save"); msg.textContent = "¡Parada!";
           state.shot = null; afterShot();
         } else if (inGoal) {
           const nearK = Math.hypot(s.x - keeperX(), s.y - (en.y()+90)) < 52;
           const saved = nearK ? Math.random() < 0.62 : Math.random() < 0.28;
           if (saved) {
             boomAt(s.x, s.y);
-            msg.textContent = "¡El portero la saca!";
+            sfx("save"); msg.textContent = "¡El portero la saca!";
             state.shot = null; afterShot();
           } else {
             const dmg = Math.round((20 + state.power / 4.5) * hero.dmg);
             state.enHp = Math.max(0, state.enHp - dmg);
             setHp(); boomAt(gx, gy + 40);
             state.net = 28;
-            msg.textContent = "¡GOL! -" + dmg;
+            sfx("gol"); msg.textContent = "¡GOL! -" + dmg;
             state.shot = null; afterShot();
           }
         }
