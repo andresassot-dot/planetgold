@@ -1499,8 +1499,10 @@
       const box = document.getElementById("rankBox");
       if (!box) return;
       const board = await pushRank();
+      const liveBox = document.getElementById("liveBox");
       const live = document.getElementById("liveList");
-      if (live) {
+      if (liveBox) liveBox.style.display = isDm() ? "block" : "none";
+      if (live && isDm()) {
         const on = board.filter(r => r.at && (Date.now()-Number(r.at)) < 15*60*1000);
         live.innerHTML = (on.length?on:board).map((r,i)=>
           `<div class="offer" data-live="${board.indexOf(r)}" style="cursor:pointer">
