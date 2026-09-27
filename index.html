@@ -115,6 +115,8 @@
     .lastPack .fifa { width: 92px; flex-shrink: 0; }
     .lastPack img { height: 118px; object-fit: cover; object-position: top; }
 
+    #ads { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
+    #ads.on { display: flex; }
     #mercado { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #mercado.on { display: flex; }
     .offer { display:flex; gap:10px; align-items:center; background:#161a26; border:1px solid #3a4258; border-radius:12px; padding:10px; margin:8px 0; }
@@ -261,6 +263,30 @@
     <p class="muted" id="packMsg" style="text-align:center;margin-top:10px"></p>
   </div>
 
+    <div id="ads">
+    <h1 style="color:#ffe08a;text-align:center">Publicidad</h1>
+    <p class="muted" style="text-align:center">Entra en un anuncio y gana energía o polvo. Publicar cuesta 100 tgold.</p>
+    <div style="display:flex;gap:8px;margin:8px 0">
+      <button class="main" id="adsViewBtn" style="margin:0;padding:10px;font-size:13px">VER ADS</button>
+      <button class="main" id="adsPubBtn" style="margin:0;padding:10px;font-size:13px;background:#1e3a5f;color:#ffe08a">PUBLICAR</button>
+    </div>
+    <div id="adsList"></div>
+    <div id="adsPub" style="display:none">
+      <div class="heroBan">
+        <div class="muted">Crear anuncio · 100 tgold</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0">
+          <button class="fx adtype on" data-k="canal">Canal TG</button>
+          <button class="fx adtype" data-k="grupo">Grupo TG</button>
+          <button class="fx adtype" data-k="youtube">YouTube</button>
+          <button class="fx adtype" data-k="x">X / Twitter</button>
+        </div>
+        <input class="wal" id="adUrl" placeholder="https://t.me/ tu canal o https://x.com/..." />
+        <input class="wal" id="adTitle" placeholder="Nombre del anuncio" />
+        <button class="main" id="adPay">PAGAR 100 TGOLD Y PUBLICAR</button>
+        <p class="muted" id="adMsg" style="text-align:center"></p>
+      </div>
+    </div>
+  </div>
   <div id="mercado">
     <h1 style="color:#ffe08a;text-align:center">Mercado</h1>
     <p class="muted" style="text-align:center">Vende una copia (1/3) por puntos. La compra real entre jugadores llega después.</p>
@@ -313,6 +339,7 @@
   <nav id="nav">
     <button data-tab="home" class="on">Inicio</button>
     <button data-tab="pick">Jugar</button>
+    <button data-tab="ads">Ads</button>
     <button data-tab="mercado">Mercado</button>
     <button data-tab="wallet">Cobrar</button>
   </nav>
@@ -497,8 +524,38 @@
     });
 
 
+    function loadAds(){ try { return JSON.parse(localStorage.getItem("pg_ads")||"[]"); } catch(e){ return []; } }
+    function saveAds(a){ localStorage.setItem("pg_ads", JSON.stringify(a)); }
+    let adKind = "canal";
+    function claimedSet(){ try { return JSON.parse(localStorage.getItem("pg_adClaim")||"[]"); } catch(e){ return []; } }
+    function renderAds() {
+      const box = document.getElementById("adsList");
+      if (!box) return;
+      const ads = loadAds();
+      const done = claimedSet();
+      if (!ads.length) { box.innerHTML = "<p class='muted' style='text-align:center'>Sin anuncios por ahora.</p>"; return; }
+      box.innerHTML = ads.map((a,i) => {
+        const ok = done.includes(a.id);
+        return `<div class="offer"><div style="flex:1"><b>${a.title||a.kind}</b><div class="muted">${a.kind} · ${ok?"ya cobrado":"+1 energía"}</div></div>
+          <button class="main" style="width:auto;margin:0;padding:8px 10px;font-size:12px" data-open="${i}">ABRIR</button></div>`;
+      }).join("");
+      box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => {
+        const a = loadAds()[Number(b.getAttribute("data-open"))];
+        if (!a) return;
+        window.open(a.url, "_blank");
+        let done = claimedSet();
+        if (!done.includes(a.id)) {
+          done.push(a.id);
+          localStorage.setItem("pg_adClaim", JSON.stringify(done));
+          const n = Math.min(5, getEnergy()+1);
+          localStorage.setItem("pg_en", n);
+          alert("Gracias. +1 energía");
+        }
+        renderAds(); refreshHome();
+      });
+    }
     function showTab(name) {
-      ["home","pick","wallet","arena","packs","mercado","duel"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado","duel","ads"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -508,11 +565,40 @@
       if (name === "home") refreshHome();
       if (name === "pick") renderGrid();
       if (name === "mercado") renderMarket();
+      if (name === "ads") renderAds();
       if (name === "wallet") {
         document.getElementById("walPend").textContent = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walletIn").value = localStorage.getItem("pg_wallet")||"";
       }
     }
+    document.getElementById("adsViewBtn").onclick = () => {
+      document.getElementById("adsPub").style.display = "none";
+      document.getElementById("adsList").style.display = "block";
+      renderAds();
+    };
+    document.getElementById("adsPubBtn").onclick = () => {
+      document.getElementById("adsList").style.display = "none";
+      document.getElementById("adsPub").style.display = "block";
+    };
+    document.querySelectorAll(".adtype").forEach(b => b.onclick = () => {
+      adKind = b.getAttribute("data-k");
+      document.querySelectorAll(".adtype").forEach(x => x.classList.remove("on"));
+      b.classList.add("on");
+    });
+    document.getElementById("adPay").onclick = () => {
+      const url = (document.getElementById("adUrl").value||"").trim();
+      const title = (document.getElementById("adTitle").value||"").trim();
+      const msg = document.getElementById("adMsg");
+      if (!/^https?:\/\//i.test(url)) { msg.textContent = "Pon un enlace https://"; return; }
+      const pend = Number(localStorage.getItem("pg_pend")||0);
+      if (pend < 100) { msg.textContent = "Necesitas 100 tgold pendiente. Ahora: "+pend; return; }
+      localStorage.setItem("pg_pend", pend-100);
+      const ads = loadAds();
+      ads.unshift({ id: "ad"+Date.now(), kind: adKind, url, title: title||adKind, at: Date.now() });
+      saveAds(ads);
+      msg.textContent = "Anuncio publicado. -100 tgold";
+      refreshHome();
+    };
     function refreshHome() {
       document.getElementById("homePts").textContent = (localStorage.getItem("pg_pts")||0) + " pts";
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
