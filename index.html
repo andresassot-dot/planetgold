@@ -47,7 +47,17 @@
     }
     .card.on { outline: 3px solid #fff; }
     .swatch { height: 54px; border-radius: 10px; margin-bottom: 8px; }
-    .card img { width: 100%; height: 148px; object-fit: cover; object-position: top; border-radius: 10px; margin-bottom: 8px; background: #111; display: block; }
+    .card img { width: 100%; height: 148px; object-fit: cover; object-position: top; border-radius: 10px; margin-bottom: 0; background: #111; display: block; }
+    .art { position:relative; margin-bottom:8px; }
+    .art img { margin-bottom:0; }
+    .gem { position:absolute; width:12px; height:12px; border-radius:50%; border:1.5px solid #fff8; box-shadow:0 0 6px #000; }
+    .gem.c { background:#e74c3c; } .gem.m { background:#3b82f6; } .gem.l { background:#d4af37; }
+    .gem.N { top:6px; left:50%; transform:translateX(-50%); }
+    .gem.NE { top:8px; right:8px; } .gem.NO { top:8px; left:8px; }
+    .gem.E { top:46%; right:6px; } .gem.O { top:46%; left:6px; }
+    .gem.SE { bottom:22px; right:8px; } .gem.SO { bottom:22px; left:8px; }
+    .gem.S { bottom:20px; left:50%; transform:translateX(-50%); }
+    .plate { position:absolute; left:6px; right:6px; bottom:6px; background:rgba(10,12,20,.82); border:1px solid #d4af37; border-radius:6px; font-size:10px; font-weight:800; color:#ffe08a; padding:2px 4px; letter-spacing:.02em; }
     .card b { display: block; }
     .card small { color: #aaa; }
     #go { margin-top: 12px; }
@@ -261,8 +271,8 @@
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
     <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · 12 s · rival pega después</p>
     <div id="turnClock" style="margin:4px 10px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:36px;position:relative;box-shadow:0 0 12px rgba(212,175,55,.35)">
-      <i id="turnBar" style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a)"></i>
-      <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">12s</b>
+      <i id="turnBar" style="display:block;height:100%;width:100%;transform-origin:left center;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width 1s linear"></i>
+      <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">TU TURNO 12s</b>
     </div>
     <button type="button" id="rivalGo" style="margin:0 10px 6px;padding:4px;background:transparent;border:0;color:#8a93a8;font-size:11px;width:auto;display:block">pasar al rival ▸</button>
     <div id="fxEn" class="fxrow"></div>
@@ -958,6 +968,12 @@
       document.getElementById("zoom").style.display = "none";
       renderGrid();
     };
+    function gemsOn(h) {
+      const raw = h.dots || {N:"corta"};
+      const map = Array.isArray(raw) ? Object.fromEntries(raw.map((d,i)=>[d, i===0?"corta":(i===1?"media":"larga")])) : raw;
+      const cls = {corta:"c", media:"m", larga:"l"};
+      return Object.keys(map).map(d => `<i class="gem ${cls[map[d]]||"m"} ${d}"></i>`).join("");
+    }
     const grid = document.getElementById("grid");
     function renderGrid() {
       grid.innerHTML = "";
@@ -971,7 +987,7 @@
         el.className = "card" + (h.id === hero.id ? " on" : "");
         const rk = RANKS[rankOf(h.id)] || "Bronce";
         const du = dustOf(h.id);
-        el.innerHTML = `<img src="${h.img}" alt="${h.name}" /><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
+        el.innerHTML = `<div class="art">${imgTag(h.img,'alt="'+h.name+'"')}${gemsOn(h)}<div class="plate">HP ${h.hp||7} · C${(h.atk&&h.atk.corta)||0} · M${(h.atk&&h.atk.media)||0} · L${(h.atk&&h.atk.larga)||0}</div></div><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
         el.onclick = () => { openZoom(h); };
         grid.appendChild(el);
       });
@@ -986,24 +1002,33 @@
     let turnWho = "me";
     let turnSec = 12;
     let turnT = null;
-    function setClock(who, sec) {
+    function setClock(who, sec, animate) {
       turnWho = who; turnSec = sec;
       const box = document.getElementById("turnClock");
       const bar = document.getElementById("turnBar");
       const txt = document.getElementById("turnTxt");
+      const max = who==="me" ? 12 : 3;
       if (box) box.style.borderColor = who==="me" ? "#d4af37" : "#e74c3c";
       if (bar) {
-        const max = who==="me" ? 12 : 3;
-        bar.style.width = Math.max(0, sec/max*100)+"%";
-        bar.style.background = who==="me" ? "linear-gradient(90deg,#d4af37,#ffe08a)" : "linear-gradient(90deg,#8b1e1e,#e74c3c)";
+        bar.style.transition = animate ? "width 1s linear" : "none";
+        bar.style.width = Math.max(0, (sec/max)*100) + "%";
+        bar.style.background = who==="me" ? "linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a)" : "linear-gradient(90deg,#8b1e1e,#e74c3c)";
       }
-      if (txt) { txt.textContent = (who==="me"?"TU TURNO  ":"RIVAL  ")+sec+"s"; txt.style.color = "#fff"; }
+      if (txt) txt.textContent = (who==="me"?"TU TURNO  ":"RIVAL  ") + sec + "s";
     }
     function stopClock(){ if (turnT) { clearInterval(turnT); turnT=null; } }
     function startMyClock(){
-      stopClock(); placedTurn=false; setClock("me",12);
+      stopClock(); placedTurn=false;
+      const bar = document.getElementById("turnBar");
+      if (bar) { bar.style.transition = "none"; bar.style.width = "100%"; }
+      setClock("me", 12, false);
+      requestAnimationFrame(() => {
+        if (bar) { bar.style.transition = "width 12s linear"; bar.style.width = "0%"; }
+      });
       turnT = setInterval(() => {
-        turnSec--; setClock("me", Math.max(0,turnSec));
+        turnSec--;
+        const txt = document.getElementById("turnTxt");
+        if (txt) txt.textContent = "TU TURNO  " + Math.max(0,turnSec) + "s";
         if (turnSec<=0) { stopClock(); duelEnemyTurn(); }
       }, 1000);
     }
