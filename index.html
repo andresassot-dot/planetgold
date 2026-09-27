@@ -40,6 +40,9 @@
     }
     #pick h1 { margin: 0 0 6px; font-size: 22px; color: #ffe08a; text-align: center; }
     #pick p { margin: 0 0 12px; text-align: center; color: #bbb; font-size: 13px; }
+    .decks { display:flex; gap:6px; overflow-x:auto; padding:0 0 10px; -webkit-overflow-scrolling:touch; }
+    .decks button { flex:0 0 auto; border:1px solid #d4af37; background:#161a26; color:#ffe08a; border-radius:16px; padding:6px 10px; font-size:12px; font-weight:700; }
+    .decks button.on { background:#d4af37; color:#1a1408; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow: auto; }
     .card {
       border: 2px solid #d4af37; border-radius: 14px; padding: 10px;
@@ -253,6 +256,14 @@
   <div id="pick">
     <h1>PLANET GOLD</h1>
     <p>Elige ficha · 3 copias suben de marco</p>
+    <div class="decks" id="decks">
+      <button data-deck="all" class="on">Todas</button>
+      <button data-deck="futbol">Fútbol</button>
+      <button data-deck="magos">Magos</button>
+      <button data-deck="duendes">Duendes</button>
+      <button data-deck="lideres">Líderes</button>
+      <button data-deck="mascotas">Mascotas</button>
+    </div>
     <div class="grid" id="grid"></div>
     <button class="main" id="go">FARMEAR TGOLD</button>
     <button class="main" id="duelBtn" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">DUELO DE CARTAS</button>
@@ -341,7 +352,7 @@
         <div class="card" data-id="samba" style="padding:4px"><img src="cards/samba.jpg" style="height:72px;margin:0" /></div>
         <div class="card" data-id="pibe" style="padding:4px"><img src="cards/pibe.jpg" style="height:72px;margin:0" /></div>
         <div class="card" data-id="rayo" style="padding:4px"><img src="cards/rayo.jpg" style="height:72px;margin:0" /></div>
-        <div class="card" data-id="rocaverde" style="padding:4px"><img src="cards/mago-tierra.JPG" style="height:72px;margin:0" /></div>
+        <div class="card" data-id="rocaverde" style="padding:4px"><img src="cards/gaia.jpg" style="height:72px;margin:0" /></div>
       </div>
       <input class="wal" id="sellPrice" type="number" placeholder="Precio en pts" value="800" />
       <button class="main" id="sellBtn">PUBLICAR</button>
@@ -556,11 +567,11 @@
       { id:"samba", deck:"futbol", name:"Samba", rare:"normal", syn:"tierra", role:"efecto", img:"cards/samba.jpg", dmg:1.05, hp:4, atk:{corta:3,media:3,larga:3}, dots:{N:"corta",NE:"media",NO:"media"} },
       { id:"pibe", deck:"futbol", name:"Pibe", rare:"normal", syn:"agua", role:"pase", img:"cards/pibe.jpg", dmg:1.0, hp:5, atk:{corta:2,media:4,larga:4}, dots:{N:"media",E:"larga",O:"larga"} },
       { id:"rayo", deck:"futbol", name:"Rayo", rare:"ultra", syn:"aire", role:"rápido", img:"cards/rayo.jpg", dmg:1.1, spd:1.2, hp:4, atk:{corta:6,media:3,larga:2}, dots:{N:"corta",NE:"corta",SE:"media"} },
-      { id:"rocaverde", deck:"magos", name:"Rocaverde", rare:"rara", syn:"tierra", role:"tierra", img:"cards/mago-tierra.JPG", dmg:1.1, hp:5, atk:{corta:1,media:5,larga:6}, dots:{N:"media",NE:"larga",NO:"larga",O:"media"} },
-      { id:"brasas", deck:"magos", name:"Brasas", rare:"normal", syn:"fuego", role:"fuego", img:"cards/mago-fuego.jpg", dmg:1.15, hp:4, atk:{corta:1,media:4,larga:5}, dots:{N:"media",NE:"larga",E:"media"} },
-      { id:"marea", deck:"magos", name:"Marea", rare:"normal", syn:"agua", role:"agua", img:"cards/mago-agua.jpg", dmg:1.05, hp:5, atk:{corta:0,media:4,larga:6}, dots:{N:"larga",NO:"media",O:"larga"} },
-      { id:"vendaval", deck:"magos", name:"Vendaval", rare:"rara", syn:"aire", role:"aire", img:"cards/mago-aire.jpg", dmg:1.05, spd:1.2, hp:4, atk:{corta:0,media:5,larga:5}, dots:{N:"media",NE:"larga",NO:"larga"} },
-      { id:"aurora", deck:"magos", name:"Aurora", rare:"ultra", syn:"luz", role:"luz", img:"cards/mago-luz.jpg", dmg:1.15, hp:5, atk:{corta:1,media:4,larga:8}, dots:{N:"larga",E:"media",O:"media"} },
+      { id:"rocaverde", deck:"magos", name:"Gaia", rare:"rara", syn:"tierra", role:"tierra", img:"cards/gaia.jpg", dmg:1.1, hp:5, atk:{corta:1,media:5,larga:6}, dots:{N:"media",NE:"larga",NO:"larga",O:"media"} },
+      { id:"brasas", deck:"magos", name:"Viuda Carmesí", rare:"normal", syn:"fuego", role:"fuego", img:"cards/viuda-carmesi.jpg", dmg:1.15, hp:4, atk:{corta:1,media:4,larga:5}, dots:{N:"media",NE:"larga",E:"media"} },
+      { id:"marea", deck:"magos", name:"Atenas", rare:"normal", syn:"agua", role:"agua", img:"cards/atenas.jpg", dmg:1.05, hp:5, atk:{corta:0,media:4,larga:6}, dots:{N:"larga",NO:"media",O:"larga"} },
+      { id:"vendaval", deck:"magos", name:"Zephyra", rare:"rara", syn:"aire", role:"aire", img:"cards/zephyra.jpg", dmg:1.05, spd:1.2, hp:4, atk:{corta:0,media:5,larga:5}, dots:{N:"media",NE:"larga",NO:"larga"} },
+      { id:"aurora", deck:"magos", name:"Solaria", rare:"ultra", syn:"luz", role:"luz", img:"cards/solaria.jpg", dmg:1.15, hp:5, atk:{corta:1,media:4,larga:8}, dots:{N:"larga",E:"media",O:"media"} },
       { id:"musgo", deck:"duendes", name:"Musgo", rare:"normal", syn:"tierra", role:"bosque", img:"cards/duende-musgo.jpg", dmg:1.0, hp:5, atk:{corta:3,media:3,larga:2}, dots:{N:"corta",NO:"media",SO:"corta"} },
       { id:"seta", deck:"duendes", name:"Seta", rare:"normal", syn:"veneno", role:"veneno", img:"cards/duende-seta.jpg", dmg:1.05, hp:4, atk:{corta:4,media:3,larga:2}, dots:{N:"corta",NE:"media",SE:"corta"} },
       { id:"orohoja", deck:"duendes", name:"Orojoja", rare:"rara", syn:"tesoro", role:"tesoro", img:"cards/duende-oro.jpg", dmg:1.05, hp:4, atk:{corta:2,media:6,larga:3}, dots:{N:"media",E:"media",O:"larga"} },
@@ -585,7 +596,7 @@
     function cardImg(h){ return h.img; }
     function imgTag(src, extra){
       extra = extra || "";
-      return `<img src="${src}" ${extra} onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" />`;
+      return `<img src="${src}" ${extra} onerror="(function(i){var s=i.getAttribute('data-try')||'0';var n=+s+1;i.setAttribute('data-try',n);var base=i.src.split('/').pop();var map={'gaia.jpg':['mago-tierra.JPG','mago-tierra.jpg'],'viuda-carmesi.jpg':['mago-fuego.jpg','mago-fuego.JPG'],'atenas.jpg':['mago-agua.jpg'],'zephyra.jpg':['mago-aire.jpg'],'solaria.jpg':['mago-luz.jpg'],'mago-tierra.JPG':['gaia.jpg','mago-tierra.jpg']};var list=map[base]||[];if(base.indexOf('.JPG')>=0)list.push(base.replace('.JPG','.jpg'));else list.push(base.replace('.jpg','.JPG'));if(n<=list.length){i.src='cards/'+list[n-1];}else{i.onerror=null;}})(this)" />`;
     }
     HEROES.forEach(h => {
       const im = new Image();
@@ -976,14 +987,22 @@
       return Object.keys(map).map(d => `<i class="gem ${cls[map[d]]||"m"} ${d}"></i>`).join("");
     }
     const grid = document.getElementById("grid");
+    let deckFilter = "all";
+    document.getElementById("decks").onclick = (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      deckFilter = b.getAttribute("data-deck") || "all";
+      document.querySelectorAll("#decks button").forEach(x => x.classList.toggle("on", x===b));
+      renderGrid();
+    };
     function renderGrid() {
       grid.innerHTML = "";
       function cardImg(h){ return h.img; }
     function imgTag(src, extra){
       extra = extra || "";
-      return `<img src="${src}" ${extra} onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" />`;
+      return `<img src="${src}" ${extra} onerror="(function(i){var s=i.getAttribute('data-try')||'0';var n=+s+1;i.setAttribute('data-try',n);var base=i.src.split('/').pop();var map={'gaia.jpg':['mago-tierra.JPG','mago-tierra.jpg'],'viuda-carmesi.jpg':['mago-fuego.jpg','mago-fuego.JPG'],'atenas.jpg':['mago-agua.jpg'],'zephyra.jpg':['mago-aire.jpg'],'solaria.jpg':['mago-luz.jpg'],'mago-tierra.JPG':['gaia.jpg','mago-tierra.jpg']};var list=map[base]||[];if(base.indexOf('.JPG')>=0)list.push(base.replace('.JPG','.jpg'));else list.push(base.replace('.jpg','.JPG'));if(n<=list.length){i.src='cards/'+list[n-1];}else{i.onerror=null;}})(this)" />`;
     }
-    HEROES.forEach(h => {
+    HEROES.filter(h => deckFilter==="all" || h.deck===deckFilter || (deckFilter==="mascotas" && (h.deck==="mascotas"||h.deck==="monturas"))).forEach(h => {
         const el = document.createElement("div");
         el.className = "card" + (h.id === hero.id ? " on" : "");
         const rk = RANKS[rankOf(h.id)] || "Bronce";
