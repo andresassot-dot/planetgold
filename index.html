@@ -625,8 +625,8 @@
     const ORES = [
       { id:"madera", name:"Madera", ico:"🪵" },
       { id:"piedra", name:"Piedra", ico:"🪨" },
-      { id:"oro", name:"Oro", ico:"🪙", img:"cards/lingote-oro.png" },
-      { id:"platino", name:"Platino", ico:"⚪", img:"cards/lingote-platino.png" },
+      { id:"oro", name:"Oro", ico:"🪨", tint:"gold" },
+      { id:"platino", name:"Platino", ico:"🪨", tint:"plat" },
       { id:"niobio", name:"Niobio", ico:"💠" }
     ];
     const EGGS = [
@@ -804,8 +804,10 @@
       const bagEl = document.getElementById("oreBag");
       function orePic(id, size){
         const o = ORES.find(x=>x.id===id) || {};
-        if (o.img) return `<img src="${o.img}" alt="" style="width:${size||28}px;height:${size||28}px;object-fit:contain;display:block;margin:0 auto" onerror="this.outerHTML='${o.ico||''}'" />`;
-        return `<span style="font-size:${size||22}px">${o.ico||""}</span>`;
+        let f = "";
+        if (o.tint==="gold") f="filter:sepia(1) saturate(4) hue-rotate(8deg) brightness(1.15)";
+        if (o.tint==="plat") f="filter:grayscale(.2) saturate(.6) brightness(1.45) contrast(1.15)";
+        return `<span style="font-size:${size||22}px;line-height:1;display:block;${f}">${o.ico||""}</span>`;
       }
       bagEl.innerHTML = ORES.map(o => `<div>${orePic(o.id,26)}<b>${oreOf(o.id)}</b>${o.name}</div>`).join("");
       const gb = gearBonus();
