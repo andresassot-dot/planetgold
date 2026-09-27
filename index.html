@@ -782,18 +782,25 @@
 
     refreshHome();
 
+    const TREAS = "6UtWqTp8N7mHSCT471eZKLaUGGbLt5nACCeNUKA8iw85";
     const treasEl = document.getElementById("treasIn");
-    if (treasEl) treasEl.value = localStorage.getItem("pg_treasury")||"";
+    if (treasEl) treasEl.value = TREAS;
     document.getElementById("copyTreas").onclick = async () => {
-      const v = (document.getElementById("treasIn").value||"").trim();
-      if (!v) { document.getElementById("loadMsg").textContent = "Escribe primero la tesorería"; return; }
-      localStorage.setItem("pg_treasury", v);
-      try { await navigator.clipboard.writeText(v); document.getElementById("loadMsg").textContent = "Tesorería copiada"; }
-      catch(e) { document.getElementById("loadMsg").textContent = v; }
+      const msg = document.getElementById("loadMsg");
+      try {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.writeText) {
+          Telegram.WebApp.writeText(TREAS);
+        } else {
+          await navigator.clipboard.writeText(TREAS);
+        }
+        msg.textContent = "Copiada: "+TREAS.slice(0,8)+"…";
+      } catch(e) {
+        msg.textContent = TREAS;
+      }
     };
     document.getElementById("loadBtn").onclick = async () => {
       const msg = document.getElementById("loadMsg");
-      const treas = (document.getElementById("treasIn").value||"").trim();
+      const treas = TREAS;
       const amt = Number(document.getElementById("loadAmt").value||0);
       const sig = (document.getElementById("loadTx").value||"").trim();
       if (treas.length < 32) { msg.textContent = "Pon la wallet tesorería"; return; }
