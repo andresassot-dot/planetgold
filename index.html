@@ -442,6 +442,10 @@
   <div id="mercado">
     <h1 style="color:#ffe08a;text-align:center">Ranking · Mercado</h1>
     <p class="muted" style="text-align:center">Vende cartas, minerales o reliquias por puntos.</p>
+    <div class="heroBan" id="liveBox" style="margin-bottom:10px">
+      <div class="muted">En el juego ahora</div>
+      <div id="liveList" class="muted">Nadie conectado aún</div>
+    </div>
     <div class="heroBan" id="rankBox"><div class="muted">Cargando ranking…</div></div>
     <div id="whoBox" style="display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px">
       <div style="width:min(92vw,360px);background:#121622;border:2px solid #d4af37;border-radius:16px;padding:14px;text-align:center">
@@ -1188,6 +1192,7 @@
       syncAds({ act:"pub", ...row });
       msg.textContent = "Publicado. 100 visitas · cada click gasta 1";
       refreshHome();
+    setInterval(()=>{ try{ pingRank(); }catch(e){} }, 40000);
     };
     const SWAP_PTS = 20000, SWAP_TG = 10, MIN_USD = 10;
     function lastPx(){ const n=Number(localStorage.getItem("pg_lastPx")||0); return n>0?n:0.000005; }
@@ -1203,6 +1208,8 @@
       const wu = document.getElementById("walUsd"); if (wu) wu.textContent = "≈ $" + (pend*lastPx()).toFixed(6);
     }
     function refreshHome() {
+      try { pingRank(); } catch(e) {}
+
       document.getElementById("homePts").textContent = (localStorage.getItem("pg_pts")||0) + " pts";
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
       const mt = document.getElementById("meTgold");
@@ -1392,6 +1399,7 @@
         photo: u.photo_url || "",
         en: (typeof getEnergy==="function")?getEnergy():0,
         gifts: Number(localStorage.getItem("pg_gifts")||0),
+        at: Date.now(),
         pts: Number(localStorage.getItem("pg_pts")||0),
         pend: Number(localStorage.getItem("pg_pend")||0),
         tgold: Number(localStorage.getItem("pg_tgold")||0),
@@ -1418,7 +1426,10 @@
         const old = board.find(x => rankKey(x)===k);
         board = board.filter(x => rankKey(x) !== k);
         if (old) {
-          if ((p.pts||0) < (old.pts||0)) p.pts = old.pts;
+          if ((p.at||0) < (old.at||0)) {
+            p.pts = old.pts;
+            if (old.card) { p.card = old.card; p.cardImg = old.cardImg; }
+          }
           if (!p.photo && old.photo) p.photo = old.photo;
           if (!p.card && old.card) { p.card = old.card; p.cardImg = old.cardImg; }
         }
@@ -1435,6 +1446,11 @@
         localStorage.setItem("pg_board_v2","1");
       }
     } catch(e) {}
+    async function pingRank(){
+      try {
+        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { at: Date.now() })) });
+      } catch(e) {}
+    }
     async function pushRank() {
       const me = myProfile();
       let known = [];
@@ -1472,10 +1488,29 @@
         (p.card?("<b style='color:#ffe08a'>"+p.card+"</b><br>"):"")+(p.weapon||"—")+" / "+(p.relic||"—")+" / "+(p.pet||"—");
       document.getElementById("whoBox").style.display = "flex";
     }
+    function agoTxt(at){
+      if (!at) return "";
+      const s = Math.max(0, Math.floor((Date.now()-Number(at))/1000));
+      if (s < 60) return "ahora";
+      if (s < 3600) return Math.floor(s/60)+" min";
+      return Math.floor(s/3600)+" h";
+    }
     async function renderRank() {
       const box = document.getElementById("rankBox");
       if (!box) return;
       const board = await pushRank();
+      const live = document.getElementById("liveList");
+      if (live) {
+        const on = board.filter(r => r.at && (Date.now()-Number(r.at)) < 15*60*1000);
+        live.innerHTML = (on.length?on:board).map((r,i)=>
+          `<div class="offer" data-live="${board.indexOf(r)}" style="cursor:pointer">
+            <div style="width:10px;height:10px;border-radius:50%;background:${(r.at && Date.now()-Number(r.at)<3*60*1000)?'#3ddc84':'#8a93a8'}"></div>
+            <div style="flex:1"><b>${r.name}</b><div class="muted">${agoTxt(r.at)||"visto"} · ${(r.pts||0)} pts</div></div>
+          </div>`).join("") || "<span class='muted'>Nadie aún. Que abran el juego.</span>";
+        live.querySelectorAll("[data-live]").forEach(el=>{
+          el.onclick=()=>showWho(board[Number(el.getAttribute("data-live"))]);
+        });
+      }
       box.innerHTML = "<div class='muted'>Ranking online · toca un jugador para ver su perfil</div>" +
         board.map((r,i) => `<div class="offer" data-who="${i}" style="cursor:pointer">
           <div style="width:28px;color:#ffe08a;font-weight:800">${i+1}</div>
