@@ -433,6 +433,16 @@
     <h1 style="color:#ffe08a;text-align:center">Ranking · Mercado</h1>
     <p class="muted" style="text-align:center">Vende cartas, minerales o reliquias por puntos.</p>
     <div class="heroBan" id="rankBox"><div class="muted">Cargando ranking…</div></div>
+    <div id="whoBox" style="display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.82);align-items:center;justify-content:center;padding:18px">
+      <div style="width:min(92vw,360px);background:#121622;border:2px solid #d4af37;border-radius:16px;padding:14px;text-align:center">
+        <img id="whoPhoto" alt="" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid #d4af37" />
+        <h2 id="whoName" style="color:#ffe08a;margin:8px 0 4px;font-size:20px"></h2>
+        <div class="muted" id="whoPts"></div>
+        <img id="whoCard" alt="" style="width:140px;height:auto;margin:10px auto;display:block;border-radius:10px" />
+        <div class="muted" id="whoGear" style="margin:6px 0 12px"></div>
+        <button class="main" id="whoClose" style="margin:0">CERRAR</button>
+      </div>
+    </div>
     <div class="heroBan">
       <div class="muted">Poner a la venta</div>
       <div class="decks" id="sellKinds" style="padding:8px 0">
@@ -1276,24 +1286,81 @@
       } catch(e) {}
       return localStorage.getItem("pg_name") || "Tú";
     }
-    function pushRank() {
-      const me = { name: playerName(), pts: Number(localStorage.getItem("pg_pts")||0), pend: Number(localStorage.getItem("pg_pend")||0), at: Date.now() };
+    function myProfile() {
+      const u = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) || {};
+      const id = String(u.id || playerName());
+      const best = (typeof bestCard==="function") ? bestCard() : null;
+      const w = (typeof wear==="function") ? wear() : {};
+      const gW = GEAR.find(x=>x.id===w.weapon);
+      const gR = GEAR.find(x=>x.id===w.relic);
+      const pet = HEROES.find(h=>h.id===w.pet);
+      return {
+        id, name: playerName(),
+        photo: u.photo_url || "",
+        pts: Number(localStorage.getItem("pg_pts")||0),
+        pend: Number(localStorage.getItem("pg_pend")||0),
+        tgold: Number(localStorage.getItem("pg_tgold")||0),
+        card: best ? best.name : "",
+        cardImg: best ? best.img : "",
+        weapon: gW ? gW.name : "",
+        relic: gR ? gR.name : "",
+        pet: pet ? pet.name : "",
+        at: Date.now()
+      };
+    }
+    function mergeBoard(extra) {
       let board = [];
       try { board = JSON.parse(localStorage.getItem("pg_board")||"[]"); } catch(e) {}
-      board = board.filter(x => x.name !== me.name);
-      board.push(me);
+      const me = myProfile();
+      const add = [me].concat(extra||[]);
+      add.forEach(p => {
+        if (!p || !(p.id||p.name)) return;
+        board = board.filter(x => (x.id||x.name) !== (p.id||p.name));
+        board.push(p);
+      });
       board.sort((a,b)=> (b.pts||0)-(a.pts||0));
-      board = board.slice(0,20);
+      board = board.slice(0,30);
       localStorage.setItem("pg_board", JSON.stringify(board));
       return board;
     }
-    function renderRank() {
+    async function pushRank() {
+      const me = myProfile();
+      let remote = [];
+      try {
+        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(me) });
+        const r = await fetch("/api/rank");
+        const j = await r.json();
+        if (j && j.players) remote = j.players;
+      } catch(e) {}
+      return mergeBoard(remote);
+    }
+    function showWho(p) {
+      if (!p) return;
+      document.getElementById("whoPhoto").src = p.photo || p.cardImg || "cards/icon-cartas.jpg";
+      document.getElementById("whoName").textContent = p.name || "Jugador";
+      document.getElementById("whoPts").textContent = (p.pts||0)+" pts · "+(p.tgold||p.pend||0)+" tgold";
+      const c = document.getElementById("whoCard");
+      if (p.cardImg) { c.src = p.cardImg; c.style.display="block"; } else c.style.display="none";
+      document.getElementById("whoGear").textContent =
+        (p.card?("Carta: "+p.card+" · "):"")+(p.weapon||"—")+" / "+(p.relic||"—")+" / "+(p.pet||"—");
+      document.getElementById("whoBox").style.display = "flex";
+    }
+    async function renderRank() {
       const box = document.getElementById("rankBox");
       if (!box) return;
-      const board = pushRank();
-      box.innerHTML = "<div class='muted'>Ranking (este dispositivo + tu user de Telegram)</div>" +
-        board.map((r,i) => `<div class="offer"><div style="width:28px;color:#ffe08a;font-weight:800">${i+1}</div><div style="flex:1"><b>${r.name}</b><div class="muted">${r.pts} pts · ${r.pend||0} tgold</div></div></div>`).join("");
+      const board = await pushRank();
+      box.innerHTML = "<div class='muted'>Ranking online · toca un jugador para ver su perfil</div>" +
+        board.map((r,i) => `<div class="offer" data-who="${i}" style="cursor:pointer">
+          <div style="width:28px;color:#ffe08a;font-weight:800">${i+1}</div>
+          ${r.photo?`<img src="${r.photo}" style="width:32px;height:32px;border-radius:50%;object-fit:cover" />`:""}
+          <div style="flex:1"><b>${r.name}</b><div class="muted">${r.pts||0} pts · ${r.card||""}</div></div>
+        </div>`).join("");
+      box.querySelectorAll("[data-who]").forEach(el => {
+        el.onclick = () => showWho(board[Number(el.getAttribute("data-who"))]);
+      });
     }
+    const whoClose = document.getElementById("whoClose");
+    if (whoClose) whoClose.onclick = () => { document.getElementById("whoBox").style.display = "none"; };
     function marketList() {
       try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]"); } catch(e){ return []; }
     }
