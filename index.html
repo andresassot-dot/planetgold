@@ -130,12 +130,14 @@
     }
     @keyframes shine { 0%{transform:translateX(-30%)} 100%{transform:translateX(30%)} }
     .meRow { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
-    .bestCard { text-align:center; margin-top:12px; position:relative; }
-    .bestCard img { width:min(58vw,220px); height:auto; border-radius:12px; border:2px solid #d4af37; display:block; margin:0 auto; background:#0b0d14; }
+    .bestRow { display:flex; align-items:center; gap:8px; margin-top:10px; }
+    .bestCard { text-align:center; margin-top:0; position:relative; flex:1; min-width:0; }
+    .bestCard img { width:min(52vw,200px); height:auto; border-radius:12px; border:2px solid #d4af37; display:block; margin:0 auto; background:#0b0d14; }
     .bestCard.holo { position:relative; }
     .bestCard.holo img { border-color:#9be7ff; box-shadow:0 0 18px rgba(180,80,255,.45),0 0 8px rgba(255,220,80,.35); }
-    .loadout { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin:10px 0 4px; }
-    .loadout .slot { background:#121622; border:1px solid #2a3146; border-radius:10px; padding:8px 6px; text-align:center; font-size:11px; }
+    .loadout { display:flex; flex-direction:column; gap:6px; width:86px; flex:0 0 86px; margin:0; }
+    .loadout .slot { background:#121622; border:1px solid #2a3146; border-radius:10px; padding:6px 4px; text-align:center; font-size:10px; }
+    .loadout .slot img { width:42px; height:42px; object-fit:contain; display:block; margin:0 auto 2px; }
     .loadout b { display:block; color:#ffe08a; font-size:12px; margin-bottom:2px; }
     .pwr { text-align:center; font-size:12px; color:#c8d0e0; margin:6px 0 0; }
     .pwr b { color:#ffe08a; }
@@ -262,6 +264,7 @@
       <canvas id="spark" width="320" height="56" style="width:100%;height:56px;margin-top:8px"></canvas>
       <div class="muted" id="tkMeta">precio en vivo</div>
     </div>
+    <div class="bestRow">
     <div class="bestCard" id="bestWrap">
       <img id="bestImg" alt="mejor carta" />
       <div class="muted" style="margin-top:6px">Mejor carta</div>
@@ -270,9 +273,10 @@
       <div class="pwr" id="bestPwr"></div>
     </div>
     <div class="loadout" id="loadout">
-      <div class="slot"><b>Arma</b><span id="eqW">—</span></div>
-      <div class="slot"><b>Reliquia</b><span id="eqR">—</span></div>
-      <div class="slot"><b>Mascota</b><span id="eqP">—</span></div>
+      <div class="slot"><b>Arma</b><div id="eqW">—</div></div>
+      <div class="slot"><b>Reliquia</b><div id="eqR">—</div></div>
+      <div class="slot"><b>Mascota</b><div id="eqP">—</div></div>
+    </div>
     </div>
     <div class="actions">
       <div class="act" data-tab="pick"><img src="cards/icon-cartas.jpg?v=4" alt="" onerror="this.onerror=null;this.src='cards/icon-cartas.png'" />Cartas</div>
@@ -691,13 +695,32 @@
       { id:"niobio", name:"Cripta niobio", ore:"niobio", cost:2, chance:9, min:1, max:1, egg:16 }
     ];
     const GEAR = [
-      { id:"amuleto", name:"Amuleto de roble", need:{madera:8}, bonus:{hp:1}, slot:"relic" },
-      { id:"yelmo", name:"Yelmo de piedra", need:{piedra:10}, bonus:{hp:1,corta:1}, slot:"relic" },
-      { id:"baston", name:"Bastón carmesí", need:{oro:6,madera:4}, bonus:{larga:2}, slot:"weapon" },
-      { id:"espada", name:"Espada dorada", need:{oro:8,piedra:6}, bonus:{corta:2}, slot:"weapon" },
-      { id:"corona", name:"Corona de platino", need:{platino:4,oro:4}, bonus:{corta:1,media:1,larga:1}, slot:"relic" },
-      { id:"reliquia", name:"Reliquia de niobio", need:{niobio:2,platino:6}, bonus:{hp:2,corta:1,media:1,larga:1}, slot:"relic" }
+      { id:"espada-madera", fam:"espada", tier:"madera", name:"Espada de madera", need:{madera:8}, bonus:{corta:1}, slot:"weapon", img:"cards/item-espada.png", fusesTo:"espada-plata" },
+      { id:"espada-plata", fam:"espada", tier:"plata", name:"Espada de plata", need:{piedra:10}, bonus:{corta:2}, slot:"weapon", img:"cards/item-espada.png", fusesTo:"espada-oro" },
+      { id:"espada-oro", fam:"espada", tier:"oro", name:"Espada de oro", need:{oro:8}, bonus:{corta:3}, slot:"weapon", img:"cards/item-espada.png", fusesTo:"espada-s" },
+      { id:"espada-s", fam:"espada", tier:"S", name:"Espada zafiro S", need:{platino:3,niobio:1}, bonus:{corta:5,hp:1}, slot:"weapon", img:"cards/item-espada.png" },
+      { id:"baston-madera", fam:"baston", tier:"madera", name:"Bastón de madera", need:{madera:8}, bonus:{larga:1}, slot:"weapon", img:"cards/item-baston.png", fusesTo:"baston-plata" },
+      { id:"baston-plata", fam:"baston", tier:"plata", name:"Bastón de plata", need:{piedra:10}, bonus:{larga:2}, slot:"weapon", img:"cards/item-baston.png", fusesTo:"baston-oro" },
+      { id:"baston-oro", fam:"baston", tier:"oro", name:"Bastón de oro", need:{oro:8}, bonus:{larga:3}, slot:"weapon", img:"cards/item-baston.png", fusesTo:"baston-s" },
+      { id:"baston-s", fam:"baston", tier:"S", name:"Bastón zafiro S", need:{platino:3,niobio:1}, bonus:{larga:5,hp:1}, slot:"weapon", img:"cards/item-baston.png" },
+      { id:"amuleto-madera", fam:"amuleto", tier:"madera", name:"Amuleto de madera", need:{madera:6}, bonus:{hp:1}, slot:"relic", img:"cards/item-amuleto.png", fusesTo:"amuleto-plata" },
+      { id:"amuleto-plata", fam:"amuleto", tier:"plata", name:"Amuleto de plata", need:{piedra:8}, bonus:{hp:1,media:1}, slot:"relic", img:"cards/item-amuleto.png", fusesTo:"amuleto-oro" },
+      { id:"amuleto-oro", fam:"amuleto", tier:"oro", name:"Amuleto de oro", need:{oro:6}, bonus:{hp:2,media:1}, slot:"relic", img:"cards/item-amuleto.png", fusesTo:"amuleto-s" },
+      { id:"amuleto-s", fam:"amuleto", tier:"S", name:"Amuleto zafiro S", need:{platino:3,niobio:1}, bonus:{hp:3,media:2}, slot:"relic", img:"cards/item-amuleto.png" },
+      { id:"yelmo-madera", fam:"yelmo", tier:"madera", name:"Yelmo de madera", need:{madera:8}, bonus:{hp:1}, slot:"relic", img:"cards/item-yelmo.png", fusesTo:"yelmo-plata" },
+      { id:"yelmo-plata", fam:"yelmo", tier:"plata", name:"Yelmo de plata", need:{piedra:10}, bonus:{hp:1,corta:1}, slot:"relic", img:"cards/item-yelmo.png", fusesTo:"yelmo-oro" },
+      { id:"yelmo-oro", fam:"yelmo", tier:"oro", name:"Yelmo de oro", need:{oro:8}, bonus:{hp:2,corta:1}, slot:"relic", img:"cards/item-yelmo.png", fusesTo:"yelmo-s" },
+      { id:"yelmo-s", fam:"yelmo", tier:"S", name:"Yelmo zafiro S", need:{platino:3,niobio:1}, bonus:{hp:3,corta:2}, slot:"relic", img:"cards/item-yelmo.png" },
+      { id:"corona-madera", fam:"corona", tier:"madera", name:"Corona de madera", need:{madera:8}, bonus:{media:1}, slot:"relic", img:"cards/item-corona.png", fusesTo:"corona-plata" },
+      { id:"corona-plata", fam:"corona", tier:"plata", name:"Corona de plata", need:{piedra:8,oro:2}, bonus:{corta:1,media:1,larga:1}, slot:"relic", img:"cards/item-corona.png", fusesTo:"corona-oro" },
+      { id:"corona-oro", fam:"corona", tier:"oro", name:"Corona de oro", need:{oro:8}, bonus:{corta:1,media:2,larga:1}, slot:"relic", img:"cards/item-corona.png", fusesTo:"corona-s" },
+      { id:"corona-s", fam:"corona", tier:"S", name:"Corona zafiro S", need:{platino:4,niobio:1}, bonus:{corta:2,media:2,larga:2,hp:1}, slot:"relic", img:"cards/item-corona.png" },
+      { id:"reliquia-madera", fam:"reliquia", tier:"madera", name:"Reliquia de madera", need:{madera:10}, bonus:{hp:1}, slot:"relic", img:"cards/item-reliquia.png", fusesTo:"reliquia-plata" },
+      { id:"reliquia-plata", fam:"reliquia", tier:"plata", name:"Reliquia de plata", need:{piedra:10}, bonus:{hp:1,larga:1}, slot:"relic", img:"cards/item-reliquia.png", fusesTo:"reliquia-oro" },
+      { id:"reliquia-oro", fam:"reliquia", tier:"oro", name:"Reliquia de oro", need:{oro:8,platino:2}, bonus:{hp:2,corta:1,larga:1}, slot:"relic", img:"cards/item-reliquia.png", fusesTo:"reliquia-s" },
+      { id:"reliquia-s", fam:"reliquia", tier:"S", name:"Reliquia zafiro S", need:{niobio:2,platino:4}, bonus:{hp:3,corta:2,media:2,larga:2}, slot:"relic", img:"cards/item-reliquia.png" }
     ];
+    const FUSE_NEED = 5;
     function bag(){ try { return JSON.parse(localStorage.getItem("pg_ore")||"{}"); } catch(e){ return {}; } }
     function saveBag(b){ localStorage.setItem("pg_ore", JSON.stringify(b)); }
     function oreOf(id){ return Number(bag()[id]||0); }
@@ -714,7 +737,18 @@
     function addEgg(id){ const e=eggs(); e[id]=(e[id]||0)+1; saveEggs(e); }
     function wear(){ try { return JSON.parse(localStorage.getItem("pg_wear")||"{}"); } catch(e){ return {}; } }
     function saveWear(w){ localStorage.setItem("pg_wear", JSON.stringify(w)); }
-    function ownsGear(id){ return localStorage.getItem("pg_g_"+id)==="1"; }
+    function gearOf(id){ return Number(localStorage.getItem("pg_g_"+id)||0); }
+    function ownsGear(id){ return gearOf(id)>0; }
+    function addGear(id,n){ localStorage.setItem("pg_g_"+id, String(Math.max(0, gearOf(id)+(n||1)))); }
+    function fuseGear(id){
+      const g = GEAR.find(x=>x.id===id);
+      if (!g || !g.fusesTo) return "No se fusiona";
+      if (gearOf(id) < FUSE_NEED) return "Necesitas "+FUSE_NEED;
+      addGear(id, -FUSE_NEED);
+      addGear(g.fusesTo, 1);
+      const nx = GEAR.find(x=>x.id===g.fusesTo);
+      return "Fusión: "+(nx?nx.name:g.fusesTo);
+    }
     const DM_NAMES = ["blockkchainpro"];
     function isDm(){
       const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
@@ -731,13 +765,14 @@
       const e = eggs();
       EGGS.forEach(x => e[x.id] = (e[x.id]||0) + 5);
       saveEggs(e);
-      GEAR.forEach(g => localStorage.setItem("pg_g_"+g.id,"1"));
+      GEAR.filter(g=>g.tier==="madera").forEach(g => addGear(g.id, 5));
+      GEAR.filter(g=>g.tier==="plata").forEach(g => addGear(g.id, 2));
       localStorage.setItem("pg_pts", String(Number(localStorage.getItem("pg_pts")||0) + 50000));
       localStorage.setItem("pg_pend", String(Number(localStorage.getItem("pg_pend")||0) + 50));
     }
-    if (isDm() && localStorage.getItem("pg_dmKit") !== "2") {
+    if (isDm() && localStorage.getItem("pg_dmKit") !== "3") {
       grantDmKit();
-      localStorage.setItem("pg_dmKit","2");
+      localStorage.setItem("pg_dmKit","3");
     }
     function gearBonus(){
       const w=wear();
@@ -890,12 +925,13 @@
       const forge = document.getElementById("forge");
       const w = wear();
       forge.innerHTML = GEAR.map(g => {
-        const have = ownsGear(g.id);
+        const n = gearOf(g.id);
         const on = w[g.slot]===g.id;
         const cost = Object.keys(g.need).map(k => k+" "+g.need[k]).join(" · ");
         const bon = Object.keys(g.bonus).map(k => "+"+g.bonus[k]+" "+k).join(" ");
-        return `<div class="craft"><b>${g.name}</b><div class="muted">${cost}<br>${bon}${have?(on?" · EQUIPADO":" · listo"):""}</div>
-          <button class="main" data-craft="${g.id}">${have?(on?"QUITAR":"EQUIPAR"):"FORJAR"}</button></div>`;
+        const fuse = g.fusesTo ? " · "+n+"/"+FUSE_NEED+" fusión" : "";
+        return `<div class="craft"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · ${cost}<br>${bon} · x${n}${on?" · EQUIPADO":""}${fuse}</div>
+          <button class="main" data-craft="${g.id}">FORJAR</button></div>`;
       }).join("");
       forge.querySelectorAll("[data-craft]").forEach(b => b.onclick = () => doCraft(b.getAttribute("data-craft")));
       const nest = document.getElementById("nest");
@@ -932,15 +968,9 @@
     function doCraft(id){
       const g = GEAR.find(x => x.id===id);
       const msg = document.getElementById("mineMsg");
-      if (!ownsGear(id)) {
-        if (!takeOre(g.need)) { msg.textContent = "Faltan materiales"; renderMine(); return; }
-        localStorage.setItem("pg_g_"+id,"1");
-        showLoot(g.name, "Guardado en el Cofre · "+g.slot);
-      }
-      const w = wear();
-      if (w[g.slot]===id) delete w[g.slot];
-      else w[g.slot]=id;
-      saveWear(w);
+      if (!takeOre(g.need)) { msg.textContent = "Faltan materiales"; renderMine(); return; }
+      addGear(id, 1);
+      showLoot(g.name, "x"+gearOf(id)+" en el Cofre · "+(g.tier||""));
       renderMine();
     }
     function doHatch(id){
@@ -980,15 +1010,23 @@
         const items = GEAR.filter(g=>g.slot===slot && ownsGear(g.id));
         el.innerHTML = items.length ? items.map(g=>{
           const on = w[slot]===g.id;
+          const n = gearOf(g.id);
           const bon = Object.keys(g.bonus).map(k=>"+"+g.bonus[k]+" "+k).join(" ");
-          return `<div class="craft"><b>${g.name}</b><div class="muted">${bon}</div>
-            <button class="main" data-wear="${g.id}">${on?"QUITAR":"EQUIPAR"}</button></div>`;
+          const canF = g.fusesTo && n>=FUSE_NEED;
+          return `<div class="craft"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · x${n} · ${bon}</div>
+            <button class="main" data-wear="${g.id}">${on?"QUITAR":"EQUIPAR"}</button>
+            ${canF?`<button class="main" style="background:#3a2a12;margin-top:6px" data-fuse="${g.id}">FUSIONAR 5 → 1</button>`:""}</div>`;
         }).join("") : `<p class="muted">Aún no hay. Forja en Minería.</p>`;
         el.querySelectorAll("[data-wear]").forEach(b=>b.onclick=()=>{
           const g = GEAR.find(x=>x.id===b.getAttribute("data-wear"));
           const ww = wear();
           if (ww[g.slot]===g.id) delete ww[g.slot]; else ww[g.slot]=g.id;
-          saveWear(ww); renderCofre();
+          saveWear(ww); renderCofre(); refreshHome();
+        });
+        el.querySelectorAll("[data-fuse]").forEach(b=>b.onclick=()=>{
+          const note = fuseGear(b.getAttribute("data-fuse"));
+          showLoot(note, "5 iguales = 1 del siguiente nivel");
+          renderCofre(); renderMine();
         });
       }
       gearList("weapon", document.getElementById("cofArmas"));
@@ -1119,9 +1157,9 @@
       const er = document.getElementById("eqR");
       const ep = document.getElementById("eqP");
       const bonTxt = b => Object.keys(b).map(k=>"+"+b[k]+" "+k).join(" · ");
-      if (ew) ew.innerHTML = gW ? (gW.name+"<div class='muted'>"+bonTxt(gW.bonus)+"</div>") : "—";
-      if (er) er.innerHTML = gR ? (gR.name+"<div class='muted'>"+bonTxt(gR.bonus)+"</div>") : "—";
-      if (ep) ep.innerHTML = pet ? (pet.name+"<div class='muted'>HP "+pet.hp+" · C"+pet.atk.corta+" M"+pet.atk.media+" L"+pet.atk.larga+"</div>") : "—";
+      if (ew) ew.innerHTML = gW ? `<img src="${gW.img}" alt="" onerror="this.style.display='none'" /><span>${gW.name}</span><div class="muted">${bonTxt(gW.bonus)}</div>` : "—";
+      if (er) er.innerHTML = gR ? `<img src="${gR.img}" alt="" onerror="this.style.display='none'" /><span>${gR.name}</span><div class="muted">${bonTxt(gR.bonus)}</div>` : "—";
+      if (ep) ep.innerHTML = pet ? `<img src="${pet.img}" alt="" onerror="this.style.display='none'" /><span>${pet.name}</span><div class="muted">HP ${pet.hp} · C${pet.atk.corta} M${pet.atk.media} L${pet.atk.larga}</div>` : "—";
       const bp = document.getElementById("bestPwr");
       if (bp && best.atk) {
         const hp = (best.hp||0)+gb.hp;
@@ -1269,7 +1307,7 @@
       if (kind==="ore") {
         grid.innerHTML = ORES.map(o => `<div class="card" data-id="${o.id}" style="padding:8px"><div style="font-size:22px">${o.ico}</div><small>${o.name}<br>${oreOf(o.id)}</small></div>`).join("");
       } else if (kind==="gear") {
-        grid.innerHTML = GEAR.map(g => `<div class="card" data-id="${g.id}" style="padding:8px"><b style="font-size:11px">${g.name}</b><small>${ownsGear(g.id)?"1":"0"}</small></div>`).join("");
+        grid.innerHTML = GEAR.map(g => `<div class="card" data-id="${g.id}" style="padding:8px"><b style="font-size:11px">${g.name}</b><small>x${gearOf(g.id)}</small></div>`).join("");
       } else {
         grid.innerHTML = HEROES.filter(h=>!h.holo).map(h => `<div class="card" data-id="${h.id}" style="padding:4px"><img src="${h.img}" style="height:72px;margin:0" /><small>${dustOf(h.id)}</small></div>`).join("");
       }
@@ -1304,7 +1342,7 @@
         localStorage.setItem("pg_pts", pts - o.price);
         const kind = o.kind || "card";
         if (kind==="ore") addOre(o.id, o.qty||1);
-        else if (kind==="gear") localStorage.setItem("pg_g_"+o.id,"1");
+        else if (kind==="gear") addGear(o.id, 1);
         else addDust(o.id);
         list.splice(i,1);
         localStorage.setItem("pg_mkt", JSON.stringify(list));
@@ -1317,7 +1355,7 @@
       b.classList.add("on");
       const k = b.getAttribute("data-sk");
       document.getElementById("sellKind").value = k;
-      document.getElementById("sellWho").value = k==="ore"?"madera":(k==="gear"?"amuleto":"capitan");
+      document.getElementById("sellWho").value = k==="ore"?"madera":(k==="gear"?"espada-madera":"capitan");
       document.getElementById("sellPrice").value = k==="ore"?200:(k==="gear"?1500:800);
       renderSellGrid();
     });
@@ -1332,10 +1370,12 @@
         addOre(id, -1);
       } else if (kind==="gear") {
         if (!ownsGear(id)) { msg.textContent = "No tienes esa reliquia."; return; }
-        localStorage.removeItem("pg_g_"+id);
-        const w = wear();
-        Object.keys(w).forEach(s => { if (w[s]===id) delete w[s]; });
-        saveWear(w);
+        addGear(id, -1);
+        if (!ownsGear(id)) {
+          const w = wear();
+          Object.keys(w).forEach(s => { if (w[s]===id) delete w[s]; });
+          saveWear(w);
+        }
       } else {
         if (dustOf(id) <= 0) { msg.textContent = "No tienes copias de esa carta."; return; }
         localStorage.setItem("pg_du_"+id, dustOf(id)-1);
