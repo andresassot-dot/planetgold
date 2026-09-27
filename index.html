@@ -318,50 +318,8 @@
   </nav>
   <script>
 
-    let introAud;
-    function playIntro() {
+    function beep(type) {
       try {
-        introAud = new Audio("sfx/intro.ogg");
-        introAud.volume = 0.45;
-        introAud.loop = true;
-        introAud.play().catch(()=>{});
-      } catch(e) {}
-    }
-    playIntro();
-    setTimeout(() => {
-      const s = document.getElementById("splash");
-      if (!s) return;
-      try { sfx("pack"); } catch(e) {}
-      if (introAud) { introAud.pause(); introAud.currentTime = 0; }
-      s.classList.add("hide");
-      setTimeout(() => s.remove(), 500);
-    }, 1800);
-
-    const tg = window.Telegram && window.Telegram.WebApp;
-    let actx;
-    const SFXFILE = {
-      tap: "sfx/click_001.ogg",
-      menu: "sfx/switch_001.ogg",
-      open: "sfx/maximize_004.ogg",
-      close: "sfx/minimize_002.ogg",
-      place: "sfx/drop_002.ogg",
-      ray: "sfx/glass_004.ogg",
-      hit: "sfx/bong_001.ogg",
-      fall: "sfx/error_002.ogg",
-      gol: "sfx/confirmation_002.ogg",
-      save: "sfx/bong_001.ogg",
-      pack: "sfx/confirmation_002.ogg",
-      intro: "sfx/intro.ogg"
-    };
-    function sfx(type) {
-      try {
-        const src = SFXFILE[type];
-        if (src) {
-          const a = new Audio(src);
-          a.volume = 0.55;
-          a.play().catch(()=>{});
-          return;
-        }
         actx = actx || new (window.AudioContext||window.webkitAudioContext)();
         if (actx.state === "suspended") actx.resume();
         const o = actx.createOscillator();
@@ -369,55 +327,103 @@
         o.connect(g); g.connect(actx.destination);
         const now = actx.currentTime;
         const map = {
-          tap: [520, 0.06, "square", 0.05],
+          tap: [520, 0.07, "square", 0.06],
+          menu: [400, 0.08, "square", 0.05],
+          open: [600, 0.1, "triangle", 0.06],
+          close: [280, 0.1, "triangle", 0.05],
           place: [380, 0.12, "triangle", 0.07],
-          ray: [880, 0.18, "sawtooth", 0.06],
+          ray: [880, 0.2, "sawtooth", 0.06],
           hit: [220, 0.16, "square", 0.08],
-          fall: [140, 0.28, "triangle", 0.09],
-          gol: [660, 0.35, "square", 0.08],
+          fall: [140, 0.3, "triangle", 0.09],
+          gol: [740, 0.4, "square", 0.08],
           save: [300, 0.2, "triangle", 0.07],
-          pack: [740, 0.25, "square", 0.07]
+          pack: [660, 0.25, "square", 0.07],
+          shot: [180, 0.14, "sawtooth", 0.08],
+          intro: [392, 0.35, "triangle", 0.07]
         };
         const [f,d,w,v] = map[type] || map.tap;
         o.type = w; o.frequency.setValueAtTime(f, now);
-        if (type==="gol") o.frequency.exponentialRampToValueAtTime(f*1.6, now+d);
-        if (type==="fall") o.frequency.exponentialRampToValueAtTime(80, now+d);
+        if (type==="gol" || type==="intro") o.frequency.exponentialRampToValueAtTime(f*1.7, now+d);
+        if (type==="fall") o.frequency.exponentialRampToValueAtTime(70, now+d);
+        if (type==="shot") o.frequency.exponentialRampToValueAtTime(90, now+d);
         g.gain.setValueAtTime(v, now);
         g.gain.exponentialRampToValueAtTime(0.001, now+d);
         o.start(now); o.stop(now+d+0.02);
       } catch(e) {}
     }
-    document.addEventListener("touchstart", () => { try { actx = actx || new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); bgmStart(); } catch(e){} }, { once:true });
-    let bgmOn = false, bgmNodes = [];
-    function bgmStart() {
-      if (bgmOn) return;
+    const SFXFILE = {
+      tap: "sfx/click_001.ogg", menu: "sfx/switch_001.ogg", open: "sfx/maximize_004.ogg",
+      close: "sfx/minimize_002.ogg", place: "sfx/drop_002.ogg", ray: "sfx/glass_004.ogg",
+      hit: "sfx/bong_001.ogg", fall: "sfx/error_002.ogg", gol: "sfx/confirmation_002.ogg",
+      save: "sfx/bong_001.ogg", pack: "sfx/confirmation_002.ogg", intro: "sfx/intro.ogg"
+    };
+    function sfx(type) {
+      beep(type);
+      const src = SFXFILE[type];
+      if (!src) return;
+      try { const a = new Audio(src); a.volume = 0.5; a.play().catch(()=>{}); } catch(e) {}
+    }
+    let introAud;
+    function playIntro() {
+      beep("intro");
+      try {
+        introAud = new Audio("sfx/intro.ogg");
+        introAud.volume = 0.4; introAud.loop = true;
+        introAud.play().catch(()=>{});
+      } catch(e) {}
+    }
+    setTimeout(() => {
+      const s = document.getElementById("splash");
+      if (!s) return;
+      sfx("pack");
+      if (introAud) { introAud.pause(); }
+      s.classList.add("hide");
+      setTimeout(() => s.remove(), 500);
+    }, 2200);
+
+    const tg = window.Telegram && window.Telegram.WebApp;
+    let actx;
+    document.addEventListener("touchstart", () => {
+      try {
+        actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+        actx.resume();
+        playIntro();
+        bgmStart(document.getElementById("duel") && document.getElementById("duel").classList.contains("on") ? "war" : "calm");
+      } catch(e) {}
+    }, { once:true });
+    let bgmOn = false, bgmTimer = null, bgmMaster = null;
+    function bgmStop() {
+      if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
+      if (bgmMaster) { try { bgmMaster.disconnect(); } catch(e){} bgmMaster = null; }
+      bgmOn = false;
+    }
+    function bgmStart(mode) {
+      bgmStop();
       actx = actx || new (window.AudioContext||window.webkitAudioContext)();
       if (actx.state === "suspended") actx.resume();
-      const master = actx.createGain();
-      master.gain.value = 0.035;
-      master.connect(actx.destination);
-      const notes = [196, 220, 261.6, 293.7, 311.1, 261.6, 233.1, 196];
-      notes.forEach((f,i) => {
+      bgmMaster = actx.createGain();
+      bgmMaster.gain.value = mode==="war" ? 0.05 : 0.03;
+      bgmMaster.connect(actx.destination);
+      const notes = mode==="war"
+        ? [110, 146.8, 110, 164.8, 110, 130.8, 98, 146.8]
+        : [196, 220, 261.6, 293.7, 311.1, 261.6, 233.1, 196];
+      let i = 0;
+      function pulse() {
+        if (!bgmMaster) return;
         const o = actx.createOscillator();
         const g = actx.createGain();
-        o.type = "sine";
-        o.frequency.value = f;
+        o.type = mode==="war" ? "sawtooth" : "sine";
+        o.frequency.value = notes[i % notes.length];
         g.gain.value = 0;
-        o.connect(g); g.connect(master);
-        o.start();
-        const step = 0.55;
-        function pulse() {
-          const t0 = actx.currentTime;
-          const off = i * step;
-          g.gain.cancelScheduledValues(t0);
-          g.gain.setValueAtTime(0, t0+off);
-          g.gain.linearRampToValueAtTime(0.9, t0+off+0.05);
-          g.gain.linearRampToValueAtTime(0, t0+off+0.4);
-        }
-        pulse();
-        setInterval(pulse, notes.length*550);
-        bgmNodes.push(o);
-      });
+        o.connect(g); g.connect(bgmMaster);
+        const t0 = actx.currentTime;
+        g.gain.linearRampToValueAtTime(mode==="war"?0.7:0.9, t0+0.04);
+        g.gain.linearRampToValueAtTime(0, t0+0.38);
+        o.start(); o.stop(t0+0.42);
+        i++;
+      }
+      pulse();
+      bgmTimer = setInterval(pulse, mode==="war" ? 280 : 520);
       bgmOn = true;
     }
     if (tg) { tg.ready(); tg.expand(); }
@@ -982,7 +988,7 @@
       document.getElementById("duelMsg").textContent = "Carta de vuelta al mazo.";
       renderDuelPick(); renderBoard();
     };
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); board=Array(36).fill(null); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} board=Array(36).fill(null); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
     document.getElementById("duelStart").onclick = () => {
       board = Array(36).fill(null); spawnAI();
       selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1;
@@ -994,7 +1000,7 @@
 
 
     document.getElementById("go").onclick = () => {
-      showTab("arena");
+      showTab("arena"); try{bgmStart("calm");}catch(e){}
       document.getElementById("meName").textContent = "TÚ · " + hero.name;
       reset(false);
     };
@@ -1069,7 +1075,7 @@
       const speed = 7.2 + pwr / 6.6;
       const sx = fromMe ? me.x() + 22 : en.x() - 22;
       const sy = fromMe ? me.y() - 30 : en.y() + 18;
-      state.shot = { who, x: sx, y: sy, vx: Math.cos(rad) * speed, vy: -Math.sin(rad) * speed, r: 10 };
+      if (fromMe) sfx("shot"); state.shot = { who, x: sx, y: sy, vx: Math.cos(rad) * speed, vy: -Math.sin(rad) * speed, r: 10 };
       fireBtn.disabled = true;
       msg.textContent = fromMe ? hero.name + " dispara…" : "¡La portería responde!";
     }
