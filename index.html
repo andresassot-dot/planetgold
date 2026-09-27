@@ -227,8 +227,8 @@
     <button class="main" id="duelBtn" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">DUELO DE CARTAS</button>
   </div>
 
-  <div id="duelFloat" style="display:none;position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:60;width:168px;text-align:center;pointer-events:none">
-    <img id="duelZoomImg" alt="" style="width:168px;height:200px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 12px 40px rgba(0,0,0,.75)" />
+  <div id="duelFloat" style="display:none;position:fixed;left:50%;bottom:168px;transform:translateX(-50%);z-index:60;width:150px;text-align:center;pointer-events:auto;top:auto">
+    <img id="duelZoomImg" alt="" style="width:150px;height:178px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 12px 40px rgba(0,0,0,.75)" />
     <div id="duelZoomTxt" style="margin-top:6px;font-size:12px;color:#ffe08a;text-shadow:0 2px 6px #000;line-height:1.35"></div>
   </div>
   <div id="duel">
@@ -882,6 +882,12 @@
         renderDuelPick(); renderBoard();
       });
     }
+    document.getElementById("duelFloat").onclick = () => {
+      selectedCard = null; targets = {};
+      document.getElementById("duelFloat").style.display = "none";
+      document.getElementById("duelMsg").textContent = "Carta de vuelta al mazo.";
+      renderDuelPick(); renderBoard();
+    };
     document.getElementById("duelBtn").onclick = () => { showTab("duel"); board=Array(36).fill(null); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
     document.getElementById("duelStart").onclick = () => {
       board = Array(36).fill(null); spawnAI();
