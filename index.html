@@ -143,8 +143,10 @@
     .cell img { width:100%; height:100%; object-fit:cover; display:block; }
     .fxrow { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:4px 0; }
     .fx { height:26px; border:1px dashed #d4af37; border-radius:8px; background:#12141c; font-size:10px; color:#ffe08a; display:flex; align-items:center; justify-content:center; }
-    #duelHand { position:sticky; bottom:58px; z-index:5; background:#0b1020; padding:4px 0 6px; }
-    #duelHand img { height:88px !important; width:auto; }
+    #duelHand { position:sticky; bottom:58px; z-index:5; background:#0b1020; padding:2px 0 4px; }
+    #duelHand img { height:70px !important; width:48px; object-fit:cover; object-position:top; }
+    #duelPick { display:flex !important; flex-wrap:nowrap !important; overflow-x:auto; gap:6px; grid-template-columns:none !important; padding:2px 4px 6px; -webkit-overflow-scrolling:touch; }
+    #duelPick .card { flex:0 0 52px; padding:2px !important; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
     .pack {
@@ -241,7 +243,7 @@
     <div id="fxMe" class="fxrow"></div>
     <div id="duelHand">
     <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
-    <div id="duelPick" class="grid" style="grid-template-columns:repeat(6,1fr);gap:4px"></div>
+    <div id="duelPick"></div>
     <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px"></div>
     <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
 </div>
@@ -951,6 +953,7 @@
     let duelDeck = [];
     let board = Array(36).fill(null);
     let selectedCard = null;
+    let myHand = [];
     let selectedIdx = null;
     let targets = {};
     let falls = { me:0, en:0 };
@@ -1168,9 +1171,16 @@
         box.appendChild(d);
       }
     }
+    function dealHand() {
+      const pool = HEROES.slice();
+      for (let i=pool.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+      myHand = pool.slice(0,5).map(h=>h.id);
+    }
     function renderDuelPick() {
       const box = document.getElementById("duelPick");
-      box.innerHTML = HEROES.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}" style="padding:3px"><img src="${h.img}" style="height:92px;margin:0;object-fit:cover;object-position:top" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" /></div>`).join("");
+      if (!myHand.length) dealHand();
+      const cards = myHand.map(id => HEROES.find(h=>h.id===id)).filter(Boolean);
+      box.innerHTML = cards.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}"><img src="${h.img}" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" /></div>`).join("");
       box.querySelectorAll(".card").forEach(el => el.onclick = () => {
         selectedCard = el.getAttribute("data-id");
         selectedFx = null; targets = {};
@@ -1189,9 +1199,9 @@
       document.getElementById("duelMsg").textContent = "Carta de vuelta al mazo.";
       renderDuelPick(); renderBoard();
     };
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} board=Array(36).fill(null); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} board=Array(36).fill(null); dealHand(); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
     document.getElementById("duelStart").onclick = () => {
-      board = Array(36).fill(null); spawnAI();
+      board = Array(36).fill(null); dealHand(); spawnAI();
       selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1;
       fxMe=[]; fxEn=[]; selectedFx=null;
       document.getElementById("duelMsg").textContent = "Rival colocado. Carta, ataque o efecto.";
