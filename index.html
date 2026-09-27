@@ -206,6 +206,18 @@
     <button class="main" data-tab="pick">EMPEZAR PARTIDA</button>
   </div>
 
+  <div id="zoom" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.82);align-items:center;justify-content:center;flex-direction:column;padding:18px">
+    <div id="zoomCard" style="width:min(78vw,320px);border:4px solid #cd7f32;border-radius:16px;overflow:hidden;background:#161a26;text-align:center">
+      <img id="zoomImg" alt="" style="width:100%;height:280px;object-fit:cover;object-position:top;display:block" />
+      <div style="padding:10px 12px 14px">
+        <b id="zoomName" style="font-size:20px;color:#ffe08a"></b>
+        <div class="muted" id="zoomRank"></div>
+        <div id="zoomStats" style="margin-top:8px;font-size:13px;line-height:1.5"></div>
+      </div>
+    </div>
+    <button class="main" id="zoomUse" style="margin-top:12px;max-width:280px">ELEGIR ESTA</button>
+    <button class="main" id="zoomClose" style="margin-top:8px;max-width:280px;background:#2a3146;color:#ffe08a">CERRAR</button>
+  </div>
   <div id="pick">
     <h1>PLANET GOLD</h1>
     <p>Elige ficha · 3 copias suben de marco</p>
@@ -589,6 +601,26 @@
     };
 
     let hero = HEROES[0];
+    const FRAME = ["#cd7f32","#c0c0c0","#d4af37","#e5e4e2"];
+    function openZoom(h) {
+      hero = h;
+      const st = (h.atk) ? h.atk : { corta:5, media:4, larga:3 };
+      const hp = h.hp || 7;
+      const r = rankOf(h.id);
+      document.getElementById("zoomImg").src = h.img;
+      document.getElementById("zoomName").textContent = h.name;
+      document.getElementById("zoomRank").textContent = (RANKS[r]||"Bronce") + " · " + dustOf(h.id) + "/3 · " + h.role;
+      document.getElementById("zoomStats").innerHTML =
+        "Vida <b>"+hp+"</b><br>Corta <b>"+st.corta+"</b> · Media <b>"+st.media+"</b> · Larga <b>"+(st.larga===11?"S":st.larga)+"</b>" +
+        (h.dots ? "<br>Puntitos: "+(Array.isArray(h.dots)?h.dots.join(" "):Object.keys(h.dots).join(" ")) : "<br>Puntitos: N NE NO");
+      document.getElementById("zoomCard").style.borderColor = FRAME[r]||FRAME[0];
+      document.getElementById("zoom").style.display = "flex";
+    }
+    document.getElementById("zoomClose").onclick = () => { document.getElementById("zoom").style.display = "none"; };
+    document.getElementById("zoomUse").onclick = () => {
+      document.getElementById("zoom").style.display = "none";
+      renderGrid();
+    };
     const grid = document.getElementById("grid");
     function renderGrid() {
       grid.innerHTML = "";
@@ -603,11 +635,7 @@
         const rk = RANKS[rankOf(h.id)] || "Bronce";
         const du = dustOf(h.id);
         el.innerHTML = `<img src="${h.img}" alt="${h.name}" /><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
-        el.onclick = () => {
-          hero = h;
-          document.querySelectorAll(".card").forEach(c => c.classList.remove("on"));
-          el.classList.add("on");
-        };
+        el.onclick = () => { openZoom(h); };
         grid.appendChild(el);
       });
     }
@@ -1144,10 +1172,10 @@
       ctx.strokeStyle = "#e74c3c"; ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(ax, ay);
-      ctx.lineTo(ax + Math.cos(deg) * 78, ay - Math.sin(deg) * 78);
+      ctx.lineTo(ax + Math.cos(deg) * 118, ay - Math.sin(deg) * 118);
       ctx.stroke();
       ctx.lineWidth = 2;
-      for (let k = 1; k <= 6; k++) {
+      for (let k = 1; k <= 9; k++) {
         const d = 12 * k;
         const px = ax + Math.cos(deg) * d, py = ay - Math.sin(deg) * d;
         const nx = -Math.sin(deg), ny = -Math.cos(deg);
