@@ -405,7 +405,7 @@
   </div>
   <div id="packs">
     <h1 style="color:#ffe08a;text-align:center">Sobres</h1>
-    <p class="muted" style="text-align:center">1 sobre gratis al día. Puede tocar copia de carta o tgold.</p>
+    <p class="muted" style="text-align:center">2 sobres al día. Sale de todos los mazos (fútbol, magos, reyes, minecraft...).</p>
     <div class="pack" id="packBox">SOBRE<br>GOLD</div>
     <div id="packCard">
       <div class="fifa" style="width:180px;margin:0 auto"><img id="packImg" alt="" style="height:220px;object-fit:cover;object-position:top" /></div>
@@ -1386,13 +1386,19 @@
     document.getElementById("openPack").onclick = () => {
       const msg = document.getElementById("packMsg");
       const day = new Date().toISOString().slice(0,10);
-      if (localStorage.getItem("pg_packDay") === day) {
-        msg.textContent = "Ya abriste el sobre de hoy. Vuelve mañana.";
+      let used = 0;
+      if (localStorage.getItem("pg_packDay") === day) used = Number(localStorage.getItem("pg_packN")||1);
+      if (used >= 2) {
+        msg.textContent = "Ya abriste los 2 sobres de hoy. Vuelve mañana.";
         return;
       }
       localStorage.setItem("pg_packDay", day);
-      const pool = HEROES.filter(x => !x.evo);
-      const h = pool[Math.floor(Math.random()*pool.length)];
+      localStorage.setItem("pg_packN", String(used+1));
+      const base = HEROES.filter(x => !x.evo && !x.holo);
+      const decks = [...new Set(base.map(x=>x.deck))];
+      const deck = decks[Math.floor(Math.random()*decks.length)];
+      const pool = base.filter(x=>x.deck===deck);
+      const h = pool[Math.floor(Math.random()*pool.length)] || base[0];
       const jackpot = Math.random() < 0.18;
       const note = addDust(h.id);
       let extra = "";
@@ -1505,7 +1511,8 @@
       try { known = JSON.parse(localStorage.getItem("pg_board")||"[]"); } catch(e) {}
       let remote = [];
       try {
-        const body = Object.assign({}, me, { peers: known.filter(x => rankKey(x) !== rankKey(me)).slice(0,20) });
+        let listings=[]; try{listings=JSON.parse(localStorage.getItem("pg_mkt")||"[]");}catch(e){}
+        const body = Object.assign({}, me, { peers: known.filter(x => rankKey(x) !== rankKey(me)).slice(0,20), listings: listings.slice(0,40) });
         const r1 = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
         const j1 = await r1.json();
         if (j1 && j1.players) remote = j1.players;
@@ -1514,6 +1521,8 @@
           const j2 = await r2.json();
           if (j2 && j2.players) remote = j2.players;
         }
+        const remoteList = (j1 && j1.listings) || [];
+        if (remoteList.length) localStorage.setItem("pg_mkt", JSON.stringify(remoteList));
       } catch(e) {}
       return mergeBoard(remote);
     }
