@@ -362,7 +362,12 @@
     <div id="cofRelics"></div>
     <h2 style="color:#ffe08a;font-size:15px;margin-top:12px">Mascotas</h2>
     <div id="cofPets"></div>
-    <button class="main" id="cofreBack" style="margin-top:12px;background:#2a3146;color:#ffe08a">VOLVER</button>
+    <div id="dmBox" style="margin-top:12px;display:none">
+      <input class="wal" id="dmKey" type="password" placeholder="Clave DM" />
+      <button class="main" id="dmUnlock" style="margin-top:8px;background:#4a3a12;color:#ffe08a">ENTRAR COMO DM</button>
+      <button class="main" id="dmFill" style="margin-top:8px;background:#4a3a12;color:#ffe08a;display:none">DM · RELLENAR KIT</button>
+    </div>
+    <button class="main" id="cofreBack" style="margin-top:8px;background:#2a3146;color:#ffe08a">VOLVER</button>
   </div>
   <div id="lootPop">
     <div class="box">
@@ -699,6 +704,24 @@
     function wear(){ try { return JSON.parse(localStorage.getItem("pg_wear")||"{}"); } catch(e){ return {}; } }
     function saveWear(w){ localStorage.setItem("pg_wear", JSON.stringify(w)); }
     function ownsGear(id){ return localStorage.getItem("pg_g_"+id)==="1"; }
+    function isDm(){ return localStorage.getItem("pg_dm_ok")==="1"; }
+    function grantDmKit(){
+      if (!isDm()) return;
+      localStorage.setItem("pg_dm","1");
+      const b = bag();
+      ORES.forEach(o => b[o.id] = (b[o.id]||0) + 20);
+      saveBag(b);
+      const e = eggs();
+      EGGS.forEach(x => e[x.id] = (e[x.id]||0) + 5);
+      saveEggs(e);
+      GEAR.forEach(g => localStorage.setItem("pg_g_"+g.id,"1"));
+      localStorage.setItem("pg_pts", String(Number(localStorage.getItem("pg_pts")||0) + 50000));
+      localStorage.setItem("pg_pend", String(Number(localStorage.getItem("pg_pend")||0) + 50));
+    }
+    if (isDm() && localStorage.getItem("pg_dmKit") !== "2") {
+      grantDmKit();
+      localStorage.setItem("pg_dmKit","2");
+    }
     function gearBonus(){
       const w=wear();
       const out={hp:0,corta:0,media:0,larga:0};
@@ -1871,6 +1894,32 @@
     document.getElementById("mineBtn").onclick = () => { showTab("mine"); try{sfx("menu");}catch(e){} };
     document.getElementById("cofreBtn").onclick = () => { showTab("cofre"); try{sfx("menu");}catch(e){} };
     document.getElementById("goCofre").onclick = () => showTab("cofre");
+    (function(){
+      let taps=0, tmr=null;
+      const title=document.querySelector("#cofre h1");
+      if (title) title.onclick = () => {
+        taps++; clearTimeout(tmr); tmr=setTimeout(()=>taps=0, 1200);
+        if (taps>=5) {
+          document.getElementById("dmBox").style.display="block";
+          if (isDm()) document.getElementById("dmFill").style.display="block";
+        }
+      };
+      document.getElementById("dmUnlock").onclick = () => {
+        const v=(document.getElementById("dmKey").value||"").trim();
+        if (v!=="gringotts-dm") { alert("Clave incorrecta"); return; }
+        localStorage.setItem("pg_dm_ok","1");
+        document.getElementById("dmFill").style.display="block";
+        grantDmKit();
+        localStorage.setItem("pg_dmKit","2");
+        renderCofre(); renderMine(); refreshHome();
+        alert("Modo DM activo. Solo en este móvil.");
+      };
+      document.getElementById("dmFill").onclick = () => {
+        if (!isDm()) return;
+        grantDmKit(); renderCofre(); renderMine(); refreshHome();
+        alert("Kit DM recargado");
+      };
+    })();
     document.getElementById("cofreBack").onclick = () => showTab("pick");
     document.getElementById("lootOk").onclick = () => { document.getElementById("lootPop").classList.remove("on"); showTab("cofre"); };
     document.getElementById("mineBack").onclick = () => showTab("pick");
