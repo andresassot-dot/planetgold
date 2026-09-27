@@ -317,6 +317,15 @@
     </div>
     <input class="wal" id="walletIn" placeholder="Wallet Solana" />
     <button class="main" id="claimBtn">RECLAMAR TGOLD</button>
+    <div class="heroBan" id="loadBox" style="margin-top:16px">
+      <div class="muted">Cargar TGOLD al juego</div>
+      <p class="muted">Envía TGOLD a la tesorería y pega la firma de la transacción.</p>
+      <input class="wal" id="treasIn" placeholder="Wallet tesorería (recibir)" />
+      <input class="wal" id="loadAmt" type="number" placeholder="Cantidad enviada" value="100" />
+      <input class="wal" id="loadTx" placeholder="Firma de la tx (Solana)" />
+      <button class="main" id="loadBtn">VERIFICAR Y CARGAR</button>
+      <p class="muted" id="loadMsg" style="text-align:center"></p>
+    </div>
     <p class="muted" id="claimMsg" style="text-align:center;margin-top:10px"></p>
   </div>
 
@@ -771,6 +780,38 @@
 
     refreshHome();
 
+    const treasEl = document.getElementById("treasIn");
+    if (treasEl) treasEl.value = localStorage.getItem("pg_treasury")||"";
+    document.getElementById("loadBtn").onclick = async () => {
+      const msg = document.getElementById("loadMsg");
+      const treas = (document.getElementById("treasIn").value||"").trim();
+      const amt = Number(document.getElementById("loadAmt").value||0);
+      const sig = (document.getElementById("loadTx").value||"").trim();
+      if (treas.length < 32) { msg.textContent = "Pon la wallet tesorería"; return; }
+      if (amt <= 0) { msg.textContent = "Cantidad inválida"; return; }
+      if (sig.length < 32) { msg.textContent = "Pega la firma de Solana"; return; }
+      localStorage.setItem("pg_treasury", treas);
+      const used = JSON.parse(localStorage.getItem("pg_txUsed")||"[]");
+      if (used.includes(sig)) { msg.textContent = "Esa tx ya se usó"; return; }
+      msg.textContent = "Comprobando en Solana…";
+      let ok = false;
+      try {
+        const r = await fetch("https://api.mainnet-beta.solana.com", {
+          method:"POST", headers:{ "content-type":"application/json" },
+          body: JSON.stringify({ jsonrpc:"2.0", id:1, method:"getTransaction", params:[sig, { encoding:"json", maxSupportedTransactionVersion:0 }] })
+        });
+        const j = await r.json();
+        if (j.result) ok = true;
+      } catch(e) {}
+      if (!ok) { msg.textContent = "No encuentro esa tx en Solana. Revisa la firma."; return; }
+      used.push(sig);
+      localStorage.setItem("pg_txUsed", JSON.stringify(used));
+      const pend = Number(localStorage.getItem("pg_pend")||0) + amt;
+      localStorage.setItem("pg_pend", pend);
+      msg.textContent = "Cargados "+amt+" tgold. Pendiente: "+pend;
+      refreshHome();
+      const wp = document.getElementById("walPend"); if (wp) wp.textContent = pend;
+    };
     document.getElementById("claimBtn").onclick = async () => {
       const w = document.getElementById("walletIn").value.trim();
       const msg = document.getElementById("claimMsg");
