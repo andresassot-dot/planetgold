@@ -50,14 +50,16 @@
     .card img { width: 100%; height: 148px; object-fit: cover; object-position: top; border-radius: 10px; margin-bottom: 0; background: #111; display: block; }
     .art { position:relative; margin-bottom:8px; }
     .art img { margin-bottom:0; }
-    .gem { position:absolute; width:12px; height:12px; border-radius:50%; border:1.5px solid #fff8; box-shadow:0 0 6px #000; }
-    .gem.c { background:#e74c3c; } .gem.m { background:#3b82f6; } .gem.l { background:#d4af37; }
-    .gem.N { top:6px; left:50%; transform:translateX(-50%); }
+    .gem { position:absolute; width:16px; height:16px; transform:rotate(45deg); border-radius:3px; border:1.5px solid #fff8dc; box-shadow:0 0 8px rgba(0,0,0,.8), inset 0 1px 4px #fff8; z-index:4; }
+    .gem.c { background:radial-gradient(circle at 30% 30%,#ff8a8a,#c0392b 55%,#6b1010); }
+    .gem.m { background:radial-gradient(circle at 30% 30%,#9ecbff,#1e6ad6 55%,#0b2e6b); }
+    .gem.l { background:radial-gradient(circle at 30% 30%,#fff3c4,#d4af37 55%,#7a5a10); }
+    .gem.N { top:5px; left:50%; margin-left:-8px; }
     .gem.NE { top:8px; right:8px; } .gem.NO { top:8px; left:8px; }
     .gem.E { top:46%; right:6px; } .gem.O { top:46%; left:6px; }
-    .gem.SE { bottom:22px; right:8px; } .gem.SO { bottom:22px; left:8px; }
-    .gem.S { bottom:20px; left:50%; transform:translateX(-50%); }
-    .plate { position:absolute; left:6px; right:6px; bottom:6px; background:rgba(10,12,20,.82); border:1px solid #d4af37; border-radius:6px; font-size:10px; font-weight:800; color:#ffe08a; padding:2px 4px; letter-spacing:.02em; }
+    .gem.SE { bottom:28px; right:8px; } .gem.SO { bottom:28px; left:8px; }
+    .gem.S { bottom:26px; left:50%; margin-left:-8px; }
+    .plate { position:absolute; left:8px; right:8px; bottom:8px; background:linear-gradient(#3a2e14,#1a1408); border:1.5px solid #d4af37; border-radius:8px; font-size:11px; font-weight:800; color:#ffe08a; padding:4px 6px; letter-spacing:.03em; text-align:center; box-shadow:0 2px 8px #000; }
     .card b { display: block; }
     .card small { color: #aaa; }
     #go { margin-top: 12px; }
@@ -987,7 +989,8 @@
         el.className = "card" + (h.id === hero.id ? " on" : "");
         const rk = RANKS[rankOf(h.id)] || "Bronce";
         const du = dustOf(h.id);
-        el.innerHTML = `<div class="art">${imgTag(h.img,'alt="'+h.name+'"')}${gemsOn(h)}<div class="plate">HP ${h.hp||7} · C${(h.atk&&h.atk.corta)||0} · M${(h.atk&&h.atk.media)||0} · L${(h.atk&&h.atk.larga)||0}</div></div><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
+        const at = h.atk||{corta:0,media:0,larga:0};
+        el.innerHTML = `<div class="art">${imgTag(h.img,'alt="'+h.name+'"')}${gemsOn(h)}<div class="plate">❤ ${h.hp||7} · ⚔ ${at.corta||0} · 🗡 ${at.media||0} · 🏹 ${at.larga||0}</div></div><b>${h.name}</b><small>${h.role} · ${rk} · ${du}/3</small>`;
         el.onclick = () => { openZoom(h); };
         grid.appendChild(el);
       });
