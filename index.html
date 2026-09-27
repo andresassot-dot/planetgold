@@ -411,10 +411,16 @@
   </div>
   <div id="mercado">
     <h1 style="color:#ffe08a;text-align:center">Ranking · Mercado</h1>
-    <p class="muted" style="text-align:center">Tablero de puntos. Abajo puedes vender cartas.</p>
+    <p class="muted" style="text-align:center">Vende cartas, minerales o reliquias por puntos.</p>
     <div class="heroBan" id="rankBox"><div class="muted">Cargando ranking…</div></div>
     <div class="heroBan">
       <div class="muted">Poner a la venta</div>
+      <div class="decks" id="sellKinds" style="padding:8px 0">
+        <button type="button" data-sk="card" class="on">Cartas</button>
+        <button type="button" data-sk="ore">Minería</button>
+        <button type="button" data-sk="gear">Reliquias</button>
+      </div>
+      <input type="hidden" id="sellKind" value="card" />
       <input type="hidden" id="sellWho" value="capitan" />
       <div id="sellGrid" class="grid" style="grid-template-columns:repeat(5,1fr);gap:6px;margin:10px 0">
         <div class="card on" data-id="capitan" style="padding:4px"><img src="cards/capitan.jpg" style="height:72px;margin:0" /></div>
@@ -1176,26 +1182,50 @@
     function marketList() {
       try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]"); } catch(e){ return []; }
     }
+    function offerLabel(o){
+      const kind = o.kind || "card";
+      if (kind==="ore") {
+        const ore = ORES.find(x=>x.id===o.id);
+        return { name: (ore?ore.ico+" ":"")+(ore?ore.name:o.id), img:"", sub:"mineral" };
+      }
+      if (kind==="gear") {
+        const g = GEAR.find(x=>x.id===o.id);
+        return { name: g?g.name:o.id, img:"", sub:"reliquia / arma" };
+      }
+      const h = HEROES.find(x => x.id===o.id) || HEROES[0];
+      return { name:h.name, img:h.img, sub:"carta" };
+    }
+    function renderSellGrid(){
+      const kind = document.getElementById("sellKind").value || "card";
+      const grid = document.getElementById("sellGrid");
+      if (!grid) return;
+      if (kind==="ore") {
+        grid.innerHTML = ORES.map(o => `<div class="card" data-id="${o.id}" style="padding:8px"><div style="font-size:22px">${o.ico}</div><small>${o.name}<br>${oreOf(o.id)}</small></div>`).join("");
+      } else if (kind==="gear") {
+        grid.innerHTML = GEAR.map(g => `<div class="card" data-id="${g.id}" style="padding:8px"><b style="font-size:11px">${g.name}</b><small>${ownsGear(g.id)?"1":"0"}</small></div>`).join("");
+      } else {
+        grid.innerHTML = HEROES.filter(h=>!h.holo).map(h => `<div class="card" data-id="${h.id}" style="padding:4px"><img src="${h.img}" style="height:72px;margin:0" /><small>${dustOf(h.id)}</small></div>`).join("");
+      }
+      const cur = document.getElementById("sellWho").value;
+      grid.querySelectorAll(".card").forEach(el => {
+        if (el.getAttribute("data-id") === cur) el.classList.add("on");
+        el.onclick = () => {
+          document.getElementById("sellWho").value = el.getAttribute("data-id");
+          grid.querySelectorAll(".card").forEach(c => c.classList.remove("on"));
+          el.classList.add("on");
+        };
+      });
+    }
     function renderMarket() {
       if (!document.getElementById("sellWho")) return;
-      const grid = document.getElementById("sellGrid");
-      if (grid) {
-        grid.innerHTML = HEROES.map(h => `<div class="card" data-id="${h.id}" style="padding:4px"><img src="${h.img}" style="height:72px;margin:0" /><small>${dustOf(h.id)}/3</small></div>`).join("");
-        grid.querySelectorAll(".card").forEach(el => {
-          if (el.getAttribute("data-id") === document.getElementById("sellWho").value) el.classList.add("on");
-          el.onclick = () => {
-            document.getElementById("sellWho").value = el.getAttribute("data-id");
-            grid.querySelectorAll(".card").forEach(c => c.classList.remove("on"));
-            el.classList.add("on");
-          };
-        });
-      }
+      renderSellGrid();
       const box = document.getElementById("offers");
       const list = marketList();
       if (!list.length) { box.innerHTML = '<p class="muted">No hay ofertas. Publica la primera.</p>'; return; }
       box.innerHTML = list.map((o,i) => {
-        const h = HEROES.find(x => x.id===o.id) || HEROES[0];
-        return `<div class="offer"><img src="${h.img}" /><div style="flex:1"><b>${h.name}</b><div class="muted">${o.price} pts · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
+        const L = offerLabel(o);
+        const pic = L.img ? `<img src="${L.img}" />` : `<div style="width:36px;text-align:center;font-size:22px">•</div>`;
+        return `<div class="offer">${pic}<div style="flex:1"><b>${L.name}</b><div class="muted">${o.price} pts · ${L.sub} · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
       }).join("");
       box.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
         const i = Number(b.getAttribute("data-buy"));
@@ -1205,25 +1235,50 @@
         const pts = Number(localStorage.getItem("pg_pts")||0);
         if (pts < o.price) { document.getElementById("sellMsg").textContent = "No te llegan los puntos."; return; }
         localStorage.setItem("pg_pts", pts - o.price);
-        addDust(o.id);
+        const kind = o.kind || "card";
+        if (kind==="ore") addOre(o.id, o.qty||1);
+        else if (kind==="gear") localStorage.setItem("pg_g_"+o.id,"1");
+        else addDust(o.id);
         list.splice(i,1);
         localStorage.setItem("pg_mkt", JSON.stringify(list));
-        refreshHome(); renderMarket();
-        document.getElementById("sellMsg").textContent = "Comprada.";
+        refreshHome(); renderMarket(); renderMine();
+        document.getElementById("sellMsg").textContent = "Comprado.";
       });
     }
+    document.querySelectorAll("#sellKinds [data-sk]").forEach(b => b.onclick = () => {
+      document.querySelectorAll("#sellKinds [data-sk]").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      const k = b.getAttribute("data-sk");
+      document.getElementById("sellKind").value = k;
+      document.getElementById("sellWho").value = k==="ore"?"madera":(k==="gear"?"amuleto":"capitan");
+      document.getElementById("sellPrice").value = k==="ore"?200:(k==="gear"?1500:800);
+      renderSellGrid();
+    });
     const sellBtn = document.getElementById("sellBtn");
     if (sellBtn) sellBtn.onclick = () => {
+      const kind = document.getElementById("sellKind").value || "card";
       const id = document.getElementById("sellWho").value;
-      const price = Math.max(100, Number(document.getElementById("sellPrice").value||0));
-      if (dustOf(id) <= 0) { document.getElementById("sellMsg").textContent = "No tienes copias de esa carta."; return; }
-      localStorage.setItem("pg_du_"+id, dustOf(id)-1);
+      const price = Math.max(50, Number(document.getElementById("sellPrice").value||0));
+      const msg = document.getElementById("sellMsg");
+      if (kind==="ore") {
+        if (oreOf(id) <= 0) { msg.textContent = "No tienes ese mineral."; return; }
+        addOre(id, -1);
+      } else if (kind==="gear") {
+        if (!ownsGear(id)) { msg.textContent = "No tienes esa reliquia."; return; }
+        localStorage.removeItem("pg_g_"+id);
+        const w = wear();
+        Object.keys(w).forEach(s => { if (w[s]===id) delete w[s]; });
+        saveWear(w);
+      } else {
+        if (dustOf(id) <= 0) { msg.textContent = "No tienes copias de esa carta."; return; }
+        localStorage.setItem("pg_du_"+id, dustOf(id)-1);
+      }
       const list = marketList();
       const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
-      list.unshift({ id, price, by: u.first_name || "tú" });
+      list.unshift({ kind, id, qty:1, price, by: u.first_name || "tú" });
       localStorage.setItem("pg_mkt", JSON.stringify(list));
-      document.getElementById("sellMsg").textContent = "Publicada.";
-      renderMarket(); renderGrid();
+      msg.textContent = "Publicada en el mercado.";
+      renderMarket(); renderGrid(); renderMine();
     };
 
     refreshHome();
