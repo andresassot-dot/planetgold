@@ -148,10 +148,10 @@
     #duelPickRow { display:flex; align-items:center; gap:10px; padding:2px 8px 6px; }
     #duelPick { display:flex !important; flex-wrap:nowrap !important; overflow-x:auto; gap:6px; flex:1; min-width:0; grid-template-columns:none !important; -webkit-overflow-scrolling:touch; }
     #duelPick .card { flex:0 0 52px; padding:2px !important; }
-    #deckPile { flex:0 0 58px; height:78px; border-radius:10px; border:2px solid #d4af37; background:
-      linear-gradient(160deg,#3a2a0a,#d4af37 55%,#fff3c4); box-shadow:6px 6px 0 #1a1408, 10px 10px 0 #0b0b0b;
-      display:flex; flex-direction:column; align-items:center; justify-content:center; color:#1a1200; font-weight:900; font-size:11px; text-align:center; }
-    #deckPile small { font-size:10px; font-weight:700; }
+    #deckPile { flex:0 0 58px; height:78px; border-radius:10px; border:2px solid #d4af37; overflow:hidden; position:relative;
+      box-shadow:6px 6px 0 #1a1408, 10px 10px 0 #0b0b0b; background:#0b1020; }
+    #deckPile img { width:100%; height:100%; object-fit:cover; display:block; }
+    #deckPile span { position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#ffe08a; font-size:9px; font-weight:800; text-align:center; padding:2px 0; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
     .pack {
@@ -248,7 +248,7 @@
     <div id="fxMe" class="fxrow"></div>
     <div id="duelHand">
     <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
-    <div id="duelPickRow"><div id="duelPick"></div><div id="deckPile">MAZO<br><small id="deckN">0</small></div></div>
+    <div id="duelPickRow"><div id="duelPick"></div><div id="deckPile"><img src="cards/mazo.jpg" alt="mazo" /><span id="deckN">0</span></div></div>
     <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px"></div>
     <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
 </div>
