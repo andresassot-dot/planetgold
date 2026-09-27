@@ -991,7 +991,7 @@
       stopClock(); placedTurn=false; setClock("me",12);
       turnT = setInterval(() => {
         turnSec--; setClock("me", Math.max(0,turnSec));
-        if (turnSec<=0) { stopClock(); enemyTurn(); }
+        if (turnSec<=0) { stopClock(); duelEnemyTurn(); }
       }, 1000);
     }
     let selectedIdx = null;
@@ -1139,7 +1139,7 @@
         if (victim==="en") falls.en++; else falls.me++;
       }
     }
-    function enemyTurn() {
+    function duelEnemyTurn() {
       stopClock();
       setClock("en", 3);
       placedTurn = false;
@@ -1267,7 +1267,7 @@
             }
             selectedCard = null; selectedIdx = null; targets = {};
             const z = document.getElementById("duelFloat"); if (z) z.style.display="none";
-            document.getElementById("duelMsg").textContent = h.name + " en mesa. Ataca o espera el reloj.";
+            document.getElementById("duelMsg").textContent = h.name + " en mesa. Ataca ahora (o TURNO DEL RIVAL).";
             renderBoard(); renderDuelPick();
             return;
           }
@@ -1291,7 +1291,7 @@
               if (dead) { board[to]=null; falls.en++; }
               selectedIdx = null; targets = {};
               renderBoard(); renderFx();
-              if (!checkEnded()) setTimeout(enemyTurn, 380);
+              if (!checkEnded()) setTimeout(duelEnemyTurn, 380);
             }, dead ? 480 : 280);
             return;
           }
@@ -1357,7 +1357,7 @@
       duelBusy=false;
       showTab("play");
     };
-    const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); enemyTurn(); };
+    const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); duelEnemyTurn(); };
     document.getElementById("duelStart").onclick = () => {
       document.getElementById("duelEnd").style.display="none"; duelBusy=false;
       board = Array(36).fill(null); dealHand(); placedTurn=false; spawnAI();
@@ -1523,7 +1523,7 @@
       if (state.turn === "me") {
         state.turn = "en";
         turnEl.textContent = "PORTERÍA";
-        setTimeout(enemyTurn, 650);
+        setTimeout(arenaEnemyTurn, 650);
       } else {
         state.turn = "me";
         turnEl.textContent = "TU TURNO";
@@ -1534,7 +1534,7 @@
       }
     }
 
-    function enemyTurn() {
+    function arenaEnemyTurn() {
       shoot("en", 30 + Math.random() * 20, 48 + Math.random() * 36);
     }
 
