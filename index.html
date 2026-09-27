@@ -193,9 +193,10 @@
     #packs.on { display: flex; }
     #mine { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 14px 12px 88px; overflow: auto; }
     #mine.on { display: flex; }
-    .vein { border:1px solid #3a4258; border-radius:12px; padding:10px; background:#141824; cursor:pointer; }
+    .vein { border:1px solid #3a4258; border-radius:12px; padding:10px; background:#141824; display:flex; align-items:center; gap:10px; }
     .vein b { color:#ffe08a; display:block; }
     .vein small { color:#9aa3b8; }
+    .vein .pico { flex:0 0 auto; background:#d4af37; color:#1a1408; border:0; border-radius:10px; font-weight:900; font-size:13px; padding:10px 14px; }
     .orebag { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:8px 0 12px; }
     .orebag div { background:#121622; border:1px solid #2a3146; border-radius:10px; text-align:center; padding:8px 2px; font-size:11px; }
     .orebag b { display:block; color:#ffe08a; font-size:16px; }
@@ -804,8 +805,9 @@
       bagEl.innerHTML = ORES.map(o => `<div>${o.ico}<b>${oreOf(o.id)}</b>${o.name}</div>`).join("");
       const gb = gearBonus();
       document.getElementById("mineBonus").textContent = "Bonus forja: +" + gb.hp + " HP · +" + gb.corta + " C · +" + gb.media + " M · +" + gb.larga + " L";
+      const ico = {madera:"🪵",piedra:"🪨",oro:"🪙",platino:"⚪",niobio:"💠"};
       document.getElementById("veins").innerHTML = VEINS.map(v =>
-        `<div class="vein" data-vein="${v.id}"><b>${v.name}</b><small>${v.cost} energía · ${v.chance}% · ${v.min}-${v.max} ${v.ore}</small></div>`
+        `<div class="vein"><div style="font-size:28px">${ico[v.ore]||"⛏"}</div><div style="flex:1"><b>${v.name}</b><small>Toca PICAR · ${v.cost} energía · ${v.chance}% · ${v.min}-${v.max} ${v.ore}</small></div><button class="pico" data-vein="${v.id}">PICAR</button></div>`
       ).join("");
       document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => doMine(el.getAttribute("data-vein")));
       const forge = document.getElementById("forge");
