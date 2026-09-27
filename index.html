@@ -321,6 +321,7 @@
     setTimeout(() => {
       const s = document.getElementById("splash");
       if (!s) return;
+      try { sfx("pack"); } catch(e) {}
       s.classList.add("hide");
       setTimeout(() => s.remove(), 500);
     }, 1800);
@@ -354,7 +355,39 @@
         o.start(now); o.stop(now+d+0.02);
       } catch(e) {}
     }
-    document.addEventListener("touchstart", () => { try { actx = actx || new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); } catch(e){} }, { once:true });
+    document.addEventListener("touchstart", () => { try { actx = actx || new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); bgmStart(); } catch(e){} }, { once:true });
+    let bgmOn = false, bgmNodes = [];
+    function bgmStart() {
+      if (bgmOn) return;
+      actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+      if (actx.state === "suspended") actx.resume();
+      const master = actx.createGain();
+      master.gain.value = 0.035;
+      master.connect(actx.destination);
+      const notes = [196, 246.9, 293.7, 329.6, 392, 329.6, 293.7, 246.9];
+      notes.forEach((f,i) => {
+        const o = actx.createOscillator();
+        const g = actx.createGain();
+        o.type = "sine";
+        o.frequency.value = f;
+        g.gain.value = 0;
+        o.connect(g); g.connect(master);
+        o.start();
+        const step = 0.55;
+        function pulse() {
+          const t0 = actx.currentTime;
+          const off = i * step;
+          g.gain.cancelScheduledValues(t0);
+          g.gain.setValueAtTime(0, t0+off);
+          g.gain.linearRampToValueAtTime(0.9, t0+off+0.05);
+          g.gain.linearRampToValueAtTime(0, t0+off+0.4);
+        }
+        pulse();
+        setInterval(pulse, notes.length*550);
+        bgmNodes.push(o);
+      });
+      bgmOn = true;
+    }
     if (tg) { tg.ready(); tg.expand(); }
 
 
