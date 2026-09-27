@@ -1288,7 +1288,7 @@
     }
     function myProfile() {
       const u = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) || {};
-      const id = String(u.id || playerName());
+      const id = String(playerName()).toLowerCase().replace(/^@/,"");
       const best = (typeof bestCard==="function") ? bestCard() : null;
       const w = (typeof wear==="function") ? wear() : {};
       const gW = GEAR.find(x=>x.id===w.weapon);
@@ -1308,6 +1308,10 @@
         at: Date.now()
       };
     }
+    function rankKey(p) {
+      const n = String((p && (p.name||p.id)) || "").toLowerCase().replace(/^@/,"").trim();
+      return n || String((p && p.id) || "");
+    }
     function mergeBoard(extra) {
       let board = [];
       try { board = JSON.parse(localStorage.getItem("pg_board")||"[]"); } catch(e) {}
@@ -1315,7 +1319,14 @@
       const add = [me].concat(extra||[]);
       add.forEach(p => {
         if (!p || !(p.id||p.name)) return;
-        board = board.filter(x => (x.id||x.name) !== (p.id||p.name));
+        const k = rankKey(p);
+        const old = board.find(x => rankKey(x)===k);
+        board = board.filter(x => rankKey(x) !== k);
+        if (old) {
+          if ((p.pts||0) < (old.pts||0)) p.pts = old.pts;
+          if (!p.photo && old.photo) p.photo = old.photo;
+          if (!p.card && old.card) { p.card = old.card; p.cardImg = old.cardImg; }
+        }
         board.push(p);
       });
       board.sort((a,b)=> (b.pts||0)-(a.pts||0));
