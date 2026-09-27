@@ -288,8 +288,9 @@
     </div>
   </div>
   <div id="mercado">
-    <h1 style="color:#ffe08a;text-align:center">Mercado</h1>
-    <p class="muted" style="text-align:center">Vende una copia (1/3) por puntos. La compra real entre jugadores llega después.</p>
+    <h1 style="color:#ffe08a;text-align:center">Ranking · Mercado</h1>
+    <p class="muted" style="text-align:center">Tablero de puntos. Abajo puedes vender cartas.</p>
+    <div class="heroBan" id="rankBox"><div class="muted">Cargando ranking…</div></div>
     <div class="heroBan">
       <div class="muted">Poner a la venta</div>
       <input type="hidden" id="sellWho" value="capitan" />
@@ -508,12 +509,31 @@
     }
 
     const HEROES = [
-      { id: "capitan", name: "Capitán", role: "potencia", img: "cards/capitan.jpg", sprite: "cards/sprite-capitan.jpg", shirt: "#c0392b", shorts: "#1e7a3a", skin: "#e0ac69", hair: "#2b1b12", dmg: 1.25 },
-      { id: "diez", name: "Diez", role: "preciso", img: "cards/diez.jpg", sprite: "cards/sprite-diez.jpg", shirt: "#5dade2", shorts: "#111", skin: "#e0ac69", hair: "#5a3a22", dmg: 1.05, acc: 1.15 },
-      { id: "samba", name: "Samba", role: "efecto", img: "cards/samba.jpg", sprite: "cards/sprite-samba.jpg", shirt: "#f1c40f", shorts: "#1e7a3a", skin: "#8d5524", hair: "#1a1a1a", dmg: 1.1 },
-      { id: "pibe", name: "Pibe", role: "sube rango", img: "cards/pibe.jpg", sprite: "cards/sprite-pibe.jpg", shirt: "#1f4e79", shorts: "#1a365d", skin: "#c68642", hair: "#111", dmg: 1.0 },
-      { id: "rayo", name: "Rayo", role: "rápido", img: "cards/rayo.jpg", sprite: "cards/sprite-rayo.jpg", shirt: "#f5f5f5", shorts: "#f5f5f5", skin: "#8d5524", hair: "#111", dmg: 0.95, spd: 1.2 },
-      { id: "rocaverde", name: "Rocaverde", role: "mago tierra", img: "cards/mago-tierra.JPG", sprite: "cards/mago-tierra.JPG", shirt: "#1e7a3a", shorts: "#0d3b1e", skin: "#c0c0c0", hair: "#ddd", dmg: 1.25, hp: 8, atk: { corta:6, media:9, larga:11 }, dots: ["N","NE","NO","O"] }
+      { id:"capitan", deck:"futbol", name:"Capitán", role:"potencia", img:"cards/capitan.jpg", dmg:1.25, hp:8, atk:{corta:7,media:5,larga:4}, dots:["N","NE","E"] },
+      { id:"diez", deck:"futbol", name:"Diez", role:"preciso", img:"cards/diez.jpg", dmg:1.05, acc:1.15, hp:7, atk:{corta:5,media:8,larga:4}, dots:["N","NO","O"] },
+      { id:"samba", deck:"futbol", name:"Samba", role:"efecto", img:"cards/samba.jpg", dmg:1.1, hp:7, atk:{corta:6,media:6,larga:6}, dots:["N","NE","NO"] },
+      { id:"pibe", deck:"futbol", name:"Pibe", role:"sube rango", img:"cards/pibe.jpg", dmg:1.0, hp:8, atk:{corta:4,media:7,larga:7}, dots:["N","E","O"] },
+      { id:"rayo", deck:"futbol", name:"Rayo", role:"rápido", img:"cards/rayo.jpg", dmg:0.95, spd:1.2, hp:6, atk:{corta:8,media:4,larga:3}, dots:["N","NE","SE"] },
+      { id:"rocaverde", deck:"magos", name:"Rocaverde", role:"tierra", img:"cards/mago-tierra.JPG", dmg:1.25, hp:8, atk:{corta:6,media:9,larga:11}, dots:["N","NE","NO","O"] },
+      { id:"brasas", deck:"magos", name:"Brasas", role:"fuego", img:"cards/mago-fuego.jpg", dmg:1.3, hp:6, atk:{corta:9,media:6,larga:5}, dots:["N","NE","E"] },
+      { id:"marea", deck:"magos", name:"Marea", role:"agua", img:"cards/mago-agua.jpg", dmg:1.1, hp:9, atk:{corta:4,media:7,larga:8}, dots:["N","NO","O"] },
+      { id:"vendaval", deck:"magos", name:"Vendaval", role:"aire", img:"cards/mago-aire.jpg", dmg:1.05, spd:1.25, hp:6, atk:{corta:5,media:8,larga:7}, dots:["N","NE","NO"] },
+      { id:"aurora", deck:"magos", name:"Aurora", role:"luz", img:"cards/mago-luz.jpg", dmg:1.15, hp:7, atk:{corta:5,media:5,larga:11}, dots:["N","E","O"] },
+      { id:"musgo", deck:"duendes", name:"Musgo", role:"bosque", img:"cards/duende-musgo.jpg", dmg:1.0, hp:8, atk:{corta:6,media:6,larga:4}, dots:["N","NO","SO"] },
+      { id:"seta", deck:"duendes", name:"Seta", role:"veneno", img:"cards/duende-seta.jpg", dmg:1.1, hp:7, atk:{corta:7,media:5,larga:5}, dots:["N","NE","SE"] },
+      { id:"orohoja", deck:"duendes", name:"Orojoja", role:"tesoro", img:"cards/duende-oro.jpg", dmg:1.05, hp:6, atk:{corta:5,media:9,larga:4}, dots:["N","E","O"] },
+      { id:"sombralin", deck:"duendes", name:"Sombralín", role:"noche", img:"cards/duende-noche.jpg", dmg:1.2, hp:6, atk:{corta:8,media:4,larga:6}, dots:["NO","O","SO"] },
+      { id:"yunque", deck:"duendes", name:"Yunque", role:"forja", img:"cards/duende-yunque.jpg", dmg:1.25, hp:9, atk:{corta:8,media:5,larga:3}, dots:["N","NE","E"] },
+      { id:"aguila", deck:"lideres", name:"Águila", role:"lider", img:"cards/lider-aguila.jpg", dmg:1.15, hp:8, atk:{corta:5,media:7,larga:7}, dots:["N","NE","NO"] },
+      { id:"leon", deck:"lideres", name:"León", role:"mando", img:"cards/lider-leon.jpg", dmg:1.2, hp:8, atk:{corta:7,media:6,larga:5}, dots:["N","E","SE"] },
+      { id:"lobo", deck:"lideres", name:"Lobo", role:"norte", img:"cards/lider-lobo.jpg", dmg:1.1, hp:7, atk:{corta:6,media:8,larga:4}, dots:["N","NO","O"] },
+      { id:"sol", deck:"lideres", name:"Sol", role:"sur", img:"cards/lider-sol.jpg", dmg:1.05, hp:7, atk:{corta:4,media:6,larga:9}, dots:["N","NE","E"] },
+      { id:"roble", deck:"lideres", name:"Roble", role:"union", img:"cards/lider-roble.jpg", dmg:1.0, hp:10, atk:{corta:5,media:5,larga:6}, dots:["N","E","O"] },
+      { id:"chispa", deck:"bestias", name:"Chispa", role:"rayo", img:"cards/bestia-chispa.jpg", dmg:1.15, spd:1.3, hp:5, atk:{corta:9,media:5,larga:4}, dots:["N","NE","E"] },
+      { id:"brote", deck:"bestias", name:"Brote", role:"hoja", img:"cards/bestia-brote.jpg", dmg:1.0, hp:8, atk:{corta:5,media:7,larga:5}, dots:["N","NO","SO"] },
+      { id:"gota", deck:"bestias", name:"Gota", role:"agua", img:"cards/bestia-gota.jpg", dmg:1.05, hp:7, atk:{corta:4,media:6,larga:8}, dots:["N","O","SE"] },
+      { id:"ember", deck:"bestias", name:"Ember", role:"llama", img:"cards/bestia-ember.jpg", dmg:1.2, hp:6, atk:{corta:8,media:6,larga:4}, dots:["N","NE","NO"] },
+      { id:"roca", deck:"bestias", name:"Roca", role:"piedra", img:"cards/bestia-roca.jpg", dmg:1.25, hp:10, atk:{corta:7,media:4,larga:3}, dots:["N","E","O"] }
     ];
 
     const heroImg = {};
@@ -575,7 +595,7 @@
       });
       if (name === "home") refreshHome();
       if (name === "pick") renderGrid();
-      if (name === "mercado") renderMarket();
+      if (name === "mercado") { renderRank(); renderMarket(); }
       if (name === "ads") renderAds();
       if (name === "wallet") {
         document.getElementById("walPend").textContent = Number(localStorage.getItem("pg_pend")||0);
@@ -727,6 +747,31 @@
       refreshHome();
     };
 
+    function playerName() {
+      try {
+        const u = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
+        if (u) return (u.username && ("@"+u.username)) || [u.first_name,u.last_name].filter(Boolean).join(" ") || "Jugador";
+      } catch(e) {}
+      return localStorage.getItem("pg_name") || "Tú";
+    }
+    function pushRank() {
+      const me = { name: playerName(), pts: Number(localStorage.getItem("pg_pts")||0), pend: Number(localStorage.getItem("pg_pend")||0), at: Date.now() };
+      let board = [];
+      try { board = JSON.parse(localStorage.getItem("pg_board")||"[]"); } catch(e) {}
+      board = board.filter(x => x.name !== me.name);
+      board.push(me);
+      board.sort((a,b)=> (b.pts||0)-(a.pts||0));
+      board = board.slice(0,20);
+      localStorage.setItem("pg_board", JSON.stringify(board));
+      return board;
+    }
+    function renderRank() {
+      const box = document.getElementById("rankBox");
+      if (!box) return;
+      const board = pushRank();
+      box.innerHTML = "<div class='muted'>Ranking (este dispositivo + tu user de Telegram)</div>" +
+        board.map((r,i) => `<div class="offer"><div style="width:28px;color:#ffe08a;font-weight:800">${i+1}</div><div style="flex:1"><b>${r.name}</b><div class="muted">${r.pts} pts · ${r.pend||0} tgold</div></div></div>`).join("");
+    }
     function marketList() {
       try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]"); } catch(e){ return []; }
     }
