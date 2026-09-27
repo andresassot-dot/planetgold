@@ -252,6 +252,8 @@
   </div>
   <div id="duelEnd" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(8,10,18,.86);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px">
     <h1 id="duelEndTitle" style="color:#ffe08a;font-size:28px;margin:0 0 8px">Fin</h1>
+    <img id="duelEndImg" alt="" style="width:160px;height:200px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 10px 30px #000;margin:8px 0;background:#111" />
+    <p id="duelEndName" style="color:#ffe08a;font-weight:800;margin:0 0 6px"></p>
     <p id="duelEndTxt" class="muted"></p>
     <button class="main" id="duelEndOk" style="max-width:240px">SEGUIR</button>
   </div>
@@ -1144,9 +1146,20 @@
       localStorage.setItem("pg_pts", pts + addPts);
       localStorage.setItem("pg_pend", pend + addPend);
       try { refreshHome(); } catch(e) {}
+      try { stopClock(); } catch(e) {}
       const box = document.getElementById("duelEnd");
       document.getElementById("duelEndTitle").textContent = win ? "HAS GANADO" : "HAS PERDIDO";
       document.getElementById("duelEndTxt").textContent = why + " · +" + addPts + " pts" + (addPend ? " · +"+addPend+" tgold" : "");
+      const side = win ? "me" : "en";
+      const alive = [];
+      board.forEach(u => { if (u && u.who===side) alive.push(u); });
+      alive.sort((a,b)=>(b.hp||0)-(a.hp||0));
+      const star = alive[0] || board.find(u=>u) || null;
+      const h = star ? (HEROES.find(x=>x.id===star.id)||{}) : {};
+      const img = document.getElementById("duelEndImg");
+      const nm = document.getElementById("duelEndName");
+      if (img) { img.src = (star && star.img) || h.img || "cards/capitan.jpg"; img.style.display="block"; }
+      if (nm) nm.textContent = (h.name||"") + (win ? " · MVP" : " · rival");
       box.style.display = "flex";
       sfx(win ? "goal" : "fall");
     }
@@ -1399,7 +1412,9 @@
     document.getElementById("duelEndOk").onclick = () => {
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false;
-      showTab("play");
+      try { stopClock(); } catch(e) {}
+      showTab("pick");
+      renderGrid();
     };
     const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); duelEnemyTurn(); };
     document.getElementById("duelStart").onclick = () => {
