@@ -891,22 +891,44 @@
 
 
     function loadAds(){ try { return JSON.parse(localStorage.getItem("pg_ads")||"[]"); } catch(e){ return []; } }
-    function saveAds(a){ localStorage.setItem("pg_ads", JSON.stringify(a)); }
+    function saveAds(a){ localStorage.setItem("pg_ads", JSON.stringify((a||[]).filter(x=>(x.left==null?100:x.left)>0))); }
     let adKind = "canal";
     function claimedSet(){ try { return JSON.parse(localStorage.getItem("pg_adClaim")||"[]"); } catch(e){ return []; } }
-    function renderAds() {
+    function whoAd(){ return String(playerName()).toLowerCase().replace(/^@/,""); }
+    async function syncAds(payload){
+      try {
+        if (payload) {
+          const r = await fetch("/api/ads", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
+          const j = await r.json();
+          if (j && j.ads) saveAds(j.ads);
+        } else {
+          const r = await fetch("/api/ads");
+          const j = await r.json();
+          if (j && j.ads) {
+            const local = loadAds();
+            const map = {};
+            local.concat(j.ads).forEach(a => { map[a.id]=a; });
+            saveAds(Object.values(map));
+          }
+        }
+      } catch(e) {}
+    }
+    async function renderAds() {
       const box = document.getElementById("adsList");
       if (!box) return;
-      const ads = loadAds();
+      await syncAds();
+      const ads = loadAds().filter(a => (a.left==null?100:a.left)>0);
       const done = claimedSet();
       if (!ads.length) { box.innerHTML = "<p class='muted' style='text-align:center'>Sin anuncios por ahora.</p>"; return; }
       box.innerHTML = ads.map((a,i) => {
+        const left = (a.left==null?100:a.left);
         const ok = done.includes(a.id);
-        return `<div class="offer"><div style="flex:1"><b>${a.title||a.kind}</b><div class="muted">${a.kind} · ${ok?"ya cobrado":"+1 energía"}</div></div>
-          <button class="main" style="width:auto;margin:0;padding:8px 10px;font-size:12px" data-open="${i}">ABRIR</button></div>`;
+        return `<div class="offer"><div style="flex:1"><b>${a.title||a.kind}</b><div class="muted">${a.kind} · ${left}/100 visitas · ${ok?"ya cobrado":"+1 energía"}</div></div>
+          <button class="main" style="width:auto;margin:0;padding:8px 10px;font-size:12px" data-open="${a.id}">ABRIR</button></div>`;
       }).join("");
-      box.querySelectorAll("[data-open]").forEach(b => b.onclick = () => {
-        const a = loadAds()[Number(b.getAttribute("data-open"))];
+      box.querySelectorAll("[data-open]").forEach(b => b.onclick = async () => {
+        const id = b.getAttribute("data-open");
+        const a = loadAds().find(x=>x.id===id);
         if (!a) return;
         window.open(a.url, "_blank");
         let done = claimedSet();
@@ -915,7 +937,10 @@
           localStorage.setItem("pg_adClaim", JSON.stringify(done));
           const n = Math.min(5, getEnergy()+1);
           localStorage.setItem("pg_en", n);
-          alert("Gracias. +1 energía");
+          a.left = Math.max(0, (a.left==null?100:a.left)-1);
+          saveAds(loadAds().map(x=>x.id===a.id?a:x).filter(x=>(x.left==null?100:x.left)>0));
+          await syncAds({ act:"hit", id:a.id, who: whoAd() });
+          alert("Gracias. +1 energía · queda "+(a.left)+" del anuncio");
         }
         renderAds(); refreshHome();
       });
@@ -1115,9 +1140,11 @@
       if (pend < 100) { msg.textContent = "Necesitas 100 tgold pendiente. Ahora: "+pend; return; }
       localStorage.setItem("pg_pend", pend-100);
       const ads = loadAds();
-      ads.unshift({ id: "ad"+Date.now(), kind: adKind, url, title: title||adKind, at: Date.now() });
+      const row = { id: "ad"+Date.now(), kind: adKind, url, title: title||adKind, at: Date.now(), left:100, hits:0, by: whoAd() };
+      ads.unshift(row);
       saveAds(ads);
-      msg.textContent = "Anuncio publicado. -100 tgold";
+      syncAds({ act:"pub", ...row });
+      msg.textContent = "Publicado. 100 visitas · cada click gasta 1";
       refreshHome();
     };
     const SWAP_PTS = 20000, SWAP_TG = 10, MIN_USD = 10;
