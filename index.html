@@ -126,9 +126,9 @@
       animation: shine 2.4s ease-in-out infinite;
     }
     @keyframes shine { 0%{transform:translateX(-30%)} 100%{transform:translateX(30%)} }
-    .lastPack { display:flex; gap:12px; align-items:center; margin-top:12px; }
-    .lastPack .fifa { width: 92px; flex-shrink: 0; }
-    .lastPack img { height: 118px; object-fit: cover; object-position: top; }
+    .meRow { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+    .bestCard { text-align:center; margin-top:12px; }
+    .bestCard img { width:min(58vw,220px); height:auto; border-radius:12px; border:2px solid #d4af37; display:block; margin:0 auto; background:#0b0d14; }
 
     #ads { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #ads.on { display: flex; }
@@ -203,25 +203,19 @@
   </div>
   <div id="home" class="on">
     <div class="heroBan">
+      <div class="meRow">
+        <img id="meAva" alt="" style="width:52px;height:52px;border-radius:50%;border:2px solid #d4af37;object-fit:cover;background:#222" />
+        <div style="flex:1">
+          <div id="meWho" style="font-weight:800;font-size:16px">Tú</div>
+          <div class="muted" id="meRank" style="font-size:12px">Novato</div>
+        </div>
+      </div>
       <h2>PLANET GOLD</h2>
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">tgold pendiente: <b id="homePend">0</b></div>
       <div class="muted" style="margin-top:8px">Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
-      <div class="lastPack" id="lastWrap" style="display:none">
-        <div class="fifa"><img id="lastImg" alt="" /></div>
-        <div style="flex:1">
-          <div class="muted">Último sobre</div>
-          <div class="big" id="lastName" style="font-size:20px;margin:4px 0">—</div>
-          <div class="muted" id="lastNote"></div>
-        </div>
-        <div id="meBox" style="text-align:center;min-width:72px">
-          <img id="meAva" alt="" style="width:52px;height:52px;border-radius:50%;border:2px solid #d4af37;object-fit:cover;background:#222" />
-          <div id="meWho" style="font-size:11px;margin-top:4px;font-weight:700">Tú</div>
-          <div class="muted" id="meRank" style="font-size:10px">#—</div>
-        </div>
-      </div>
     </div>
-    <div class="heroBan" id="ticker" style="margin-top:12px">
+    <div class="heroBan" id="ticker" style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
           <div class="muted">TGOLD · Solana</div>
@@ -231,6 +225,12 @@
       </div>
       <canvas id="spark" width="320" height="56" style="width:100%;height:56px;margin-top:8px"></canvas>
       <div class="muted" id="tkMeta">precio en vivo</div>
+    </div>
+    <div class="bestCard" id="bestWrap">
+      <img id="bestImg" alt="mejor carta" />
+      <div class="muted" style="margin-top:6px">Mejor carta</div>
+      <div class="big" id="bestName" style="font-size:18px;margin:2px 0">—</div>
+      <div class="muted" id="bestNote"></div>
     </div>
     <div class="actions">
       <div class="act" data-tab="pick"><img src="cards/icon-cartas.jpg?v=4" alt="" onerror="this.onerror=null;this.src='cards/icon-cartas.png'" />Cartas</div>
@@ -688,30 +688,33 @@
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
       const en = document.getElementById("homeEn");
       if (en) en.textContent = getEnergy() + "/" + MAX_EN;
-      const wrap = document.getElementById("lastWrap");
-      if (wrap) {
-        wrap.style.display = "flex";
-        let j = null;
-        try { j = JSON.parse(localStorage.getItem("pg_lastPack")||"null"); } catch(e) {}
-        if (!j) {
-          const h = HEROES[0];
-          j = { img: h.img, name: h.name, note: (RANKS[rankOf(h.id)]||"Bronce") + " · " + dustOf(h.id) + "/3" };
-        }
-        document.getElementById("lastImg").src = j.img;
-        document.getElementById("lastName").textContent = j.name;
-        document.getElementById("lastNote").textContent = j.note;
-        const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
-        const ava = document.getElementById("meAva");
-        const who = document.getElementById("meWho");
-        const rk = document.getElementById("meRank");
-        if (who) who.textContent = u.first_name || u.username || "Tú";
-        if (ava) {
-          if (u.photo_url) ava.src = u.photo_url;
-          else ava.src = "cards/capitan.jpg";
-        }
-        const pts = Number(localStorage.getItem("pg_pts")||0);
-        if (rk) rk.textContent = pts >= 20000 ? "#1 local" : (pts >= 5000 ? "Top local" : "Novato");
+      const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
+      const ava = document.getElementById("meAva");
+      const who = document.getElementById("meWho");
+      const rk = document.getElementById("meRank");
+      if (who) who.textContent = u.first_name || u.username || "Tú";
+      if (ava) {
+        if (u.photo_url) ava.src = u.photo_url;
+        else ava.src = "cards/capitan.jpg";
       }
+      const pts = Number(localStorage.getItem("pg_pts")||0);
+      if (rk) rk.textContent = pts >= 20000 ? "#1 local" : (pts >= 5000 ? "Top local" : "Novato");
+      const order = {Bronce:0, Plata:1, Oro:2, Platino:3};
+      const rare = {normal:0, rara:1, ultra:2};
+      const best = HEROES.slice().sort((a,b)=>{
+        const ra = order[RANKS[rankOf(a.id)]||"Bronce"]||0;
+        const rb = order[RANKS[rankOf(b.id)]||"Bronce"]||0;
+        if (rb!==ra) return rb-ra;
+        const da = dustOf(a.id), db = dustOf(b.id);
+        if (db!==da) return db-da;
+        return (rare[b.rare]||0)-(rare[a.rare]||0);
+      })[0] || HEROES[0];
+      const bi = document.getElementById("bestImg");
+      const bn = document.getElementById("bestName");
+      const bt = document.getElementById("bestNote");
+      if (bi) { bi.src = best.img; bi.onerror = function(){ this.onerror=null; this.src=(best.img||"").replace('.jpg','.JPG'); }; }
+      if (bn) bn.textContent = best.name;
+      if (bt) bt.textContent = (RANKS[rankOf(best.id)]||"Bronce") + " · " + dustOf(best.id) + "/3";
     }
     document.querySelectorAll("[data-tab]").forEach(el => {
       el.addEventListener("click", () => { sfx("menu"); showTab(el.getAttribute("data-tab")); });
