@@ -134,6 +134,11 @@
     .bestCard img { width:min(58vw,220px); height:auto; border-radius:12px; border:2px solid #d4af37; display:block; margin:0 auto; background:#0b0d14; }
     .bestCard.holo { position:relative; }
     .bestCard.holo img { border-color:#9be7ff; box-shadow:0 0 18px rgba(180,80,255,.45),0 0 8px rgba(255,220,80,.35); }
+    .loadout { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin:10px 0 4px; }
+    .loadout .slot { background:#121622; border:1px solid #2a3146; border-radius:10px; padding:8px 6px; text-align:center; font-size:11px; }
+    .loadout b { display:block; color:#ffe08a; font-size:12px; margin-bottom:2px; }
+    .pwr { text-align:center; font-size:12px; color:#c8d0e0; margin:6px 0 0; }
+    .pwr b { color:#ffe08a; }
     .bestCard.holo::after {
       content:""; pointer-events:none; position:absolute; left:50%; top:0; width:min(58vw,220px); height:100%;
       transform:translateX(-50%); border-radius:12px;
@@ -262,6 +267,12 @@
       <div class="muted" style="margin-top:6px">Mejor carta</div>
       <div class="big" id="bestName" style="font-size:18px;margin:2px 0">—</div>
       <div class="muted" id="bestNote"></div>
+      <div class="pwr" id="bestPwr"></div>
+    </div>
+    <div class="loadout" id="loadout">
+      <div class="slot"><b>Arma</b><span id="eqW">—</span></div>
+      <div class="slot"><b>Reliquia</b><span id="eqR">—</span></div>
+      <div class="slot"><b>Mascota</b><span id="eqP">—</span></div>
     </div>
     <div class="actions">
       <div class="act" data-tab="pick"><img src="cards/icon-cartas.jpg?v=4" alt="" onerror="this.onerror=null;this.src='cards/icon-cartas.png'" />Cartas</div>
@@ -1099,6 +1110,27 @@
       if (bi) { bi.src = best.img; bi.onerror = function(){ this.onerror=null; this.src=best.img && best.img.indexOf("holo")>=0 ? "cards/samba.jpg" : (best.img||"").replace('.jpg','.JPG'); }; }
       if (bn) bn.textContent = best.name;
       if (bt) bt.textContent = best.holo ? "Holográfica · fusión" : ((RANKS[rankOf(best.id)]||"Bronce") + " · " + dustOf(best.id) + "/3");
+      const gb = gearBonus();
+      const w = wear();
+      const gW = GEAR.find(x=>x.id===w.weapon);
+      const gR = GEAR.find(x=>x.id===w.relic);
+      const pet = HEROES.find(h=>h.id===w.pet);
+      const ew = document.getElementById("eqW");
+      const er = document.getElementById("eqR");
+      const ep = document.getElementById("eqP");
+      const bonTxt = b => Object.keys(b).map(k=>"+"+b[k]+" "+k).join(" · ");
+      if (ew) ew.innerHTML = gW ? (gW.name+"<div class='muted'>"+bonTxt(gW.bonus)+"</div>") : "—";
+      if (er) er.innerHTML = gR ? (gR.name+"<div class='muted'>"+bonTxt(gR.bonus)+"</div>") : "—";
+      if (ep) ep.innerHTML = pet ? (pet.name+"<div class='muted'>HP "+pet.hp+" · C"+pet.atk.corta+" M"+pet.atk.media+" L"+pet.atk.larga+"</div>") : "—";
+      const bp = document.getElementById("bestPwr");
+      if (bp && best.atk) {
+        const hp = (best.hp||0)+gb.hp;
+        const c = (best.atk.corta||0)+gb.corta;
+        const m = (best.atk.media||0)+gb.media;
+        const l = (best.atk.larga||0)+gb.larga;
+        bp.innerHTML = "Base "+best.hp+"/"+best.atk.corta+"/"+best.atk.media+"/"+best.atk.larga+
+          " → <b>con equipo "+hp+" HP · C"+c+" M"+m+" L"+l+"</b>";
+      }
     }
     document.querySelectorAll("[data-tab]").forEach(el => {
       el.addEventListener("click", () => { sfx("menu"); showTab(el.getAttribute("data-tab")); });
