@@ -191,6 +191,16 @@
     #deckPile span { position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#ffe08a; font-size:9px; font-weight:800; text-align:center; padding:2px 0; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
+    #mine { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 14px 12px 88px; overflow: auto; }
+    #mine.on { display: flex; }
+    .vein { border:1px solid #3a4258; border-radius:12px; padding:10px; background:#141824; cursor:pointer; }
+    .vein b { color:#ffe08a; display:block; }
+    .vein small { color:#9aa3b8; }
+    .orebag { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:8px 0 12px; }
+    .orebag div { background:#121622; border:1px solid #2a3146; border-radius:10px; text-align:center; padding:8px 2px; font-size:11px; }
+    .orebag b { display:block; color:#ffe08a; font-size:16px; }
+    .craft { border:1px solid #d4af37; border-radius:12px; padding:10px; margin:0 0 8px; background:#161a26; }
+    .craft button { margin-top:6px; padding:6px 10px; font-size:12px; }
     .pack {
       width: 160px; height: 210px; margin: 18px auto; border-radius: 16px;
       background: linear-gradient(160deg,#3a2a0a,#d4af37 45%,#fff3c4);
@@ -274,12 +284,15 @@
       <button data-deck="magos">Magos</button>
       <button data-deck="duendes">Duendes</button>
       <button data-deck="lideres">Líderes</button>
+      <button data-deck="reyes">Reyes</button>
+      <button data-deck="minas">Minas</button>
       <button data-deck="mascotas">Mascotas</button>
       <button data-deck="holo">Holo</button>
     </div>
     <div class="grid" id="grid"></div>
     <button class="main" id="go">FARMEAR TGOLD</button>
     <button class="main" id="duelBtn" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">DUELO DE CARTAS</button>
+    <button class="main" id="mineBtn" style="margin-top:8px;background:#3a2a12;color:#ffe08a">MINERÍA</button>
   </div>
 
   <div id="duelFloat" style="display:none;position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:60;width:150px;text-align:center;pointer-events:auto;top:auto">
@@ -315,6 +328,19 @@
   </div>
 
 
+  <div id="mine">
+    <h1 style="color:#ffe08a;text-align:center;margin:0">Minería</h1>
+    <p class="muted" style="text-align:center;margin:6px 0 10px">1 energía por pico. Materiales → armas, armaduras y huevos.</p>
+    <div class="orebag" id="oreBag"></div>
+    <div id="mineBonus" class="muted" style="text-align:center;margin:0 0 10px"></div>
+    <div id="veins" style="display:grid;gap:8px"></div>
+    <p class="muted" id="mineMsg" style="text-align:center;margin:10px 0 8px">Elige veta</p>
+    <h2 style="color:#ffe08a;font-size:16px;margin:14px 0 8px">Forja</h2>
+    <div id="forge"></div>
+    <h2 style="color:#ffe08a;font-size:16px;margin:14px 0 8px">Nido · 3 huevos = mascota</h2>
+    <div id="nest"></div>
+    <button class="main" id="mineBack" style="margin-top:12px;background:#2a3146;color:#ffe08a">VOLVER</button>
+  </div>
   <div id="packs">
     <h1 style="color:#ffe08a;text-align:center">Sobres</h1>
     <p class="muted" style="text-align:center">1 sobre gratis al día. Puede tocar copia de carta o tgold.</p>
@@ -588,6 +614,61 @@
       return note;
     }
 
+    const ORES = [
+      { id:"madera", name:"Madera", ico:"🪵" },
+      { id:"piedra", name:"Piedra", ico:"🪨" },
+      { id:"oro", name:"Oro", ico:"🪙" },
+      { id:"platino", name:"Platino", ico:"⚪" },
+      { id:"niobio", name:"Niobio", ico:"💠" }
+    ];
+    const EGGS = [
+      { id:"fuego", name:"Huevo fuego", ico:"🔥", pet:"ember" },
+      { id:"tierra", name:"Huevo tierra", ico:"🌱", pet:"brote" },
+      { id:"agua", name:"Huevo agua", ico:"💧", pet:"gota" },
+      { id:"aire", name:"Huevo aire", ico:"⚡", pet:"chispa" },
+      { id:"luz", name:"Huevo luz", ico:"✨", pet:"sol" }
+    ];
+    const VEINS = [
+      { id:"madera", name:"Bosque", ore:"madera", cost:1, chance:92, min:2, max:4, egg:6 },
+      { id:"piedra", name:"Cantera", ore:"piedra", cost:1, chance:80, min:1, max:3, egg:8 },
+      { id:"oro", name:"Veta de oro", ore:"oro", cost:1, chance:48, min:1, max:1, egg:10 },
+      { id:"platino", name:"Mina platino", ore:"platino", cost:2, chance:22, min:1, max:1, egg:12 },
+      { id:"niobio", name:"Cripta niobio", ore:"niobio", cost:2, chance:9, min:1, max:1, egg:16 }
+    ];
+    const GEAR = [
+      { id:"amuleto", name:"Amuleto de roble", need:{madera:8}, bonus:{hp:1}, slot:"relic" },
+      { id:"yelmo", name:"Yelmo de piedra", need:{piedra:10}, bonus:{hp:1,corta:1}, slot:"armor" },
+      { id:"baston", name:"Bastón carmesí", need:{oro:6,madera:4}, bonus:{larga:2}, slot:"weapon" },
+      { id:"espada", name:"Espada dorada", need:{oro:8,piedra:6}, bonus:{corta:2}, slot:"weapon" },
+      { id:"corona", name:"Corona de platino", need:{platino:4,oro:4}, bonus:{corta:1,media:1,larga:1}, slot:"relic" },
+      { id:"reliquia", name:"Reliquia de niobio", need:{niobio:2,platino:6}, bonus:{hp:2,corta:1,media:1,larga:1}, slot:"relic" }
+    ];
+    function bag(){ try { return JSON.parse(localStorage.getItem("pg_ore")||"{}"); } catch(e){ return {}; } }
+    function saveBag(b){ localStorage.setItem("pg_ore", JSON.stringify(b)); }
+    function oreOf(id){ return Number(bag()[id]||0); }
+    function addOre(id,n){ const b=bag(); b[id]=(b[id]||0)+n; saveBag(b); }
+    function takeOre(need){
+      const b=bag();
+      for (const k in need) if ((b[k]||0) < need[k]) return false;
+      for (const k in need) b[k]-=need[k];
+      saveBag(b); return true;
+    }
+    function eggs(){ try { return JSON.parse(localStorage.getItem("pg_egg")||"{}"); } catch(e){ return {}; } }
+    function saveEggs(e){ localStorage.setItem("pg_egg", JSON.stringify(e)); }
+    function eggOf(id){ return Number(eggs()[id]||0); }
+    function addEgg(id){ const e=eggs(); e[id]=(e[id]||0)+1; saveEggs(e); }
+    function wear(){ try { return JSON.parse(localStorage.getItem("pg_wear")||"{}"); } catch(e){ return {}; } }
+    function saveWear(w){ localStorage.setItem("pg_wear", JSON.stringify(w)); }
+    function ownsGear(id){ return localStorage.getItem("pg_g_"+id)==="1"; }
+    function gearBonus(){
+      const w=wear();
+      const out={hp:0,corta:0,media:0,larga:0};
+      GEAR.forEach(g => {
+        if (w[g.slot]===g.id) Object.keys(g.bonus).forEach(k => out[k]+=g.bonus[k]);
+      });
+      return out;
+    }
+
     const KINDICO = { corta:"⚔", media:"🗡", larga:"🏹" };
     const HEROES = [
 { id:"capitan", deck:"futbol", name:"Capitán", rare:"rara", syn:"fuego", role:"potencia", img:"cards/capitan.jpg", dmg:1.2, hp:5, atk:{corta:5,media:3,larga:2}, dots:{N:"corta",NE:"media",E:"corta"}, fusesTo:"capitan-holo" },
@@ -639,8 +720,27 @@
       { id:"ember", deck:"mascotas", name:"Ember", rare:"rara", syn:"fuego", role:"mascota", img:"cards/bestia-ember.jpg", dmg:1.15, hp:3, atk:{corta:5,media:3,larga:2}, dots:{N:"corta",NE:"media",NO:"corta"}, fusesTo:"ember-holo" },
       { id:"ember-holo", deck:"mascotas", name:"Ember Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/ember-holo.jpg", dmg:1.35, hp:5, atk:{corta:7,media:5,larga:4}, dots:{N:"corta",NE:"media",NO:"corta"}, evo:true, holo:true },
       { id:"roca", deck:"monturas", name:"Roca", rare:"rara", syn:"tierra", role:"montura", img:"cards/bestia-roca.jpg", dmg:1.2, hp:6, atk:{corta:4,media:2,larga:1}, dots:{N:"corta",E:"corta",O:"corta"}, fusesTo:"roca-holo" },
-      { id:"roca-holo", deck:"monturas", name:"Roca Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/roca-holo.jpg", dmg:1.4, hp:8, atk:{corta:6,media:4,larga:3}, dots:{N:"corta",E:"corta",O:"corta"}, evo:true, holo:true }
-    
+      { id:"roca-holo", deck:"monturas", name:"Roca Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/roca-holo.jpg", dmg:1.4, hp:8, atk:{corta:6,media:4,larga:3}, dots:{N:"corta",E:"corta",O:"corta"}, evo:true, holo:true },
+      { id:"rey", deck:"reyes", name:"Rey León", rare:"ultra", syn:"luz", role:"rey", img:"cards/lider-leon.jpg", dmg:1.2, hp:6, atk:{corta:5,media:4,larga:4}, dots:{N:"corta",E:"media",O:"media"}, pet:"ember", gear:"corona", fusesTo:"rey-holo" },
+      { id:"rey-holo", deck:"reyes", name:"Rey León Holo", rare:"ultra", syn:"luz", role:"holo", img:"cards/leon-holo.jpg", dmg:1.4, hp:8, atk:{corta:7,media:6,larga:6}, dots:{N:"corta",E:"media",O:"media"}, evo:true, holo:true },
+      { id:"caballero", deck:"reyes", name:"Caballero", rare:"rara", syn:"fuego", role:"espada", img:"cards/capitan.jpg", dmg:1.15, hp:5, atk:{corta:6,media:3,larga:2}, dots:{N:"corta",NE:"corta",E:"media"}, pet:"roca", gear:"espada", fusesTo:"caballero-holo" },
+      { id:"caballero-holo", deck:"reyes", name:"Caballero Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/capitan-holo.jpg", dmg:1.35, hp:7, atk:{corta:8,media:5,larga:4}, dots:{N:"corta",NE:"corta",E:"media"}, evo:true, holo:true },
+      { id:"dama", deck:"reyes", name:"Dama", rare:"rara", syn:"aire", role:"lanza", img:"cards/diez.jpg", dmg:1.1, hp:4, atk:{corta:2,media:5,larga:5}, dots:{N:"media",NO:"larga",O:"media"}, pet:"chispa", fusesTo:"dama-holo" },
+      { id:"dama-holo", deck:"reyes", name:"Dama Holo", rare:"ultra", syn:"aire", role:"holo", img:"cards/diez-holo.jpg", dmg:1.3, hp:6, atk:{corta:4,media:7,larga:7}, dots:{N:"media",NO:"larga",O:"media"}, evo:true, holo:true },
+      { id:"arquero", deck:"reyes", name:"Arquero Real", rare:"normal", syn:"aire", role:"arco", img:"cards/rayo.jpg", dmg:1.05, hp:4, atk:{corta:1,media:3,larga:6}, dots:{N:"larga",NE:"media",E:"larga"}, pet:"aguila", fusesTo:"arquero-holo" },
+      { id:"arquero-holo", deck:"reyes", name:"Arquero Holo", rare:"ultra", syn:"aire", role:"holo", img:"cards/rayo-holo.jpg", dmg:1.25, hp:6, atk:{corta:3,media:5,larga:8}, dots:{N:"larga",NE:"media",E:"larga"}, evo:true, holo:true },
+      { id:"escudero", deck:"reyes", name:"Escudero", rare:"normal", syn:"tierra", role:"escudo", img:"cards/pibe.jpg", dmg:1.0, hp:6, atk:{corta:3,media:2,larga:2}, dots:{N:"corta",E:"corta",O:"corta"}, pet:"brote", fusesTo:"escudero-holo" },
+      { id:"escudero-holo", deck:"reyes", name:"Escudero Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/pibe-holo.jpg", dmg:1.2, hp:8, atk:{corta:5,media:4,larga:4}, dots:{N:"corta",E:"corta",O:"corta"}, evo:true, holo:true },
+      { id:"pico", deck:"minas", name:"Pico", rare:"normal", syn:"tierra", role:"minero", img:"cards/duende-yunque.jpg", dmg:1.05, hp:5, atk:{corta:4,media:3,larga:1}, dots:{N:"corta",E:"corta",SE:"media"}, pet:"roca", fusesTo:"pico-holo" },
+      { id:"pico-holo", deck:"minas", name:"Pico Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/yunque-holo.jpg", dmg:1.25, hp:7, atk:{corta:6,media:5,larga:3}, dots:{N:"corta",E:"corta",SE:"media"}, evo:true, holo:true },
+      { id:"creeper", deck:"minas", name:"Creeper", rare:"rara", syn:"veneno", role:"boom", img:"cards/duende-seta.jpg", dmg:1.2, hp:3, atk:{corta:7,media:2,larga:1}, dots:{N:"corta",NE:"corta",NO:"corta"}, pet:"ember", fusesTo:"creeper-holo" },
+      { id:"creeper-holo", deck:"minas", name:"Creeper Holo", rare:"ultra", syn:"veneno", role:"holo", img:"cards/seta-holo.jpg", dmg:1.4, hp:5, atk:{corta:9,media:4,larga:3}, dots:{N:"corta",NE:"corta",NO:"corta"}, evo:true, holo:true },
+      { id:"golem", deck:"minas", name:"Gólem", rare:"ultra", syn:"tierra", role:"roca", img:"cards/bestia-roca.jpg", dmg:1.15, hp:8, atk:{corta:5,media:2,larga:1}, dots:{N:"corta",E:"corta",O:"corta"}, pet:"roca", fusesTo:"golem-holo" },
+      { id:"golem-holo", deck:"minas", name:"Gólem Holo", rare:"ultra", syn:"tierra", role:"holo", img:"cards/roca-holo.jpg", dmg:1.35, hp:10, atk:{corta:7,media:4,larga:3}, dots:{N:"corta",E:"corta",O:"corta"}, evo:true, holo:true },
+      { id:"steve", deck:"minas", name:"Steve", rare:"rara", syn:"luz", role:"craft", img:"cards/duende-oro.jpg", dmg:1.1, hp:5, atk:{corta:3,media:4,larga:3}, dots:{N:"media",E:"media",O:"corta"}, pet:"brote", gear:"yelmo", fusesTo:"steve-holo" },
+      { id:"steve-holo", deck:"minas", name:"Steve Holo", rare:"ultra", syn:"luz", role:"holo", img:"cards/orohoja-holo.jpg", dmg:1.3, hp:7, atk:{corta:5,media:6,larga:5}, dots:{N:"media",E:"media",O:"corta"}, evo:true, holo:true },
+      { id:"end", deck:"minas", name:"Ender", rare:"ultra", syn:"noche", role:"portal", img:"cards/duende-noche.jpg", dmg:1.1, hp:4, atk:{corta:2,media:3,larga:6}, dots:{N:"larga",NO:"media",O:"larga"}, pet:"gota", fusesTo:"end-holo" },
+      { id:"end-holo", deck:"minas", name:"Ender Holo", rare:"ultra", syn:"noche", role:"holo", img:"cards/sombralin-holo.jpg", dmg:1.3, hp:6, atk:{corta:4,media:5,larga:8}, dots:{N:"larga",NO:"media",O:"larga"}, evo:true, holo:true }
     ];
 
     const heroImg = {};
@@ -692,8 +792,84 @@
         renderAds(); refreshHome();
       });
     }
+    function renderMine(){
+      const bagEl = document.getElementById("oreBag");
+      bagEl.innerHTML = ORES.map(o => `<div>${o.ico}<b>${oreOf(o.id)}</b>${o.name}</div>`).join("");
+      const gb = gearBonus();
+      document.getElementById("mineBonus").textContent = "Bonus forja: +" + gb.hp + " HP · +" + gb.corta + " C · +" + gb.media + " M · +" + gb.larga + " L";
+      document.getElementById("veins").innerHTML = VEINS.map(v =>
+        `<div class="vein" data-vein="${v.id}"><b>${v.name}</b><small>${v.cost} energía · ${v.chance}% · ${v.min}-${v.max} ${v.ore}</small></div>`
+      ).join("");
+      document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => doMine(el.getAttribute("data-vein")));
+      const forge = document.getElementById("forge");
+      const w = wear();
+      forge.innerHTML = GEAR.map(g => {
+        const have = ownsGear(g.id);
+        const on = w[g.slot]===g.id;
+        const cost = Object.keys(g.need).map(k => k+" "+g.need[k]).join(" · ");
+        const bon = Object.keys(g.bonus).map(k => "+"+g.bonus[k]+" "+k).join(" ");
+        return `<div class="craft"><b>${g.name}</b><div class="muted">${cost}<br>${bon}${have?(on?" · EQUIPADO":" · listo"):""}</div>
+          <button class="main" data-craft="${g.id}">${have?(on?"QUITAR":"EQUIPAR"):"FORJAR"}</button></div>`;
+      }).join("");
+      forge.querySelectorAll("[data-craft]").forEach(b => b.onclick = () => doCraft(b.getAttribute("data-craft")));
+      const nest = document.getElementById("nest");
+      nest.innerHTML = EGGS.map(e => {
+        const n = eggOf(e.id);
+        return `<div class="craft"><b>${e.ico} ${e.name}</b><div class="muted">${n}/3 · eclosiona ${e.pet}</div>
+          <button class="main" data-hatch="${e.id}" ${n<3?"disabled":""}>ECLOSIONAR</button></div>`;
+      }).join("");
+      nest.querySelectorAll("[data-hatch]").forEach(b => b.onclick = () => doHatch(b.getAttribute("data-hatch")));
+    }
+    function doMine(id){
+      const v = VEINS.find(x => x.id===id);
+      const msg = document.getElementById("mineMsg");
+      if (!v) return;
+      const en = getEnergy();
+      if (en < v.cost) { msg.textContent = "Sin energía ("+en+")"; return; }
+      for (let i=0;i<v.cost;i++) spendEnergy();
+      if (Math.random()*100 > v.chance) {
+        msg.textContent = "Pico roto. Nada esta vez.";
+        renderMine(); refreshHome(); return;
+      }
+      const n = v.min + Math.floor(Math.random()*(v.max-v.min+1));
+      addOre(v.ore, n);
+      let extra = "";
+      if (Math.random()*100 < v.egg) {
+        const eg = EGGS[Math.floor(Math.random()*EGGS.length)];
+        addEgg(eg.id);
+        extra = " · "+eg.ico+" huevo "+eg.id;
+      }
+      msg.textContent = "+"+n+" "+v.ore+extra;
+      try{sfx("pack");}catch(e){}
+      renderMine(); refreshHome();
+    }
+    function doCraft(id){
+      const g = GEAR.find(x => x.id===id);
+      const msg = document.getElementById("mineMsg");
+      if (!ownsGear(id)) {
+        if (!takeOre(g.need)) { msg.textContent = "Faltan materiales"; renderMine(); return; }
+        localStorage.setItem("pg_g_"+id,"1");
+        msg.textContent = "Forjado: "+g.name;
+      }
+      const w = wear();
+      if (w[g.slot]===id) delete w[g.slot];
+      else w[g.slot]=id;
+      saveWear(w);
+      renderMine();
+    }
+    function doHatch(id){
+      const e = EGGS.find(x => x.id===id);
+      const bagE = eggs();
+      if ((bagE[id]||0) < 3) return;
+      bagE[id]-=3; saveEggs(bagE);
+      const note = addDust(e.pet);
+      document.getElementById("mineMsg").textContent = "Nació "+e.pet+" · "+note;
+      try{sfx("pack");}catch(e){}
+      renderMine(); renderGrid();
+    }
+
     function showTab(name) {
-      ["home","pick","wallet","arena","packs","mercado","duel","ads"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -704,6 +880,7 @@
       if (name === "pick") renderGrid();
       if (name === "mercado") { renderRank(); renderMarket(); }
       if (name === "ads") renderAds();
+      if (name === "mine") renderMine();
       if (name === "wallet") {
         document.getElementById("walPend").textContent = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walletIn").value = localStorage.getItem("pg_wallet")||"";
@@ -1033,8 +1210,9 @@
       document.getElementById("zoomImg").src = h.img;
       document.getElementById("zoomName").textContent = h.name;
       document.getElementById("zoomRank").textContent = (RANKS[r]||"Bronce") + " · " + dustOf(h.id) + "/3 · " + h.role;
+      const gb = gearBonus();
       document.getElementById("zoomStats").innerHTML =
-        "Vida <b>"+hp+"</b><br>Corta <b>"+st.corta+"</b> · Media <b>"+st.media+"</b> · Larga <b>"+(st.larga===11?"S":st.larga)+"</b>";
+        "Vida <b>"+hp+"</b>"+(gb.hp?" <small>+"+gb.hp+" forja</small>":"")+"<br>Corta <b>"+st.corta+"</b>"+(gb.corta?" +"+gb.corta:"")+" · Media <b>"+st.media+"</b>"+(gb.media?" +"+gb.media:"")+" · Larga <b>"+(st.larga===11?"S":st.larga)+"</b>"+(gb.larga?" +"+gb.larga:"")+(h.pet?"<br>Mascota: "+h.pet:"");
       document.getElementById("zoomCard").style.borderColor = FRAME[r]||FRAME[0];
       document.getElementById("zoom").style.display = "flex";
     }
@@ -1518,6 +1696,8 @@
       document.getElementById("duelMsg").textContent = "Carta de vuelta al mazo.";
       renderDuelPick(); renderBoard();
     };
+    document.getElementById("mineBtn").onclick = () => { showTab("mine"); try{sfx("menu");}catch(e){} };
+    document.getElementById("mineBack").onclick = () => showTab("pick");
     document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Tienes 12s: 1 carta y ataca."; };
     document.getElementById("duelEndOk").onclick = () => {
       document.getElementById("duelEnd").style.display="none";
