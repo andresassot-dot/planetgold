@@ -247,7 +247,11 @@
   </div>
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
-    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno. Rival empieza con 3. 3 caídas o 12 turnos.</p>
+    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · 12 s · rival pega después</p>
+    <div id="turnClock" style="margin:6px 10px 8px;background:#12141c;border:1px solid #d4af37;border-radius:10px;overflow:hidden;height:22px;position:relative">
+      <i id="turnBar" style="display:block;height:100%;width:100%;background:linear-gradient(90deg,#d4af37,#ffe08a);width:100%"></i>
+      <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0b1020">Tu turno 12s</b>
+    </div>
     <div id="fxEn" class="fxrow"></div>
     <div id="board66" class="b66" style="position:relative"></div>
     <div id="fxMe" class="fxrow"></div>
@@ -965,6 +969,24 @@
     let selectedCard = null;
     let myHand = [];
     let placedTurn = false;
+    let turnWho = "me";
+    let turnSec = 12;
+    let turnT = null;
+    function setClock(who, sec) {
+      turnWho = who; turnSec = sec;
+      const bar = document.getElementById("turnBar");
+      const txt = document.getElementById("turnTxt");
+      if (bar) { bar.style.width = Math.max(0, sec/12*100)+"%"; bar.style.background = who==="me" ? "linear-gradient(90deg,#d4af37,#ffe08a)" : "linear-gradient(90deg,#c0392b,#ff7675)"; }
+      if (txt) { txt.textContent = (who==="me"?"Tu turno ":"Rival ")+sec+"s"; txt.style.color = who==="me"?"#0b1020":"#fff"; }
+    }
+    function stopClock(){ if (turnT) { clearInterval(turnT); turnT=null; } }
+    function startMyClock(){
+      stopClock(); placedTurn=false; setClock("me",12);
+      turnT = setInterval(() => {
+        turnSec--; setClock("me", Math.max(0,turnSec));
+        if (turnSec<=0) { stopClock(); enemyTurn(); }
+      }, 1000);
+    }
     let selectedIdx = null;
     let targets = {};
     let falls = { me:0, en:0 };
@@ -1111,38 +1133,44 @@
       }
     }
     function enemyTurn() {
+      stopClock();
+      setClock("en", 3);
       placedTurn = false;
-      if (checkEnded()) return;
-      const ens = [];
-      board.forEach((u,i)=>{ if(u&&u.who==="en") ens.push(i); });
-      const atks = [];
-      ens.forEach(i => {
-        const tg = targetsOf(i);
-        Object.keys(tg).forEach(k => {
-          const j = Number(k);
-          if (board[j] && board[j].who==="me") atks.push({from:i,to:j,hit:tg[j]});
-        });
-      });
-      if (!atks.length) {
-        const mes = [];
-        board.forEach((u,i)=>{ if(u&&u.who==="me") mes.push(i); });
-        if (ens.length && mes.length) {
-          const from = ens[0], to = mes[0];
-          atks.push({ from, to, hit:{ dir:"S", kind:"media", dmg:4 } });
+      try {
+        const ens = []; const mes = [];
+        board.forEach((u,i)=>{ if(!u) return; if(u.who==="en") ens.push(i); if(u.who==="me") mes.push(i); });
+        document.getElementById("duelMsg").textContent = "Turno del rival…";
+        if (!mes.length) {
+          document.getElementById("duelMsg").textContent = "Rival espera. Pon una carta.";
+          startMyClock();
+          return;
         }
-      }
-      if (atks.length) {
-        const a = atks[Math.floor(Math.random()*atks.length)];
+        if (!ens.length) {
+          document.getElementById("duelMsg").textContent = "Sin rival en mesa.";
+          startMyClock();
+          return;
+        }
+        let from = ens[0], to = mes[0], dmg = 4;
+        const atks = [];
+        ens.forEach(i => {
+          const tg = targetsOf(i);
+          Object.keys(tg).forEach(k => {
+            const j = Number(k);
+            if (board[j] && board[j].who==="me") atks.push({from:i,to:j,dmg:tg[j].dmg||4});
+          });
+        });
+        if (atks.length) { from=atks[0].from; to=atks[0].to; dmg=atks[0].dmg; }
         sfx("ray");
-        applyHit(a.from, a.to, a.hit, "en");
-        document.getElementById("duelMsg").textContent = "Rival ataca −"+a.hit.dmg;
-      } else {
-        document.getElementById("duelMsg").textContent = "Rival no tiene a quién pegar. Coloca tú.";
+        applyHit(from, to, {kind:"media", dmg:dmg}, "en");
+        const left = board[to] ? board[to].hp : 0;
+        document.getElementById("duelMsg").textContent = "RIVAL ATACA −"+dmg+(left>0?" · te quedan "+left:" · CAE");
+        turnN++;
+        tickFx();
+        renderBoard(); renderFx();
+      } catch(e) {
+        document.getElementById("duelMsg").textContent = "Rival ataca (error "+(e.message||e)+")";
       }
-      turnN++;
-      tickFx();
-      renderBoard(); renderFx();
-      checkEnded();
+      if (!checkEnded()) setTimeout(startMyClock, 900);
     }
     function spawnAI() {
       const pool = HEROES.filter(h=>h.id!=="rocaverde");
@@ -1231,9 +1259,8 @@
             }
             selectedCard = null; selectedIdx = null; targets = {};
             const z = document.getElementById("duelFloat"); if (z) z.style.display="none";
-            document.getElementById("duelMsg").textContent = h.name + " en mesa.";
+            document.getElementById("duelMsg").textContent = h.name + " en mesa. Ataca o espera el reloj.";
             renderBoard(); renderDuelPick();
-            setTimeout(enemyTurn, 450);
             return;
           }
           if (targets[i] && board[i] && board[i].who==="en") {
@@ -1316,7 +1343,7 @@
       document.getElementById("duelMsg").textContent = "Carta de vuelta al mazo.";
       renderDuelPick(); renderBoard();
     };
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Tienes 12s: 1 carta y ataca."; };
     document.getElementById("duelEndOk").onclick = () => {
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false;
@@ -1327,8 +1354,8 @@
       board = Array(36).fill(null); dealHand(); placedTurn=false; spawnAI();
       selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1;
       fxMe=[]; fxEn=[]; selectedFx=null;
-      document.getElementById("duelMsg").textContent = "Rival colocado. Carta, ataque o efecto.";
-      renderFx(); renderBoard(); renderDuelPick(); renderFxPick();
+      document.getElementById("duelMsg").textContent = "Tienes 12s: 1 carta y ataca.";
+      renderFx(); renderBoard(); renderDuelPick(); renderFxPick(); startMyClock();
     };
     document.getElementById("duelNext").onclick = () => { turnN++; document.getElementById("duelMsg").textContent = "Turno " + turnN + "/12"; };
 
