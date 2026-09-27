@@ -318,18 +318,50 @@
   </nav>
   <script>
 
+    let introAud;
+    function playIntro() {
+      try {
+        introAud = new Audio("sfx/intro.ogg");
+        introAud.volume = 0.45;
+        introAud.loop = true;
+        introAud.play().catch(()=>{});
+      } catch(e) {}
+    }
+    playIntro();
     setTimeout(() => {
       const s = document.getElementById("splash");
       if (!s) return;
       try { sfx("pack"); } catch(e) {}
+      if (introAud) { introAud.pause(); introAud.currentTime = 0; }
       s.classList.add("hide");
       setTimeout(() => s.remove(), 500);
     }, 1800);
 
     const tg = window.Telegram && window.Telegram.WebApp;
     let actx;
+    const SFXFILE = {
+      tap: "sfx/click_001.ogg",
+      menu: "sfx/switch_001.ogg",
+      open: "sfx/maximize_004.ogg",
+      close: "sfx/minimize_002.ogg",
+      place: "sfx/drop_002.ogg",
+      ray: "sfx/glass_004.ogg",
+      hit: "sfx/bong_001.ogg",
+      fall: "sfx/error_002.ogg",
+      gol: "sfx/confirmation_002.ogg",
+      save: "sfx/bong_001.ogg",
+      pack: "sfx/confirmation_002.ogg",
+      intro: "sfx/intro.ogg"
+    };
     function sfx(type) {
       try {
+        const src = SFXFILE[type];
+        if (src) {
+          const a = new Audio(src);
+          a.volume = 0.55;
+          a.play().catch(()=>{});
+          return;
+        }
         actx = actx || new (window.AudioContext||window.webkitAudioContext)();
         if (actx.state === "suspended") actx.resume();
         const o = actx.createOscillator();
@@ -364,7 +396,7 @@
       const master = actx.createGain();
       master.gain.value = 0.035;
       master.connect(actx.destination);
-      const notes = [196, 246.9, 293.7, 329.6, 392, 329.6, 293.7, 246.9];
+      const notes = [196, 220, 261.6, 293.7, 311.1, 261.6, 233.1, 196];
       notes.forEach((f,i) => {
         const o = actx.createOscillator();
         const g = actx.createGain();
@@ -506,7 +538,7 @@
       }
     }
     document.querySelectorAll("[data-tab]").forEach(el => {
-      el.addEventListener("click", () => showTab(el.getAttribute("data-tab")));
+      el.addEventListener("click", () => { sfx("menu"); showTab(el.getAttribute("data-tab")); });
     });
 
     async function loadTicker() {
