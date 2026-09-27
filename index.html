@@ -240,6 +240,11 @@
     <img id="duelZoomImg" alt="" style="width:150px;height:178px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 12px 40px rgba(0,0,0,.75)" />
     <div id="duelZoomTxt" style="margin-top:6px;font-size:12px;color:#ffe08a;text-shadow:0 2px 6px #000;line-height:1.35"></div>
   </div>
+  <div id="duelEnd" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(8,10,18,.86);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px">
+    <h1 id="duelEndTitle" style="color:#ffe08a;font-size:28px;margin:0 0 8px">Fin</h1>
+    <p id="duelEndTxt" class="muted"></p>
+    <button class="main" id="duelEndOk" style="max-width:240px">SEGUIR</button>
+  </div>
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
     <p class="muted" style="text-align:center;margin:6px 0">3 caídas o más vida a 12 turnos. Efectos en los 5 huecos.</p>
@@ -1031,12 +1036,19 @@
       if (r<0||r>5||c<0||c>5) return -1;
       return r*6+c;
     }
+    const DIRFLIP = {N:"S",S:"N",NE:"SE",SE:"NE",NO:"SO",SO:"NO",E:"E",O:"O"};
+    let duelBusy = false;
     function targetsOf(i) {
       const u = board[i]; if (!u) return {};
       const st = statsOf(u.id);
-      const dots = Array.isArray(st.dots)
+      let dots = Array.isArray(st.dots)
         ? { N:"corta", NE:"media", NO:"media", O:"larga" }
-        : st.dots;
+        : (st.dots || {N:"corta"});
+      if (u.who === "en") {
+        const f = {};
+        Object.keys(dots).forEach(d => { f[DIRFLIP[d]||d] = dots[d]; });
+        dots = f;
+      }
       const out = {};
       Object.keys(dots).forEach(dir => {
         const kind = dots[dir];
@@ -1049,6 +1061,87 @@
       });
       return out;
     }
+    function endDuel(win, why) {
+      duelBusy = true;
+      const pts = Number(localStorage.getItem("pg_pts")||0);
+      const pend = Number(localStorage.getItem("pg_pend")||0);
+      const addPts = win ? 80 : 20;
+      const addPend = win ? 1 : 0;
+      localStorage.setItem("pg_pts", pts + addPts);
+      localStorage.setItem("pg_pend", pend + addPend);
+      try { refreshHome(); } catch(e) {}
+      const box = document.getElementById("duelEnd");
+      document.getElementById("duelEndTitle").textContent = win ? "HAS GANADO" : "HAS PERDIDO";
+      document.getElementById("duelEndTxt").textContent = why + " · +" + addPts + " pts" + (addPend ? " · +"+addPend+" tgold" : "");
+      box.style.display = "flex";
+      sfx(win ? "goal" : "fall");
+    }
+    function checkEnded() {
+      if (falls.en >= 3) { endDuel(true, "3 cartas rivales caídas"); return true; }
+      if (falls.me >= 3) { endDuel(false, "3 de las tuyas caídas"); return true; }
+      if (turnN > 12) {
+        const me = board.filter(u=>u&&u.who==="me").reduce((a,u)=>a+(u.hp||0),0);
+        const en = board.filter(u=>u&&u.who==="en").reduce((a,u)=>a+(u.hp||0),0);
+        endDuel(me>=en, "Fin de turnos "+me+"-"+en+" vida");
+        return true;
+      }
+      return false;
+    }
+    function applyHit(from, to, hit, whoAtk) {
+      if (!board[to]) return;
+      fireBeam(from, to, hit.kind);
+      board[to].hp -= hit.dmg;
+      const dead = board[to].hp <= 0;
+      const cell = document.getElementById("board66").children[to];
+      if (cell) {
+        const f = document.createElement("div");
+        f.className = "floater"; f.textContent = "-"+hit.dmg;
+        cell.appendChild(f);
+        if (dead) cell.classList.add("fall");
+      }
+      sfx(dead?"fall":"hit");
+      if (dead) {
+        const victim = board[to].who;
+        board[to] = null;
+        if (victim==="en") falls.en++; else falls.me++;
+      }
+    }
+    function enemyTurn() {
+      if (checkEnded()) return;
+      const ens = [];
+      board.forEach((u,i)=>{ if(u&&u.who==="en") ens.push(i); });
+      const atks = [];
+      ens.forEach(i => {
+        const tg = targetsOf(i);
+        Object.keys(tg).forEach(k => {
+          const j = Number(k);
+          if (board[j] && board[j].who==="me") atks.push({from:i,to:j,hit:tg[j]});
+        });
+      });
+      if (atks.length) {
+        const a = atks[Math.floor(Math.random()*atks.length)];
+        sfx("ray");
+        applyHit(a.from, a.to, a.hit, "en");
+        document.getElementById("duelMsg").textContent = "Rival ataca "+a.hit.kind+" "+a.hit.dmg;
+      } else {
+        const empty = [];
+        for (let i=0;i<18;i++) if (!board[i]) empty.push(i);
+        if (empty.length) {
+          const i = empty[Math.floor(Math.random()*empty.length)];
+          const h = HEROES[Math.floor(Math.random()*HEROES.length)];
+          const st = statsOf(h.id);
+          board[i] = { id:h.id, img:h.img, hp:st.hp, who:"en" };
+          sfx("place");
+          document.getElementById("duelMsg").textContent = "Rival coloca "+h.name;
+        } else {
+          document.getElementById("duelMsg").textContent = "Rival pasa.";
+        }
+      }
+      turnN++;
+      tickFx();
+      renderBoard(); renderFx();
+      checkEnded();
+    }
     function spawnAI() {
       const pool = HEROES.filter(h=>h.id!=="rocaverde");
       let spots = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17];
@@ -1059,17 +1152,7 @@
         board[i] = { id:h.id, img:h.img, hp:st.hp, who:"en" };
       }
     }
-    function checkWin() {
-      if (falls.en >= 3) { document.getElementById("duelMsg").textContent = "GANAS · 3 caídas"; return true; }
-      if (falls.me >= 3) { document.getElementById("duelMsg").textContent = "PIERDES · 3 caídas"; return true; }
-      if (turnN > 12) {
-        const me = board.filter(u=>u&&u.who==="me").reduce((a,u)=>a+u.hp,0);
-        const en = board.filter(u=>u&&u.who==="en").reduce((a,u)=>a+u.hp,0);
-        document.getElementById("duelMsg").textContent = me>=en ? "GANAS por vida "+me+"-"+en : "PIERDES por vida "+me+"-"+en;
-        return true;
-      }
-      return false;
-    }
+    function checkWin() { return checkEnded(); }
     function fireBeam(from, to, kind) {
       const box = document.getElementById("board66");
       const a = box.children[from]; const b = box.children[to];
@@ -1119,7 +1202,8 @@
           d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span><div class="hpbar${u.hp<=3?" low":""}"><i style="width:${pct}%"></i></div>`;
         }
         d.onclick = () => {
-          if (checkWin() && falls.en>=3) return;
+          if (duelBusy) return;
+          if (document.getElementById("duelEnd").style.display==="flex") return;
           if (selectedFx) {
             if (fxMe.length>=5) { document.getElementById("duelMsg").textContent = "E1–E5 llenos."; return; }
             const fx = FXCARDS.find(x=>x.id===selectedFx);
@@ -1134,10 +1218,17 @@
             const h = HEROES.find(x=>x.id===selectedCard);
             const st = statsOf(h.id);
             sfx("place"); board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" };
+            myHand = myHand.filter(id => id !== h.id);
+            if (myHand.length < 5) {
+              const rest = HEROES.filter(x => !myHand.includes(x.id) && x.id !== h.id);
+              if (rest.length) myHand.push(rest[Math.floor(Math.random()*rest.length)].id);
+            }
             selectedCard = null; selectedIdx = null; targets = {};
             const z = document.getElementById("duelFloat"); if (z) z.style.display="none";
-            document.getElementById("duelMsg").textContent = h.name + " en mesa. Tócala para atacar.";
-            renderBoard(); renderDuelPick(); return;
+            document.getElementById("duelMsg").textContent = h.name + " en mesa.";
+            renderBoard(); renderDuelPick();
+            setTimeout(enemyTurn, 450);
+            return;
           }
           if (targets[i] && board[i] && board[i].who==="en") {
             const hit = targets[i];
@@ -1157,9 +1248,9 @@
             sfx(dead?"fall":"hit"); if (dead && cell) cell.classList.add("fall");
             setTimeout(() => {
               if (dead) { board[to]=null; falls.en++; }
-              selectedIdx = null; targets = {}; turnN++; tickFx();
-              checkWin(); renderBoard(); renderFx();
-              if (!checkWin()) document.getElementById("duelMsg").textContent = txt + " · caídas " + falls.en + "/3 · t"+turnN+"/12";
+              selectedIdx = null; targets = {};
+              renderBoard(); renderFx();
+              if (!checkEnded()) setTimeout(enemyTurn, 380);
             }, dead ? 480 : 280);
             return;
           }
@@ -1219,8 +1310,14 @@
       document.getElementById("duelMsg").textContent = "Carta de vuelta al mazo.";
       renderDuelPick(); renderBoard();
     };
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} board=Array(36).fill(null); dealHand(); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); document.getElementById("duelMsg").textContent="Rival ya está. Coloca y ataca."; };
+    document.getElementById("duelEndOk").onclick = () => {
+      document.getElementById("duelEnd").style.display="none";
+      duelBusy=false;
+      showTab("play");
+    };
     document.getElementById("duelStart").onclick = () => {
+      document.getElementById("duelEnd").style.display="none"; duelBusy=false;
       board = Array(36).fill(null); dealHand(); spawnAI();
       selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1;
       fxMe=[]; fxEn=[]; selectedFx=null;
