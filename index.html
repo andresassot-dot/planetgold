@@ -1017,9 +1017,11 @@
       const pet = HEROES.find(h=>h.id===w.pet);
       document.getElementById("eqNow").innerHTML =
         "<div class='muted'>Equipado ahora</div>"+
-        "<div>Arma: <b>"+(gW?gW.name:"—")+"</b></div>"+
-        "<div>Reliquia: <b>"+(gR?gR.name:"—")+"</b></div>"+
-        "<div>Mascota: <b>"+(pet?pet.name:"—")+"</b></div>";
+        "<div style='display:flex;gap:10px;justify-content:center;align-items:flex-end;margin-top:8px'>"+
+        (gW?`<div style='text-align:center'><img src='${gW.img}' style='height:72px;object-fit:contain' /><div><b>${gW.name}</b></div></div>`:"")+
+        (gR?`<div style='text-align:center'><img src='${gR.img}' style='height:72px;object-fit:contain' /><div><b>${gR.name}</b></div></div>`:"")+
+        (pet?`<div style='text-align:center'><img src='${pet.img}' style='height:72px;object-fit:contain;border-radius:8px' /><div><b>${pet.name}</b></div></div>`:"")+
+        "</div>";
       function gearList(slot, el){
         const items = GEAR.filter(g=>g.slot===slot && ownsGear(g.id));
         el.innerHTML = items.length ? items.map(g=>{
@@ -1027,9 +1029,11 @@
           const n = gearOf(g.id);
           const bon = Object.keys(g.bonus).map(k=>"+"+g.bonus[k]+" "+k).join(" ");
           const canF = g.fusesTo && n>=FUSE_NEED;
-          return `<div class="craft"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · x${n} · ${bon}</div>
+          return `<div class="craft" style="display:flex;gap:10px;align-items:center">
+            <img src="${g.img}" data-see="${g.id}" style="width:64px;height:64px;object-fit:contain;flex-shrink:0" />
+            <div style="flex:1"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · x${n} · ${bon}</div>
             <button class="main" data-wear="${g.id}">${on?"QUITAR":"EQUIPAR"}</button>
-            ${canF?`<button class="main" style="background:#3a2a12;margin-top:6px" data-fuse="${g.id}">FUSIONAR 5 → 1</button>`:""}</div>`;
+            ${canF?`<button class="main" style="background:#3a2a12;margin-top:6px" data-fuse="${g.id}">FUSIONAR 5 → 1</button>`:""}</div></div>`;
         }).join("") : `<p class="muted">Aún no hay. Forja en Minería.</p>`;
         el.querySelectorAll("[data-wear]").forEach(b=>b.onclick=()=>{
           const g = GEAR.find(x=>x.id===b.getAttribute("data-wear"));
@@ -1042,6 +1046,10 @@
           showLoot(note, "5 iguales = 1 del siguiente nivel");
           renderCofre(); renderMine();
         });
+        el.querySelectorAll("[data-see]").forEach(img=>img.onclick=()=>{
+          const g = GEAR.find(x=>x.id===img.getAttribute("data-see"));
+          if (g && typeof openItemZoom==="function") openItemZoom(g.name, g.img, (g.tier||"").toUpperCase()+" · "+Object.keys(g.bonus).map(k=>"+"+g.bonus[k]+" "+k).join(" "));
+        });
       }
       gearList("weapon", document.getElementById("cofArmas"));
       gearList("relic", document.getElementById("cofRelics"));
@@ -1049,8 +1057,10 @@
       const pe = document.getElementById("cofPets");
       pe.innerHTML = pets.length ? pets.map(h=>{
         const on = w.pet===h.id;
-        return `<div class="craft"><b>${h.name}</b><div class="muted">${h.syn} · ${dustOf(h.id)} copias</div>
-          <button class="main" data-pet="${h.id}">${on?"QUITAR":"EQUIPAR"}</button></div>`;
+        return `<div class="craft" style="display:flex;gap:10px;align-items:center">
+          <img src="${h.img}" style="width:64px;height:64px;object-fit:contain;border-radius:8px" />
+          <div style="flex:1"><b>${h.name}</b><div class="muted">${h.syn} · ${dustOf(h.id)} copias</div>
+          <button class="main" data-pet="${h.id}">${on?"QUITAR":"EQUIPAR"}</button></div></div>`;
       }).join("") : `<p class="muted">Eclosiona 3 huevos en Minería.</p>`;
       pe.querySelectorAll("[data-pet]").forEach(b=>b.onclick=()=>{
         const ww = wear();
