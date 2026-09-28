@@ -1433,6 +1433,10 @@
       refreshHome();
     };
 
+    const SEED_PLAYERS = [
+      { id:"blockkchainpro", name:"@blockkchainPro", pts:0, card:"", at:1 },
+      { id:"marcoaurelio", name:"marcoaurelio", pts:0, card:"", at:1 }
+    ];
     function playerName() {
       try {
         const u = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
@@ -1492,8 +1496,9 @@
     function mergeBoard(extra) {
       let board = [];
       try { board = JSON.parse(localStorage.getItem("pg_board")||"[]"); } catch(e) {}
+      if (!board.length) board = SEED_PLAYERS.slice();
       const me = myProfile();
-      const add = [me].concat(extra||[]);
+      const add = SEED_PLAYERS.concat([me]).concat(extra||[]);
       add.forEach(p => {
         if (!p || !(p.id||p.name)) return;
         const k = rankKey(p);
