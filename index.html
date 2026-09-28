@@ -1061,8 +1061,10 @@
         const cost = Object.keys(g.need).map(k => k+" "+g.need[k]).join(" · ");
         const bon = Object.keys(g.bonus).map(k => "+"+g.bonus[k]+" "+k).join(" ");
         const fuse = g.fusesTo ? " · "+n+"/"+FUSE_NEED+" fusión" : "";
-        return `<div class="craft"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · ${cost}<br>${bon} · x${n}${on?" · EQUIPADO":""}${fuse}</div>
-          <button class="main" data-craft="${g.id}">FORJAR</button></div>`;
+        return `<div class="craft" style="display:flex;gap:10px;align-items:center">
+          <img src="${g.img||("cards/item-"+g.id+".png")}" alt="" style="width:56px;height:56px;object-fit:contain;border-radius:10px;background:#0b1020;border:1px solid #d4af37;flex:0 0 56px">
+          <div style="flex:1;min-width:0"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · ${cost}<br>${bon} · x${n}${on?" · EQUIPADO":""}${fuse}</div>
+          <button class="main" data-craft="${g.id}">FORJAR</button></div></div>`;
       }).join("");
       forge.querySelectorAll("[data-craft]").forEach(b => b.onclick = () => doCraft(b.getAttribute("data-craft")));
       const nest = document.getElementById("nest");
