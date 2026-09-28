@@ -34,6 +34,17 @@
     button.main:disabled { opacity: .45; }
     #msg { text-align: center; margin-top: 6px; min-height: 18px; font-size: 13px; color: #ffe08a; }
     canvas { display: block; width: 100%; height: 100%; }
+    #mazo {
+      position: fixed; inset: 0; z-index: 19; background: #0b1020;
+      display: none; flex-direction: column; padding: 12px 12px 78px;
+      overflow: auto;
+    }
+    #mazo.on { display: flex; }
+    .mazoGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .mazoGrid .c { background:#161a26; border:1px solid #3a4258; border-radius:10px; overflow:hidden; text-align:center; }
+    .mazoGrid img { width:100%; height:92px; object-fit:cover; object-position:top; display:block; }
+    .mazoGrid b { display:block; font-size:11px; color:#ffe08a; padding:4px 4px 0; }
+    .mazoGrid span { display:block; font-size:10px; color:#9aa4b8; padding:0 4px 6px; }
     #pick {
       position: fixed; inset: 0; z-index: 19; background: #0b1020;
       display: none; flex-direction: column; padding: 16px 12px 20px;
@@ -86,6 +97,17 @@
       overflow: auto;
     }
     #home.on, #wallet.on, #pick.on { display: flex; }
+    #mazo {
+      position: fixed; inset: 0; z-index: 19; background: #0b1020;
+      display: none; flex-direction: column; padding: 12px 12px 78px;
+      overflow: auto;
+    }
+    #mazo.on { display: flex; }
+    .mazoGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .mazoGrid .c { background:#161a26; border:1px solid #3a4258; border-radius:10px; overflow:hidden; text-align:center; }
+    .mazoGrid img { width:100%; height:92px; object-fit:cover; object-position:top; display:block; }
+    .mazoGrid b { display:block; font-size:11px; color:#ffe08a; padding:4px 4px 0; }
+    .mazoGrid span { display:block; font-size:10px; color:#9aa4b8; padding:0 4px 6px; }
     #pick { z-index: 19; padding-bottom: 88px; }
     .heroBan {
       background: linear-gradient(135deg,#1a1408,#2b2110);
@@ -540,9 +562,16 @@
   </div>
 
   </div>
+  <div id="mazo">
+    <h1 style="color:#ffe08a;text-align:center;margin:0 0 6px">Mi mazo</h1>
+    <p class="muted" id="mazoN" style="text-align:center;margin:0 0 8px">Tus cartas</p>
+    <div id="mazoFilt" style="display:flex;gap:6px;overflow:auto;padding:0 0 8px"></div>
+    <div class="mazoGrid" id="mazoGrid"></div>
+  </div>
   <nav id="nav">
     <button data-tab="home" class="on"><svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>Inicio</button>
     <button data-tab="pick"><svg viewBox="0 0 24 24"><path d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v2H6v-2H3v-2h3V9h2v2h3v2zm4.5 2A1.5 1.5 0 1 1 17 13.5 1.5 1.5 0 0 1 15.5 15zm4-3A1.5 1.5 0 1 1 21 10.5 1.5 1.5 0 0 1 19.5 12z"/></svg>Jugar</button>
+    <button data-tab="mazo"><svg viewBox="0 0 24 24"><path d="M7 4h10l2 3H5l2-3zm-2 5h14v11H5V9zm3 2v7h2v-7H8zm6 0v7h2v-7h-2z"/></svg>Mazo</button>
     <button data-tab="ads"><svg viewBox="0 0 24 24"><path d="M4 9H2v6h2l5 3V6L4 9zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.7c.92-.82 1.5-2.02 1.5-3.35zM14 5.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>Ads</button>
     <button data-tab="mercado"><svg viewBox="0 0 24 24"><path d="M5 9.2h3.2V19H5V9.2zm5.4-4.2H14V19h-3.6V5zm5.4 8H22V19h-3.6v-6z"/></svg>Mercado</button>
     <button data-tab="wallet"><svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-1.2 7.2a1.3 1.3 0 1 1 1.3-1.3 1.3 1.3 0 0 1-1.3 1.3zM4 4h15v2H4z"/></svg>Wallet</button>
@@ -1222,8 +1251,33 @@
       });
     }
 
+    
+    let mazoFilt = "todas";
+    function renderMazo(){
+      const decks = ["todas","futbol","magos","duendes","reyes","minecraft","monturas","holo"];
+      const bar = document.getElementById("mazoFilt");
+      if (bar) bar.innerHTML = decks.map(d => `<button class="main" style="padding:6px 10px;font-size:11px;margin:0;background:${mazoFilt===d?"#d4af37":"#2a3146"};color:${mazoFilt===d?"#1a1200":"#ffe08a"}" data-mf="${d}">${d}</button>`).join("");
+      if (bar) bar.querySelectorAll("[data-mf]").forEach(b => b.onclick = () => { mazoFilt=b.getAttribute("data-mf"); renderMazo(); });
+      const list = HEROES.filter(h => {
+        const n = (typeof dustOf==="function"?dustOf(h.id):0) + (typeof rankOf==="function"?rankOf(h.id):0);
+        if (n<=0) return false;
+        if (mazoFilt==="todas") return true;
+        if (mazoFilt==="holo") return !!(h.holo || (h.rare||"").includes("holo") || (h.id||"").includes("-holo"));
+        return (h.deck||"")===mazoFilt || (h.deck==="mascotas" && mazoFilt==="monturas");
+      });
+      const nEl=document.getElementById("mazoN");
+      if (nEl) nEl.textContent = list.length + " cartas tuyas";
+      const box=document.getElementById("mazoGrid");
+      if (!box) return;
+      if (!list.length) { box.innerHTML = '<p class="muted" style="grid-column:1/-1;text-align:center">Aún no tienes cartas. Abre sobres o gana duelos.</p>'; return; }
+      box.innerHTML = list.map(h => {
+        const n = (dustOf(h.id)||0) + (rankOf(h.id)||0);
+        return `<div class="c"><img src="${h.img}" alt=""><b>${h.name||h.id}</b><span>x${n} · ${h.rare||"normal"}</span></div>`;
+      }).join("");
+    }
+
     function showTab(name) {
-      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -1234,6 +1288,7 @@
       if (name === "pick") renderGrid();
       if (name === "mercado") { renderRank(); renderMarket(); }
       if (name === "ads") renderAds();
+      if (name === "mazo") renderMazo();
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
       if (name === "wallet") {
