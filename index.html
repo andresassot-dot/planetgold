@@ -169,6 +169,9 @@
     .cell.red { border:2px solid #ff4d4d; box-shadow:0 0 8px rgba(255,77,77,.55); }
     .cell.tgt { box-shadow: inset 0 0 0 2px #ffb000; }
     .cell.place { box-shadow: inset 0 0 0 2px #3b9eff; background:#16324d; }
+    .cell.ghost { box-shadow: inset 0 0 0 3px #ffe08a; background:#2a2410; }
+    .cell.atkPrev { box-shadow: inset 0 0 0 3px #ff4d4d; background:#4a1414; }
+    .cell.atkPrev::after { content:""; position:absolute; inset:0; background:rgba(255,50,50,.38); pointer-events:none; }
     .cell.hit::after { content:''; position:absolute; inset:0; border:3px solid #ffe08a; box-shadow:inset 0 0 0 2px #fff; border-radius:6px; pointer-events:none; }
     .b66 { perspective: 700px; }
     .cell.fall, .cell.flip { animation: flipCard .55s ease; transform-style: preserve-3d; }
@@ -1932,6 +1935,7 @@
       }, 1000);
     }
     let selectedIdx = null;
+    let previewIdx = null;
     let targets = {};
     let falls = { me:0, en:0 };
     let turnN = 1;
@@ -2119,6 +2123,17 @@
       sfx("hit");
       return false;
     }
+    function previewHits(i) {
+      if (!selectedCard || board[i]) return {};
+      const h = HEROES.find(x=>x.id===selectedCard);
+      if (!h) return {};
+      const st = statsOf(h.id);
+      const saved = board[i];
+      board[i] = { id:h.id, img:h.img, hp:st.hp, who:"me" };
+      const hits = parley ? {} : targetsOf(i);
+      board[i] = saved;
+      return hits;
+    }
     function resolvePlace(from) {
       if (parley) return 0;
       const hits = targetsOf(from);
@@ -2246,14 +2261,17 @@
     function renderBoard() {
       const box = document.getElementById("board66");
       box.innerHTML = "";
+      const prevMap = (previewIdx!=null && selectedCard) ? previewHits(previewIdx) : {};
       for (let i=0;i<36;i++) {
         const row = Math.floor(i/6);
         const d = document.createElement("div");
         const u = board[i];
         const mineN = board.filter(x=>x&&x.who==='me').length;
-        const canPlace = selectedCard && row>=3 && !u && !placedTurn && mineN<5;
+        const canPlace = selectedCard && !u && !placedTurn && !(parley && row<3);
         const flipping = u && u.flipAt && (Date.now()-u.flipAt<700);
-        d.className = "cell" + (row>=3?" mine":"") + (u && u.who==="me"?" blue":"") + (u && u.who==="en"?" red":"") + (targets[i]?" tgt":"") + (canPlace?" place":"") + (flipping?" flip":"");
+        const isGhost = previewIdx===i && selectedCard && !u;
+        const isAtk = !!prevMap[i];
+        d.className = "cell" + (row>=3?" mine":"") + (u && u.who==="me"?" blue":"") + (u && u.who==="en"?" red":"") + (targets[i]?" tgt":"") + (canPlace?" place":"") + (flipping?" flip":"") + (isGhost?" ghost":"") + (isAtk?" atkPrev":"");
         if (u) {
           const max = (statsOf(u.id).hp)||7;
           const pct = Math.max(4, Math.round(u.hp/max*100));
@@ -2261,6 +2279,9 @@
           const synOn = synBonus(u.who).names.includes(hh.syn);
           if (synOn) d.classList.add("synGlow");
           d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span><div class="hpbar${u.hp<=3?" low":""}"><i style="width:${pct}%"></i></div>`;
+        } else if (isGhost) {
+          const hh = HEROES.find(x=>x.id===selectedCard);
+          if (hh) d.innerHTML = `<img src="${hh.img}" alt="" style="opacity:.55">`;
         }
         d.onclick = () => {
           if (duelBusy) return;
@@ -2277,6 +2298,17 @@
             if (placedTurn) { document.getElementById("duelMsg").textContent = "Ya colocaste este turno."; return; }
             if (parley && row < 3) { document.getElementById("duelMsg").textContent = "Parlamento: solo tu mitad (abajo)."; return; }
             if (board[i]) { document.getElementById("duelMsg").textContent = "Casilla ocupada."; return; }
+            if (previewIdx !== i) {
+              previewIdx = i;
+              const hits = previewHits(i);
+              const n = Object.keys(hits).length;
+              document.getElementById("duelMsg").textContent = n
+                ? ("Vista: atacaría "+n+" · toca otra vez para confirmar")
+                : (parley ? "Parlamento: toca otra vez para poner" : "Vista: no alcanza a nadie · toca otra vez para poner");
+              renderBoard();
+              return;
+            }
+            previewIdx = null;
             const h = HEROES.find(x=>x.id===selectedCard);
             const st = statsOf(h.id);
             sfx("place"); board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" }; placedTurn = true;
@@ -2286,7 +2318,7 @@
               if (rest.length) myHand.push(rest[Math.floor(Math.random()*rest.length)].id);
               else if (ownedCards().length) myHand.push(ownedCards()[Math.floor(Math.random()*ownedCards().length)].id);
             }
-            selectedCard = null; selectedIdx = null; targets = {};
+            selectedCard = null; selectedIdx = null; previewIdx = null; targets = {};
             const z = document.getElementById("duelFloat"); if (z) z.style.display="none";
             const flips = resolvePlace(i);
             document.getElementById("duelMsg").textContent = parley
@@ -2364,7 +2396,7 @@
       };
       box.querySelectorAll(".card").forEach(el => el.onclick = () => {
         selectedCard = el.getAttribute("data-id");
-        selectedFx = null; targets = {};
+        selectedFx = null; targets = {}; previewIdx = null;
         const h = HEROES.find(x=>x.id===selectedCard)||{};
         const z = document.getElementById("duelFloat");
         const zi = document.getElementById("duelZoomImg");
@@ -2424,7 +2456,7 @@
     document.getElementById("duelStart").onclick = () => {
       document.getElementById("duelEnd").style.display="none"; duelBusy=false;
       board = Array(36).fill(null); dealHand(); placedTurn=false; spawnAI();
-      selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1; parley = true;
+      selectedCard = null; selectedIdx=null; previewIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1; parley = true;
       fxMe=[]; fxEn=[]; selectedFx=null;
       document.getElementById("duelMsg").textContent = "Tienes 12s: 1 carta y ataca.";
       renderFx(); renderBoard(); renderDuelPick(); renderFxPick(); startMyClock();
