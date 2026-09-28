@@ -1433,11 +1433,18 @@
       return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
     }
     function addXp(n){
-      const xp = Number(localStorage.getItem("pg_xp")||0) + (n||0);
-      localStorage.setItem("pg_xp", xp);
+      let xp = Number(localStorage.getItem("pg_xp")||0);
+      if (!xp && !localStorage.getItem("pg_xpBoot")) {
+        const pts = Number(localStorage.getItem("pg_pts")||0);
+        xp = Math.floor(pts/80);
+        localStorage.setItem("pg_xpBoot","1");
+      }
+      xp = Math.max(0, xp + (n||0));
+      localStorage.setItem("pg_xp", String(xp));
       return xp;
     }
     function levelOf(){
+      addXp(0);
       const xp = Number(localStorage.getItem("pg_xp")||0);
       const lv = Math.floor(xp/150)+1;
       const into = xp % 150;
@@ -1480,13 +1487,26 @@
     
     window.claimDailyNow = function(){
       try {
-        const r = claimDaily();
+        let r = claimDaily();
+        if (!r && localStorage.getItem("pg_loginDay")===todayKey() && !localStorage.getItem("pg_dailyXp")) {
+          addXp(25);
+          localStorage.setItem("pg_dailyXp", todayKey());
+          r = { st: Number(localStorage.getItem("pg_streak")||1), extra:"", pts:0, late:true };
+        }
+        if (r && !localStorage.getItem("pg_dailyXp")) localStorage.setItem("pg_dailyXp", todayKey());
         const sEl=document.getElementById("homeStreak");
         if (!r){
-          if (sEl) sEl.textContent="Ya cobraste el bonus de hoy";
-          return;
+          if (sEl) sEl.textContent="Ya cobraste el bonus de hoy · racha "+(localStorage.getItem("pg_streak")||0);
+        } else if (sEl) {
+          sEl.textContent = r.late ? ("XP del bonus sumados · racha "+r.st) : ("Día "+r.st+": +"+r.pts+" pts +1 energía +25 XP"+(r.extra||""));
         }
-        if (sEl) sEl.textContent="Día "+r.st+": +"+r.pts+" pts +1 energía +25 XP"+(r.extra||"");
+        const L=levelOf();
+        const lv=document.getElementById("homeLv");
+        const xp=document.getElementById("homeXp");
+        const bar=document.getElementById("homeXpBar");
+        if (lv) lv.textContent=L.lv;
+        if (xp) xp.textContent=L.into+"/"+L.need+" XP";
+        if (bar) bar.style.width=Math.min(100, Math.round(L.into/L.need*100))+"%";
         try { refreshHome(); } catch(e) {}
       } catch(e) {
         const sEl=document.getElementById("homeStreak");
