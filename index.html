@@ -275,6 +275,11 @@
     #guideDots i.on { background:#d4af37; }
     #guideBtns { display:flex; gap:8px; }
     #guideBtns button { flex:1; }
+
+    .xpwrap { margin-top:10px; }
+    .xpbar { height:8px; background:#1a2030; border-radius:8px; overflow:hidden; border:1px solid #3a4258; }
+    .xpbar i { display:block; height:100%; background:linear-gradient(90deg,#8a6a12,#ffe08a); width:0; }
+    .dailyok { opacity:.55; }
   </style>
 </head>
 <body>
@@ -312,6 +317,11 @@
       </div>
       <h2>PLANET GOLD</h2>
       <div class="big" id="homePts">0 pts</div>
+      <div class="muted">Nivel <b id="homeLv">1</b> · <span id="homeXp">0/150 XP</span></div>
+      <div class="xpwrap"><div class="xpbar"><i id="homeXpBar"></i></div></div>
+      <div class="muted" id="homeStreak" style="margin-top:6px">Racha 0 días</div>
+      <div class="muted" id="homeNear" style="margin-top:4px"></div>
+      <button class="main" id="dailyBtn" type="button" style="margin-top:8px;padding:8px;font-size:13px">BONUS DEL DÍA</button>
       <div class="muted">tgold en juego: <b id="homePend">0</b></div>
       <button class="main" id="swapBtn" style="margin-top:10px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
       <button class="main" id="guideBtn" type="button" onclick="openGuide(true)" style="margin-top:8px;padding:8px;font-size:13px">CÓMO JUGAR</button>
@@ -396,7 +406,8 @@
     <img id="duelEndImg" alt="" style="width:160px;height:200px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 10px 30px #000;margin:8px 0;background:#111" />
     <p id="duelEndName" style="color:#ffe08a;font-weight:800;margin:0 0 6px"></p>
     <p id="duelEndTxt" class="muted"></p>
-    <button class="main" id="duelEndOk" style="max-width:240px">SEGUIR</button>
+    <button class="main" id="duelEndAgain" style="max-width:240px">OTRA PARTIDA</button>
+    <button class="main" id="duelEndOk" style="max-width:240px;background:#2a3146;color:#ffe08a">SALIR</button>
   </div>
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
@@ -1303,7 +1314,7 @@
       if (!list.length) { box.innerHTML = '<p class="muted" style="grid-column:1/-1;text-align:center">Aún no tienes cartas. Abre sobres o gana duelos.</p>'; return; }
       box.innerHTML = list.map(h => {
         const n = (dustOf(h.id)||0) + (rankOf(h.id)||0);
-        return `<div class="c"><img src="${h.img}" alt=""><b>${h.name||h.id}</b><span>x${n} · ${h.rare||"normal"}</span></div>`;
+        return `<div class="c"><img src="${h.img}" alt=""><b>${h.name||h.id}</b><span>x${n}${(h.fusesTo && n<3)?" · "+n+"/3 holo":""} · ${h.rare||"normal"}</span></div>`;
       }).join("");
     }
 
@@ -1410,6 +1421,89 @@
       if (n) n.onclick = () => { if (guideI>=GUIDE.length-1) closeGuide(); else { guideI++; paintGuide(); } };
       if (s) s.onclick = closeGuide;
       if (!localStorage.getItem("pg_guide_ok")) openGuide(true);
+    }
+
+    
+    function todayKey(){
+      const d=new Date();
+      return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    }
+    function ydayKey(){
+      const d=new Date(); d.setDate(d.getDate()-1);
+      return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    }
+    function addXp(n){
+      const xp = Number(localStorage.getItem("pg_xp")||0) + (n||0);
+      localStorage.setItem("pg_xp", xp);
+      return xp;
+    }
+    function levelOf(){
+      const xp = Number(localStorage.getItem("pg_xp")||0);
+      const lv = Math.floor(xp/150)+1;
+      const into = xp % 150;
+      return { xp, lv, into, need:150 };
+    }
+    function nearHolo(){
+      const rows=[];
+      HEROES.forEach(h=>{
+        if (!h.fusesTo) return;
+        const d=dustOf(h.id);
+        if (d>0 && d<3) rows.push({name:h.name||h.id, d});
+      });
+      rows.sort((a,b)=>b.d-a.d);
+      return rows[0]||null;
+    }
+    function claimDaily(force){
+      const day=todayKey();
+      if (!force && localStorage.getItem("pg_loginDay")===day) return null;
+      const last=localStorage.getItem("pg_loginDay");
+      let st=Number(localStorage.getItem("pg_streak")||0);
+      st = (last===ydayKey()) ? st+1 : 1;
+      localStorage.setItem("pg_loginDay", day);
+      localStorage.setItem("pg_streak", String(st));
+      const en=Math.min(5, Number(localStorage.getItem("pg_en")||5)+1);
+      localStorage.setItem("pg_en", en);
+      const pts=Number(localStorage.getItem("pg_pts")||0)+40+st*10;
+      localStorage.setItem("pg_pts", pts);
+      addXp(25);
+      let extra="";
+      if (st%3===0){
+        localStorage.setItem("pg_freePack", "1");
+        extra=" · sobre gratis";
+      }
+      if (st%7===0){
+        localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+2);
+        extra+=" · +2 tgold";
+      }
+      return { st, extra, pts:40+st*10 };
+    }
+    function paintVicio(){
+      const L=levelOf();
+      const lv=document.getElementById("homeLv");
+      const xp=document.getElementById("homeXp");
+      const bar=document.getElementById("homeXpBar");
+      if (lv) lv.textContent=L.lv;
+      if (xp) xp.textContent=L.into+"/"+L.need+" XP";
+      if (bar) bar.style.width=Math.min(100, Math.round(L.into/L.need*100))+"%";
+      const st=Number(localStorage.getItem("pg_streak")||0);
+      const sEl=document.getElementById("homeStreak");
+      if (sEl) sEl.textContent="Racha "+st+" día"+(st===1?"":"s")+(localStorage.getItem("pg_loginDay")===todayKey()?" · bonus cobrado":"");
+      const n=nearHolo();
+      const nEl=document.getElementById("homeNear");
+      if (nEl) nEl.textContent=n?("Casi holo: "+n.name+" "+n.d+"/3"):"";
+      const btn=document.getElementById("dailyBtn");
+      if (btn){
+        const done=localStorage.getItem("pg_loginDay")===todayKey();
+        btn.disabled=done;
+        btn.textContent=done?("RACHA "+st+" · MAÑANA"):"BONUS DEL DÍA";
+        btn.classList.toggle("dailyok", done);
+        btn.onclick=()=>{
+          const r=claimDaily();
+          if (!r){ alert("Ya cobraste el bonus de hoy"); return; }
+          alert("Día "+r.st+": +"+r.pts+" pts +1 energía +25 XP"+r.extra);
+          refreshHome();
+        };
+      }
     }
 
     function refreshHome() {
@@ -1547,24 +1641,44 @@
       let used = 0;
       if (localStorage.getItem("pg_packDay") === day) used = Number(localStorage.getItem("pg_packN")||1);
       if (used >= 2) {
-        msg.textContent = "Ya abriste los 2 sobres de hoy. Vuelve mañana.";
-        return;
+        if (localStorage.getItem("pg_freePack")==="1") {
+          localStorage.removeItem("pg_freePack");
+        } else {
+          msg.textContent = "Ya abriste los 2 sobres de hoy. Vuelve mañana.";
+          return;
+        }
       }
       localStorage.setItem("pg_packDay", day);
       localStorage.setItem("pg_packN", String(used+1));
-      const base = HEROES.filter(x => !x.evo && !x.holo);
-      const decks = [...new Set(base.map(x=>x.deck))];
-      const deck = decks[Math.floor(Math.random()*decks.length)];
-      const pool = base.filter(x=>x.deck===deck);
-      const h = pool[Math.floor(Math.random()*pool.length)] || base[0];
-      const jackpot = Math.random() < 0.18;
+      const roll = Math.random();
+      let pool = HEROES.filter(x => !x.evo);
+      if (roll < 0.08) pool = HEROES.filter(x => x.holo || x.evo || (x.id||"").includes("-holo"));
+      else if (roll < 0.28) pool = HEROES.filter(x => (x.rare==="ultra" || x.rare==="rara") && !x.evo);
+      if (!pool.length) pool = HEROES.filter(x => !x.evo);
+      const h = pool[Math.floor(Math.random()*pool.length)] || HEROES[0];
+      const jackpot = Math.random() < 0.16;
+      const double = Math.random() < 0.12;
       const note = addDust(h.id);
-      let extra = "";
+      if (double) addDust(h.id);
+      let extra = double ? " · x2 copias" : "";
       if (jackpot) {
-        const pend = Number(localStorage.getItem("pg_pend")||0) + 1;
-        localStorage.setItem("pg_pend", pend);
-        extra = " + 1 tgold";
+        const kind = Math.random();
+        if (kind < 0.4) {
+          localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+1);
+          extra += " + 1 tgold";
+        } else if (kind < 0.75) {
+          const ores=["madera","piedra","oro","platino"];
+          const o=ores[Math.floor(Math.random()*ores.length)];
+          const bag=JSON.parse(localStorage.getItem("pg_ore")||"{}");
+          bag[o]=(bag[o]||0)+ (o==="platino"?5:15);
+          localStorage.setItem("pg_ore", JSON.stringify(bag));
+          extra += " + "+o;
+        } else {
+          extra += " + 80 pts";
+          localStorage.setItem("pg_pts", Number(localStorage.getItem("pg_pts")||0)+80);
+        }
       }
+      addXp(15);
       document.getElementById("packBox").classList.add("open");
       const box = document.getElementById("packCard");
       box.style.display = "block";
@@ -2219,8 +2333,13 @@
       try { sfx(win ? "gol" : "hit"); } catch(e) {}
       const pts = Number(localStorage.getItem("pg_pts")||0);
       const pend = Number(localStorage.getItem("pg_pend")||0);
-      const addPts = win ? 80 : 20;
-      const addPend = win ? 1 : 0;
+      let streak = Number(localStorage.getItem("pg_winStreak")||0);
+      streak = win ? streak+1 : 0;
+      localStorage.setItem("pg_winStreak", streak);
+      const multi = streak>=3 ? 2 : 1;
+      const addPts = (win ? 80 : 20) * multi;
+      const addPend = win ? (streak>=3 ? 2 : 1) : 0;
+      addXp(win ? 40 : 10);
       localStorage.setItem("pg_pts", pts + addPts);
       localStorage.setItem("pg_pend", pend + addPend);
       try { refreshHome(); } catch(e) {}
@@ -2598,6 +2717,12 @@
       try { stopClock(); } catch(e) {}
       showTab("pick");
       renderGrid();
+    };
+    const again=document.getElementById("duelEndAgain");
+    if (again) again.onclick = () => {
+      document.getElementById("duelEnd").style.display="none";
+      const db=document.getElementById("duelBtn");
+      if (db) db.click();
     };
     const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); duelEnemyTurn(); };
     document.getElementById("duelStart").onclick = () => {
