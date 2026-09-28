@@ -1929,6 +1929,7 @@
     let targets = {};
     let falls = { me:0, en:0 };
     let turnN = 1;
+    let parley = true;
     let fxMe = [];
     let fxEn = [];
     let selectedFx = null;
@@ -2025,33 +2026,30 @@
     const DIRFLIP = {N:"S",S:"N",NE:"SE",SE:"NE",NO:"SO",SO:"NO",E:"E",O:"O"};
     let duelBusy = false;
     function dirsOf(st, who) {
-      if (who === "en") return ["S","SE","SO","E","O"];
-      let list = Array.isArray(st.dots) ? st.dots.slice() : Object.keys(st.dots||{N:1});
-      if (!list.length) list = ["N","NE","NO"];
-      return list;
+      let dots = st.dots || { N:"corta", NE:"media", NO:"media" };
+      if (Array.isArray(dots)) {
+        const m = {}; dots.forEach((d,i)=> m[d] = i===0?"corta":(i===1?"media":"larga"));
+        dots = m;
+      }
+      if (who === "en") {
+        const f = {};
+        Object.keys(dots).forEach(d => f[DIRFLIP[d]||d] = dots[d]);
+        dots = f;
+      }
+      return dots;
     }
     function targetsOf(i) {
       const u = board[i]; if (!u) return {};
       const st = statsOf(u.id);
+      const dots = dirsOf(st, u.who);
       const out = {};
-      const maxR = u.who==="en" ? 5 : 3;
-      dirsOf(st, u.who).forEach(dir => {
-        for (let steps=1; steps<=maxR; steps++) {
-          const t = stepCell(i, dir, steps);
-          if (t<0) break;
-          const kind = steps===1 ? "corta" : (steps===2 ? "media" : "larga");
-          if (board[t]) {
-            if (board[t].who !== u.who) {
-              const raw = (st.atk[kind]||0);
-              if (raw<=0 && kind==="corta") { /* skip zero corta */ }
-              else {
-                const bonus = synBonus(u.who).extra;
-                out[t] = { dir, kind, dmg: Math.max(1, raw + atkMod(u.who, i%6) + bonus) };
-              }
-            }
-            break;
-          }
-        }
+      Object.keys(dots).forEach(dir => {
+        const kind = dots[dir] || "corta";
+        const steps = RANGE[kind] || 1;
+        const t = stepCell(i, dir, steps);
+        if (t<0 || !board[t] || board[t].who === u.who) return;
+        const raw = (st.atk[kind]||0) + atkMod(u.who, i%6) + synBonus(u.who).extra;
+        out[t] = { dir, kind, dmg: Math.max(1, raw) };
       });
       return out;
     }
@@ -2081,74 +2079,84 @@
       box.style.display = "flex";
       sfx(win ? "goal" : "fall");
     }
+    function countSide(who){ return board.filter(u=>u&&u.who===who).length; }
     function checkEnded() {
-      if (falls.en >= 3) { endDuel(true, "3 cartas rivales caídas"); return true; }
-      if (falls.me >= 3) { endDuel(false, "3 de las tuyas caídas"); return true; }
-      if (turnN > 12) {
-        const me = board.filter(u=>u&&u.who==="me").reduce((a,u)=>a+(u.hp||0),0);
-        const en = board.filter(u=>u&&u.who==="en").reduce((a,u)=>a+(u.hp||0),0);
-        endDuel(me>=en, "Fin de turnos "+me+"-"+en+" vida");
+      const full = board.every(Boolean);
+      const noHand = !myHand.length && board.filter(Boolean).length>=8;
+      if (full || turnN > 24 || noHand) {
+        const me = countSide("me"), en = countSide("en");
+        endDuel(me>en, "Posesión "+me+"–"+en);
         return true;
       }
       return false;
     }
-    function applyHit(from, to, hit, whoAtk) {
-      if (!board[to]) return;
+    function applyFlip(from, to, hit) {
+      if (!board[to] || !board[from]) return false;
       fireBeam(from, to, hit.kind);
-      board[to].hp -= hit.dmg;
-      const dead = board[to].hp <= 0;
-      const cell = document.getElementById("board66").children[to];
+      const cell = document.getElementById("board66") && document.getElementById("board66").children[to];
       if (cell) {
         const f = document.createElement("div");
-        f.className = "floater"; f.textContent = "-"+hit.dmg;
+        f.className = "floater"; f.textContent = hit.dmg + ">" + (board[to].hp||0);
         cell.appendChild(f);
-        if (dead) cell.classList.add("fall");
       }
-      sfx(dead?"fall":"hit");
-      if (dead) {
-        const victim = board[to].who;
-        board[to] = null;
-        if (victim==="en") falls.en++; else falls.me++;
+      if (hit.dmg > (board[to].hp||0)) {
+        board[to].who = board[from].who;
+        if (cell) cell.classList.add("fall");
+        sfx("fall");
+        return true;
       }
+      sfx("hit");
+      return false;
+    }
+    function resolvePlace(from) {
+      if (parley) return 0;
+      const hits = targetsOf(from);
+      let n = 0;
+      Object.keys(hits).forEach(k => {
+        if (applyFlip(from, Number(k), hits[k])) n++;
+      });
+      return n;
     }
     function duelEnemyTurn() {
       stopClock();
       setClock("en", 3);
       placedTurn = false;
       try {
-        const ens = []; const mes = [];
-        board.forEach((u,i)=>{ if(!u) return; if(u.who==="en") ens.push(i); if(u.who==="me") mes.push(i); });
         document.getElementById("duelMsg").textContent = "Turno del rival…";
-        if (!mes.length) {
-          document.getElementById("duelMsg").textContent = "Rival espera. Pon una carta.";
-          startMyClock();
-          return;
+        const pool = (duelRival.deck||[]).map(id=>HEROES.find(h=>h.id===id)).filter(Boolean);
+        const bag = pool.length ? pool : HEROES.filter(h=>["capitan","diez","samba","pibe","rayo"].includes(h.id));
+        const h = bag[Math.floor(Math.random()*bag.length)];
+        const st = statsOf(h.id);
+        const empties = [];
+        for (let i=0;i<36;i++) if (!board[i]) {
+          const row = Math.floor(i/6);
+          if (parley && row>2) continue;
+          empties.push(i);
         }
-        if (!ens.length) {
-          document.getElementById("duelMsg").textContent = "Sin rival en mesa.";
-          startMyClock();
-          return;
-        }
-        let from = ens[0], to = mes[0], dmg = 4;
-        const atks = [];
-        ens.forEach(i => {
-          const tg = targetsOf(i);
-          Object.keys(tg).forEach(k => {
-            const j = Number(k);
-            if (board[j] && board[j].who==="me") atks.push({from:i,to:j,dmg:tg[j].dmg||4});
+        if (!empties.length) { parley=false; if (!checkEnded()) startMyClock(); return; }
+        let spot = empties[Math.floor(Math.random()*empties.length)];
+        if (!parley) {
+          let best = spot, score = -1;
+          empties.forEach(i => {
+            board[i] = { id:h.id, img:h.img, hp:st.hp, who:"en" };
+            const n = Object.keys(targetsOf(i)).length;
+            board[i] = null;
+            if (n>score) { score=n; best=i; }
           });
-        });
-        if (atks.length) { from=atks[0].from; to=atks[0].to; dmg=atks[0].dmg; }
-        sfx("ray");
-        applyHit(from, to, {kind:"media", dmg:dmg}, "en");
-        const left = board[to] ? board[to].hp : 0;
-        document.getElementById("duelMsg").textContent = "RIVAL ATACA −"+dmg+(left>0?" · vida "+left:" · CAE");
+          spot = best;
+        }
+        sfx("place");
+        board[spot] = { id:h.id, img:h.img, hp:st.hp, who:"en" };
+        const flips = resolvePlace(spot);
+        if (parley) parley = false;
         turnN++;
         tickFx();
         renderFx();
-        setTimeout(() => { renderBoard(); if (!checkEnded()) startMyClock(); }, 1200);
+        document.getElementById("duelMsg").textContent = "Rival pone "+h.name+(flips?" y voltea "+flips:"")+" · "+countSide("me")+"–"+countSide("en");
+        setTimeout(() => { renderBoard(); if (!checkEnded()) startMyClock(); }, 900);
       } catch(e) {
-        document.getElementById("duelMsg").textContent = "Rival ataca (error "+(e.message||e)+")";
+        parley = false;
+        document.getElementById("duelMsg").textContent = "Rival (error "+(e.message||e)+")";
         startMyClock();
       }
     }
@@ -2254,27 +2262,29 @@
             renderFx(); renderBoard(); renderFxPick(); return;
           }
           if (selectedCard) {
-            const mineN = board.filter(x=>x&&x.who==="me").length;
-            if (placedTurn) { document.getElementById("duelMsg").textContent = "Ya colocaste este turno. Ataca o espera al rival."; return; }
-            if (mineN>=5) { document.getElementById("duelMsg").textContent = "Máximo 5 cartas en mesa."; return; }
-            if (row < 3) { document.getElementById("duelMsg").textContent = "Solo tu mitad (abajo)."; return; }
+            if (placedTurn) { document.getElementById("duelMsg").textContent = "Ya colocaste este turno."; return; }
+            if (parley && row < 3) { document.getElementById("duelMsg").textContent = "Parlamento: solo tu mitad (abajo)."; return; }
             if (board[i]) { document.getElementById("duelMsg").textContent = "Casilla ocupada."; return; }
             const h = HEROES.find(x=>x.id===selectedCard);
             const st = statsOf(h.id);
             sfx("place"); board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" }; placedTurn = true;
             myHand = myHand.filter(id => id !== h.id);
-            if (myHand.length < 5) {
+            if (myHand.length < 4) {
               const rest = ownedCards().filter(x => !myHand.includes(x.id) && x.id !== h.id);
               if (rest.length) myHand.push(rest[Math.floor(Math.random()*rest.length)].id);
               else if (ownedCards().length) myHand.push(ownedCards()[Math.floor(Math.random()*ownedCards().length)].id);
             }
             selectedCard = null; selectedIdx = null; targets = {};
             const z = document.getElementById("duelFloat"); if (z) z.style.display="none";
-            document.getElementById("duelMsg").textContent = h.name + " en mesa. Ataca ahora (o TURNO DEL RIVAL).";
+            const flips = resolvePlace(i);
+            document.getElementById("duelMsg").textContent = parley
+              ? (h.name + " en Parlamento (sin ataque).")
+              : (h.name + (flips ? " voltea "+flips : " sin volteo") + " · "+countSide("me")+"–"+countSide("en"));
             renderBoard(); renderDuelPick();
+            setTimeout(() => { if (!checkEnded()) duelEnemyTurn(); }, 700);
             return;
           }
-          if (targets[i] && board[i] && board[i].who==="en") {
+          if (false && targets[i] && board[i] && board[i].who==="en") {
             const hit = targets[i];
             const from = selectedIdx;
             const to = i;
@@ -2316,9 +2326,9 @@
       let pool = ownedCards();
       if (!pool.length) pool = HEROES.filter(h=>["capitan","diez","samba","pibe","rayo"].includes(h.id));
       const bag = pool.slice();
-      while (bag.length < 5) bag.push(pool[bag.length % pool.length]);
+      while (bag.length < 4) bag.push(pool[bag.length % pool.length]);
       for (let i=bag.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [bag[i],bag[j]]=[bag[j],bag[i]]; }
-      myHand = bag.slice(0,5).map(h=>h.id);
+      myHand = bag.slice(0,4).map(h=>h.id);
     }
     function renderDuelPick() {
       const box = document.getElementById("duelPick");
@@ -2402,7 +2412,7 @@
     document.getElementById("duelStart").onclick = () => {
       document.getElementById("duelEnd").style.display="none"; duelBusy=false;
       board = Array(36).fill(null); dealHand(); placedTurn=false; spawnAI();
-      selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1;
+      selectedCard = null; selectedIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1; parley = true;
       fxMe=[]; fxEn=[]; selectedFx=null;
       document.getElementById("duelMsg").textContent = "Tienes 12s: 1 carta y ataca.";
       renderFx(); renderBoard(); renderDuelPick(); renderFxPick(); startMyClock();
