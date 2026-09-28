@@ -677,6 +677,18 @@
       if (n === MAX_EN) localStorage.setItem("pg_enAt", Date.now());
       return true;
     }
+    function ownedCards(){
+      const list = HEROES.filter(h => dustOf(h.id)>0 || rankOf(h.id)>0);
+      return list;
+    }
+    function grantStarter(){
+      if (localStorage.getItem("pg_starter")==="1") return;
+      const ids = ["capitan","diez","samba","pibe","rayo"];
+      ids.forEach(id => {
+        if (dustOf(id)<=0 && rankOf(id)<=0) localStorage.setItem("pg_du_"+id, "1");
+      });
+      localStorage.setItem("pg_starter","1");
+    }
     function rankOf(id) { return Number(localStorage.getItem("pg_rk_"+id)||0); }
     function dustOf(id) { return Number(localStorage.getItem("pg_du_"+id)||0); }
     function addDust(id) {
@@ -1257,6 +1269,7 @@
       const wu = document.getElementById("walUsd"); if (wu) wu.textContent = "≈ $" + (pend*lastPx()).toFixed(6);
     }
     function refreshHome() {
+      try { grantStarter(); } catch(e) {}
       try { pingRank(); } catch(e) {}
 
       document.getElementById("homePts").textContent = (localStorage.getItem("pg_pts")||0) + " pts";
@@ -1509,7 +1522,9 @@
     } catch(e) {}
     async function pingRank(){
       try {
-        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { at: Date.now() })) });
+        let known=[]; try{known=JSON.parse(localStorage.getItem("pg_board")||"[]");}catch(e){}
+        let listings=[]; try{listings=JSON.parse(localStorage.getItem("pg_mkt")||"[]");}catch(e){}
+        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { at: Date.now(), peers: known.slice(0,20), listings: listings.slice(0,40) })) });
       } catch(e) {}
     }
     async function pushRank() {
@@ -2244,8 +2259,9 @@
             sfx("place"); board[i] = { id:h.id, img:h.img, hp: st.hp, who:"me" }; placedTurn = true;
             myHand = myHand.filter(id => id !== h.id);
             if (myHand.length < 5) {
-              const rest = HEROES.filter(x => !myHand.includes(x.id) && x.id !== h.id);
+              const rest = ownedCards().filter(x => !myHand.includes(x.id) && x.id !== h.id);
               if (rest.length) myHand.push(rest[Math.floor(Math.random()*rest.length)].id);
+              else if (ownedCards().length) myHand.push(ownedCards()[Math.floor(Math.random()*ownedCards().length)].id);
             }
             selectedCard = null; selectedIdx = null; targets = {};
             const z = document.getElementById("duelFloat"); if (z) z.style.display="none";
@@ -2291,18 +2307,22 @@
       }
     }
     function dealHand() {
-      const pool = HEROES.slice();
-      for (let i=pool.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
-      myHand = pool.slice(0,5).map(h=>h.id);
+      grantStarter();
+      let pool = ownedCards();
+      if (!pool.length) pool = HEROES.filter(h=>["capitan","diez","samba","pibe","rayo"].includes(h.id));
+      const bag = pool.slice();
+      while (bag.length < 5) bag.push(pool[bag.length % pool.length]);
+      for (let i=bag.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [bag[i],bag[j]]=[bag[j],bag[i]]; }
+      myHand = bag.slice(0,5).map(h=>h.id);
     }
     function renderDuelPick() {
       const box = document.getElementById("duelPick");
       if (!myHand.length) dealHand();
       const cards = myHand.map(id => HEROES.find(h=>h.id===id)).filter(Boolean);
       box.innerHTML = cards.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}"><img src="${h.img}" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" /></div>`).join("");
-      const rest = HEROES.filter(h => !myHand.includes(h.id));
+      const rest = ownedCards().filter(h => !myHand.includes(h.id));
       const dn = document.getElementById("deckN");
-      if (dn) dn.textContent = rest.length + " cartas";
+      if (dn) dn.textContent = ownedCards().length + " mias";
       const pile = document.getElementById("deckPile");
       if (pile) pile.onclick = () => {
         if (!rest.length) { document.getElementById("duelMsg").textContent = "Mazo vacío."; return; }
