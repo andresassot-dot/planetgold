@@ -1505,8 +1505,8 @@
         const old = board.find(x => rankKey(x)===k);
         board = board.filter(x => rankKey(x) !== k);
         if (old) {
+          p.pts = Math.max(Number(p.pts||0), Number(old.pts||0));
           if ((p.at||0) < (old.at||0)) {
-            p.pts = old.pts;
             if (old.card) { p.card = old.card; p.cardImg = old.cardImg; }
           }
           if (!p.photo && old.photo) p.photo = old.photo;
