@@ -170,8 +170,14 @@
     .cell.tgt { box-shadow: inset 0 0 0 2px #ffb000; }
     .cell.place { box-shadow: inset 0 0 0 2px #3b9eff; background:#16324d; }
     .cell.hit::after { content:''; position:absolute; inset:0; border:3px solid #ffe08a; box-shadow:inset 0 0 0 2px #fff; border-radius:6px; pointer-events:none; }
-    .cell.fall { animation: fallCard .45s ease forwards; }
-    @keyframes fallCard { to { transform: rotate(18deg) scale(.2); opacity:0; } }
+    .b66 { perspective: 700px; }
+    .cell.fall, .cell.flip { animation: flipCard .55s ease; transform-style: preserve-3d; }
+    @keyframes flipCard {
+      0% { transform: rotateY(0deg); }
+      45% { transform: rotateY(90deg) scale(.92); }
+      55% { transform: rotateY(90deg) scale(.92); }
+      100% { transform: rotateY(0deg); }
+    }
     #beam { position:absolute; height:4px; background:linear-gradient(90deg,#fff,#ffe08a,#ff7a00); border-radius:4px; pointer-events:none; z-index:8; transform-origin:left center; box-shadow:0 0 10px #ffe08a; }
     .cell .hp { position:absolute; right:3px; bottom:10px; font-size:10px; font-weight:800; color:#fff; text-shadow:0 1px 2px #000; }
     .hpbar { position:absolute; left:3px; right:3px; bottom:2px; height:5px; background:#2a2a2a; border-radius:3px; overflow:hidden; }
@@ -2102,7 +2108,11 @@
       }
       if (hit.dmg > (board[to].hp||0)) {
         board[to].who = board[from].who;
-        if (cell) cell.classList.add("fall");
+        board[to].flipAt = Date.now();
+        if (cell) {
+          cell.classList.remove("blue","red","fall","flip");
+          cell.classList.add(board[to].who==="me"?"blue":"red", "flip");
+        }
         sfx("fall");
         return true;
       }
@@ -2242,7 +2252,8 @@
         const u = board[i];
         const mineN = board.filter(x=>x&&x.who==='me').length;
         const canPlace = selectedCard && row>=3 && !u && !placedTurn && mineN<5;
-        d.className = "cell" + (row>=3?" mine":"") + (u && u.who==="me"?" blue":"") + (u && u.who==="en"?" red":"") + (targets[i]?" tgt":"") + (targets[i] && u && u.who==="en"?" hit":"") + (canPlace?" place":"");
+        const flipping = u && u.flipAt && (Date.now()-u.flipAt<700);
+        d.className = "cell" + (row>=3?" mine":"") + (u && u.who==="me"?" blue":"") + (u && u.who==="en"?" red":"") + (targets[i]?" tgt":"") + (canPlace?" place":"") + (flipping?" flip":"");
         if (u) {
           const max = (statsOf(u.id).hp)||7;
           const pct = Math.max(4, Math.round(u.hp/max*100));
