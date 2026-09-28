@@ -280,6 +280,16 @@
     .xpbar { height:8px; background:#1a2030; border-radius:8px; overflow:hidden; border:1px solid #3a4258; }
     .xpbar i { display:block; height:100%; background:linear-gradient(90deg,#8a6a12,#ffe08a); width:0; }
     .dailyok { opacity:.55; }
+
+    .chestRow { display:flex; gap:8px; justify-content:center; margin:12px 0 6px; }
+    .chestSlot { width:96px; height:128px; border-radius:12px; background:#121622; border:2px solid #3a4258; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+    .chestSlot img { width:100%; height:100%; object-fit:cover; object-position:top; }
+    .chestSlot b { position:absolute; bottom:4px; left:0; right:0; font-size:10px; text-align:center; color:#fff; text-shadow:0 1px 4px #000; }
+    .chestSlot.com { border-color:#8a93a8; }
+    .chestSlot.rara { border-color:#4aa3ff; box-shadow:0 0 12px #4aa3ff66; }
+    .chestSlot.ultra { border-color:#c77dff; box-shadow:0 0 14px #c77dff88; }
+    .chestSlot.holo { border-color:#d4af37; box-shadow:0 0 16px #ffe08a99; }
+    .chestLid { width:140px; height:90px; margin:10px auto 0; border-radius:14px; background:linear-gradient(180deg,#f3d077,#8a6a12); border:3px solid #ffe08a; display:flex; align-items:center; justify-content:center; font-weight:900; color:#1a1200; }
   </style>
 </head>
 <body>
@@ -479,14 +489,19 @@
   </div>
   <div id="packs">
     <h1 style="color:#ffe08a;text-align:center">Sobres</h1>
-    <p class="muted" style="text-align:center">2 sobres al día. Sale de todos los mazos (fútbol, magos, reyes, minecraft...).</p>
-    <div class="pack" id="packBox">SOBRE<br>GOLD</div>
+    <p class="muted" style="text-align:center">2 cofres al día. 3 cartas: común, rara… la última puede ser holo.</p>
+    <div class="chestLid" id="packBox">COFRE<br>GOLD</div>
+    <div class="chestRow" id="chestRow">
+      <div class="chestSlot" id="cs0">?</div>
+      <div class="chestSlot" id="cs1">?</div>
+      <div class="chestSlot" id="cs2">?</div>
+    </div>
     <div id="packCard">
       <div class="fifa" style="width:180px;margin:0 auto"><img id="packImg" alt="" style="height:220px;object-fit:cover;object-position:top" /></div>
       <b id="packName" style="display:block;margin-top:8px"></b>
       <small class="muted" id="packNote"></small>
     </div>
-    <button class="main" id="openPack">ABRIR SOBRE</button>
+    <button class="main" id="openPack">ABRIR COFRE</button>
     <p class="muted" id="packMsg" style="text-align:center;margin-top:10px"></p>
   </div>
 
@@ -1686,44 +1701,41 @@
       }
       localStorage.setItem("pg_packDay", day);
       localStorage.setItem("pg_packN", String(used+1));
-      const roll = Math.random();
-      let pool = HEROES.filter(x => !x.evo);
-      if (roll < 0.08) pool = HEROES.filter(x => x.holo || x.evo || (x.id||"").includes("-holo"));
-      else if (roll < 0.28) pool = HEROES.filter(x => (x.rare==="ultra" || x.rare==="rara") && !x.evo);
-      if (!pool.length) pool = HEROES.filter(x => !x.evo);
-      const h = pool[Math.floor(Math.random()*pool.length)] || HEROES[0];
-      const jackpot = Math.random() < 0.16;
-      const double = Math.random() < 0.12;
-      const note = addDust(h.id);
-      if (double) addDust(h.id);
-      let extra = double ? " · x2 copias" : "";
-      if (jackpot) {
-        const kind = Math.random();
-        if (kind < 0.4) {
-          localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+1);
-          extra += " + 1 tgold";
-        } else if (kind < 0.75) {
-          const ores=["madera","piedra","oro","platino"];
-          const o=ores[Math.floor(Math.random()*ores.length)];
-          const bag=JSON.parse(localStorage.getItem("pg_ore")||"{}");
-          bag[o]=(bag[o]||0)+ (o==="platino"?5:15);
-          localStorage.setItem("pg_ore", JSON.stringify(bag));
-          extra += " + "+o;
-        } else {
-          extra += " + 80 pts";
-          localStorage.setItem("pg_pts", Number(localStorage.getItem("pg_pts")||0)+80);
-        }
+      function pull(kind){
+        let pool = HEROES.filter(x => x && x.img);
+        if (kind==="holo") pool = HEROES.filter(x => x.holo || x.evo || String(x.id).includes("holo"));
+        else if (kind==="ultra") pool = HEROES.filter(x => x.rare==="ultra" || x.rare==="S");
+        else if (kind==="rara") pool = HEROES.filter(x => x.rare==="rara" || x.rare==="ultra");
+        else pool = HEROES.filter(x => !x.holo && !x.evo);
+        if (!pool.length) pool = HEROES.filter(x => x && x.img);
+        return pool[Math.floor(Math.random()*pool.length)] || HEROES[0];
       }
-      addXp(15);
+      const r3 = Math.random();
+      const kinds = [
+        "comun",
+        Math.random()<0.45 ? "rara" : "comun",
+        r3<0.10 ? "holo" : (r3<0.40 ? "ultra" : (r3<0.75 ? "rara" : "comun"))
+      ];
+      const got = kinds.map(pull);
+      const notes = got.map(h => addDust(h.id));
+      addXp(25);
+      if (kinds[2]==="holo") {
+        localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+1);
+      }
+      got.forEach((h,i)=>{
+        const el=document.getElementById("cs"+i);
+        if (!el) return;
+        el.className="chestSlot "+kinds[i];
+        el.innerHTML = '<img src="'+(h.img||"")+'" alt=""><b>'+(h.name||"")+'</b>';
+      });
+      const best = got[2];
       document.getElementById("packBox").classList.add("open");
       const box = document.getElementById("packCard");
       box.style.display = "block";
-      document.getElementById("packImg").src = h.img;
-      document.getElementById("packImg").parentElement.classList.add("fifa");
-      document.getElementById("packName").textContent = h.name;
-      document.getElementById("packNote").textContent = note + extra;
-      localStorage.setItem("pg_lastPack", JSON.stringify({ img:h.img, name:h.name, note: note + extra }));
-      msg.textContent = jackpot ? "¡Sobre bueno!" : "Copia añadida a tu álbum.";
+      document.getElementById("packImg").src = best.img;
+      document.getElementById("packName").textContent = best.name;
+      document.getElementById("packNote").textContent = kinds[2].toUpperCase()+" · "+notes[2];
+      msg.textContent = kinds[2]==="holo" ? "¡HOLO! +1 tgold" : ("3 cartas · la última fue "+kinds[2]);
       refreshHome();
     };
 
