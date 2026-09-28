@@ -822,31 +822,31 @@
       { id:"platino", name:"Mina platino", ore:"platino", cost:1, hits:5, chance:45, min:1, max:1, egg:14 },
       { id:"niobio", name:"Cripta niobio", ore:"niobio", cost:1, hits:6, chance:28, min:1, max:1, egg:18 }
     ];
-    const GEAR = [
-      { id:"espada-madera", fam:"espada", tier:"madera", name:"Espada de madera", need:{madera:8}, bonus:{corta:1}, slot:"weapon", img:"cards/item-espada-madera.png", fusesTo:"espada-plata" },
-      { id:"espada-plata", fam:"espada", tier:"plata", name:"Espada de plata", need:{piedra:10}, bonus:{corta:2}, slot:"weapon", img:"cards/item-espada-plata.png", fusesTo:"espada-oro" },
-      { id:"espada-oro", fam:"espada", tier:"oro", name:"Espada de oro", need:{oro:8}, bonus:{corta:3}, slot:"weapon", img:"cards/item-espada-oro.png", fusesTo:"espada-s" },
-      { id:"espada-s", fam:"espada", tier:"S", name:"Espada zafiro S", need:{platino:3,niobio:1}, bonus:{corta:5,hp:1}, slot:"weapon", img:"cards/item-espada-s.png" },
-      { id:"baston-madera", fam:"baston", tier:"madera", name:"Bastón de madera", need:{madera:8}, bonus:{larga:1}, slot:"weapon", img:"cards/item-baston-madera.png", fusesTo:"baston-plata" },
-      { id:"baston-plata", fam:"baston", tier:"plata", name:"Bastón de plata", need:{piedra:10}, bonus:{larga:2}, slot:"weapon", img:"cards/item-baston-plata.png", fusesTo:"baston-oro" },
-      { id:"baston-oro", fam:"baston", tier:"oro", name:"Bastón de oro", need:{oro:8}, bonus:{larga:3}, slot:"weapon", img:"cards/item-baston-oro.png", fusesTo:"baston-s" },
-      { id:"baston-s", fam:"baston", tier:"S", name:"Bastón zafiro S", need:{platino:3,niobio:1}, bonus:{larga:5,hp:1}, slot:"weapon", img:"cards/item-baston-s.png" },
-      { id:"amuleto-madera", fam:"amuleto", tier:"madera", name:"Amuleto de madera", need:{madera:6}, bonus:{hp:1}, slot:"relic", img:"cards/item-amuleto-madera.png", fusesTo:"amuleto-plata" },
-      { id:"amuleto-plata", fam:"amuleto", tier:"plata", name:"Amuleto de plata", need:{piedra:8}, bonus:{hp:1,media:1}, slot:"relic", img:"cards/item-amuleto-plata.png", fusesTo:"amuleto-oro" },
-      { id:"amuleto-oro", fam:"amuleto", tier:"oro", name:"Amuleto de oro", need:{oro:6}, bonus:{hp:2,media:1}, slot:"relic", img:"cards/item-amuleto-oro.png", fusesTo:"amuleto-s" },
-      { id:"amuleto-s", fam:"amuleto", tier:"S", name:"Amuleto zafiro S", need:{platino:3,niobio:1}, bonus:{hp:3,media:2}, slot:"relic", img:"cards/item-amuleto-s.png" },
-      { id:"yelmo-madera", fam:"yelmo", tier:"madera", name:"Yelmo de madera", need:{madera:8}, bonus:{hp:1}, slot:"relic", img:"cards/item-yelmo-madera.png", fusesTo:"yelmo-plata" },
-      { id:"yelmo-plata", fam:"yelmo", tier:"plata", name:"Yelmo de plata", need:{piedra:10}, bonus:{hp:1,corta:1}, slot:"relic", img:"cards/item-yelmo-plata.png", fusesTo:"yelmo-oro" },
-      { id:"yelmo-oro", fam:"yelmo", tier:"oro", name:"Yelmo de oro", need:{oro:8}, bonus:{hp:2,corta:1}, slot:"relic", img:"cards/item-yelmo-oro.png", fusesTo:"yelmo-s" },
-      { id:"yelmo-s", fam:"yelmo", tier:"S", name:"Yelmo zafiro S", need:{platino:3,niobio:1}, bonus:{hp:3,corta:2}, slot:"relic", img:"cards/item-yelmo-s.png" },
-      { id:"corona-madera", fam:"corona", tier:"madera", name:"Corona de madera", need:{madera:8}, bonus:{media:1}, slot:"relic", img:"cards/item-corona-madera.png", fusesTo:"corona-plata" },
-      { id:"corona-plata", fam:"corona", tier:"plata", name:"Corona de plata", need:{piedra:8,oro:2}, bonus:{corta:1,media:1,larga:1}, slot:"relic", img:"cards/item-corona-plata.png", fusesTo:"corona-oro" },
-      { id:"corona-oro", fam:"corona", tier:"oro", name:"Corona de oro", need:{oro:8}, bonus:{corta:1,media:2,larga:1}, slot:"relic", img:"cards/item-corona-oro.png", fusesTo:"corona-s" },
-      { id:"corona-s", fam:"corona", tier:"S", name:"Corona zafiro S", need:{platino:4,niobio:1}, bonus:{corta:2,media:2,larga:2,hp:1}, slot:"relic", img:"cards/item-corona-s.png" },
-      { id:"reliquia-madera", fam:"reliquia", tier:"madera", name:"Reliquia de madera", need:{madera:10}, bonus:{hp:1}, slot:"relic", img:"cards/item-reliquia-madera.png", fusesTo:"reliquia-plata" },
-      { id:"reliquia-plata", fam:"reliquia", tier:"plata", name:"Reliquia de plata", need:{piedra:10}, bonus:{hp:1,larga:1}, slot:"relic", img:"cards/item-reliquia-plata.png", fusesTo:"reliquia-oro" },
-      { id:"reliquia-oro", fam:"reliquia", tier:"oro", name:"Reliquia de oro", need:{oro:8,platino:2}, bonus:{hp:2,corta:1,larga:1}, slot:"relic", img:"cards/item-reliquia-oro.png", fusesTo:"reliquia-s" },
-      { id:"reliquia-s", fam:"reliquia", tier:"S", name:"Reliquia zafiro S", need:{niobio:2,platino:4}, bonus:{hp:3,corta:2,media:2,larga:2}, slot:"relic", img:"cards/item-reliquia-s.png" }
+        const GEAR = [
+      { id:"espada-madera", fam:"espada", tier:"madera", name:"Espada de madera", need:{madera:25}, bonus:{corta:1}, slot:"weapon", img:"cards/item-espada-madera.png", fusesTo:"espada-plata" },
+      { id:"espada-plata", fam:"espada", tier:"plata", name:"Espada de plata", need:{platino:500}, needFrom:"espada-madera", fromN:5, bonus:{corta:2}, slot:"weapon", img:"cards/item-espada-plata.png", fusesTo:"espada-oro" },
+      { id:"espada-oro", fam:"espada", tier:"oro", name:"Espada de oro", need:{oro:500}, needFrom:"espada-plata", fromN:5, bonus:{corta:3}, slot:"weapon", img:"cards/item-espada-oro.png", fusesTo:"espada-s" },
+      { id:"espada-s", fam:"espada", tier:"S", name:"Espada zafiro S", need:{platino:200,niobio:50}, needFrom:"espada-oro", fromN:5, bonus:{corta:5,hp:1}, slot:"weapon", img:"cards/item-espada-s.png" },
+      { id:"baston-madera", fam:"baston", tier:"madera", name:"Bastón de madera", need:{madera:25}, bonus:{larga:1}, slot:"weapon", img:"cards/item-baston-madera.png", fusesTo:"baston-plata" },
+      { id:"baston-plata", fam:"baston", tier:"plata", name:"Bastón de plata", need:{platino:500}, needFrom:"baston-madera", fromN:5, bonus:{larga:2}, slot:"weapon", img:"cards/item-baston-plata.png", fusesTo:"baston-oro" },
+      { id:"baston-oro", fam:"baston", tier:"oro", name:"Bastón de oro", need:{oro:500}, needFrom:"baston-plata", fromN:5, bonus:{larga:3}, slot:"weapon", img:"cards/item-baston-oro.png", fusesTo:"baston-s" },
+      { id:"baston-s", fam:"baston", tier:"S", name:"Bastón zafiro S", need:{platino:200,niobio:50}, needFrom:"baston-oro", fromN:5, bonus:{larga:5,hp:1}, slot:"weapon", img:"cards/item-baston-s.png" },
+      { id:"amuleto-madera", fam:"amuleto", tier:"madera", name:"Amuleto de madera", need:{madera:25}, bonus:{hp:1}, slot:"relic", img:"cards/item-amuleto-madera.png", fusesTo:"amuleto-plata" },
+      { id:"amuleto-plata", fam:"amuleto", tier:"plata", name:"Amuleto de plata", need:{platino:500}, needFrom:"amuleto-madera", fromN:5, bonus:{hp:1,media:1}, slot:"relic", img:"cards/item-amuleto-plata.png", fusesTo:"amuleto-oro" },
+      { id:"amuleto-oro", fam:"amuleto", tier:"oro", name:"Amuleto de oro", need:{oro:500}, needFrom:"amuleto-plata", fromN:5, bonus:{hp:2,media:1}, slot:"relic", img:"cards/item-amuleto-oro.png", fusesTo:"amuleto-s" },
+      { id:"amuleto-s", fam:"amuleto", tier:"S", name:"Amuleto zafiro S", need:{platino:200,niobio:50}, needFrom:"amuleto-oro", fromN:5, bonus:{hp:3,media:2}, slot:"relic", img:"cards/item-amuleto-s.png" },
+      { id:"yelmo-madera", fam:"yelmo", tier:"madera", name:"Yelmo de madera", need:{madera:25}, bonus:{hp:1}, slot:"relic", img:"cards/item-yelmo-madera.png", fusesTo:"yelmo-plata" },
+      { id:"yelmo-plata", fam:"yelmo", tier:"plata", name:"Yelmo de plata", need:{platino:500}, needFrom:"yelmo-madera", fromN:5, bonus:{hp:1,corta:1}, slot:"relic", img:"cards/item-yelmo-plata.png", fusesTo:"yelmo-oro" },
+      { id:"yelmo-oro", fam:"yelmo", tier:"oro", name:"Yelmo de oro", need:{oro:500}, needFrom:"yelmo-plata", fromN:5, bonus:{hp:2,corta:1}, slot:"relic", img:"cards/item-yelmo-oro.png", fusesTo:"yelmo-s" },
+      { id:"yelmo-s", fam:"yelmo", tier:"S", name:"Yelmo zafiro S", need:{platino:200,niobio:50}, needFrom:"yelmo-oro", fromN:5, bonus:{hp:3,corta:2}, slot:"relic", img:"cards/item-yelmo-s.png" },
+      { id:"corona-madera", fam:"corona", tier:"madera", name:"Corona de madera", need:{madera:25}, bonus:{media:1}, slot:"relic", img:"cards/item-corona-madera.png", fusesTo:"corona-plata" },
+      { id:"corona-plata", fam:"corona", tier:"plata", name:"Corona de plata", need:{platino:500}, needFrom:"corona-madera", fromN:5, bonus:{corta:1,media:1,larga:1}, slot:"relic", img:"cards/item-corona-plata.png", fusesTo:"corona-oro" },
+      { id:"corona-oro", fam:"corona", tier:"oro", name:"Corona de oro", need:{oro:500}, needFrom:"corona-plata", fromN:5, bonus:{corta:1,media:2,larga:1}, slot:"relic", img:"cards/item-corona-oro.png", fusesTo:"corona-s" },
+      { id:"corona-s", fam:"corona", tier:"S", name:"Corona zafiro S", need:{platino:200,niobio:50}, needFrom:"corona-oro", fromN:5, bonus:{corta:2,media:2,larga:2,hp:1}, slot:"relic", img:"cards/item-corona-s.png" },
+      { id:"reliquia-madera", fam:"reliquia", tier:"madera", name:"Reliquia de madera", need:{madera:25}, bonus:{hp:1}, slot:"relic", img:"cards/item-reliquia-madera.png", fusesTo:"reliquia-plata" },
+      { id:"reliquia-plata", fam:"reliquia", tier:"plata", name:"Reliquia de plata", need:{platino:500}, needFrom:"reliquia-madera", fromN:5, bonus:{hp:1,larga:1}, slot:"relic", img:"cards/item-reliquia-plata.png", fusesTo:"reliquia-oro" },
+      { id:"reliquia-oro", fam:"reliquia", tier:"oro", name:"Reliquia de oro", need:{oro:500}, needFrom:"reliquia-plata", fromN:5, bonus:{hp:2,corta:1,larga:1}, slot:"relic", img:"cards/item-reliquia-oro.png", fusesTo:"reliquia-s" },
+      { id:"reliquia-s", fam:"reliquia", tier:"S", name:"Reliquia zafiro S", need:{platino:200,niobio:50}, needFrom:"reliquia-oro", fromN:5, bonus:{hp:3,corta:2,media:2,larga:2}, slot:"relic", img:"cards/item-reliquia-s.png" },
     ];
     const FUSE_NEED = 5;
     function bag(){ try { return JSON.parse(localStorage.getItem("pg_ore")||"{}"); } catch(e){ return {}; } }
@@ -1109,11 +1109,13 @@
         const n = gearOf(g.id);
         const on = w[g.slot]===g.id;
         const cost = Object.keys(g.need).map(k => k+" "+g.need[k]).join(" · ");
+        const prev = g.needFrom ? (GEAR.find(x=>x.id===g.needFrom)||{}).name : "";
+        const needLine = (g.needFrom? ((g.fromN||5)+"x "+(prev||g.needFrom)+" + ") : "") + cost;
         const bon = Object.keys(g.bonus).map(k => "+"+g.bonus[k]+" "+k).join(" ");
-        const fuse = g.fusesTo ? " · "+n+"/"+FUSE_NEED+" fusión" : "";
+        const fuse = g.needFrom ? (" · tienes "+gearOf(g.needFrom)+"/"+(g.fromN||5)+" base") : "";
         return `<div class="craft" style="display:flex;gap:10px;align-items:center">
           <img src="${g.img||("cards/item-"+g.id+".png")}" alt="" style="width:56px;height:56px;object-fit:contain;border-radius:10px;background:#0b1020;border:1px solid #d4af37;flex:0 0 56px">
-          <div style="flex:1;min-width:0"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · ${cost}<br>${bon} · x${n}${on?" · EQUIPADO":""}${fuse}</div>
+          <div style="flex:1;min-width:0"><b>${g.name}</b><div class="muted">${g.tier.toUpperCase()} · ${needLine}<br>${bon} · x${n}${on?" · EQUIPADO":""}${fuse}</div>
           <button class="main" data-craft="${g.id}">FORJAR</button></div></div>`;
       }).join("");
       forge.querySelectorAll("[data-craft]").forEach(b => b.onclick = () => doCraft(b.getAttribute("data-craft")));
@@ -1177,7 +1179,15 @@
     function doCraft(id){
       const g = GEAR.find(x => x.id===id);
       const msg = document.getElementById("mineMsg");
+      if (!g) return;
+      const needN = g.fromN || 0;
+      if (g.needFrom && gearOf(g.needFrom) < needN) {
+        const prev = GEAR.find(x=>x.id===g.needFrom);
+        msg.textContent = "Necesitas "+needN+" "+(prev?prev.name:g.needFrom);
+        renderMine(); return;
+      }
       if (!takeOre(g.need)) { msg.textContent = "Faltan materiales"; renderMine(); return; }
+      if (g.needFrom && needN) addGear(g.needFrom, -needN);
       addGear(id, 1);
       showLoot(g.name, "x"+gearOf(id)+" en el Cofre · "+(g.tier||""));
       renderMine();
