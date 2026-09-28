@@ -321,7 +321,7 @@
       <div class="xpwrap"><div class="xpbar"><i id="homeXpBar"></i></div></div>
       <div class="muted" id="homeStreak" style="margin-top:6px">Racha 0 días</div>
       <div class="muted" id="homeNear" style="margin-top:4px"></div>
-      <button class="main" id="dailyBtn" type="button" style="margin-top:8px;padding:8px;font-size:13px">BONUS DEL DÍA</button>
+      <button class="main" id="dailyBtn" type="button" onclick="claimDailyNow()" style="margin-top:8px;padding:8px;font-size:13px">BONUS DEL DÍA</button>
       <div class="muted">tgold en juego: <b id="homePend">0</b></div>
       <button class="main" id="swapBtn" style="margin-top:10px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
       <button class="main" id="guideBtn" type="button" onclick="openGuide(true)" style="margin-top:8px;padding:8px;font-size:13px">CÓMO JUGAR</button>
@@ -1477,6 +1477,23 @@
       }
       return { st, extra, pts:40+st*10 };
     }
+    
+    window.claimDailyNow = function(){
+      try {
+        const r = claimDaily();
+        const sEl=document.getElementById("homeStreak");
+        if (!r){
+          if (sEl) sEl.textContent="Ya cobraste el bonus de hoy";
+          return;
+        }
+        if (sEl) sEl.textContent="Día "+r.st+": +"+r.pts+" pts +1 energía +25 XP"+(r.extra||"");
+        try { refreshHome(); } catch(e) {}
+      } catch(e) {
+        const sEl=document.getElementById("homeStreak");
+        if (sEl) sEl.textContent="Error bonus: "+e;
+      }
+    };
+
     function paintVicio(){
       const L=levelOf();
       const lv=document.getElementById("homeLv");
@@ -1488,21 +1505,17 @@
       const st=Number(localStorage.getItem("pg_streak")||0);
       const sEl=document.getElementById("homeStreak");
       if (sEl) sEl.textContent="Racha "+st+" día"+(st===1?"":"s")+(localStorage.getItem("pg_loginDay")===todayKey()?" · bonus cobrado":"");
-      const n=nearHolo();
-      const nEl=document.getElementById("homeNear");
-      if (nEl) nEl.textContent=n?("Casi holo: "+n.name+" "+n.d+"/3"):"";
+      try {
+        const n=nearHolo();
+        const nEl=document.getElementById("homeNear");
+        if (nEl) nEl.textContent=n?("Casi holo: "+n.name+" "+n.d+"/3"):"";
+      } catch(e) {}
       const btn=document.getElementById("dailyBtn");
       if (btn){
         const done=localStorage.getItem("pg_loginDay")===todayKey();
-        btn.disabled=done;
+        btn.disabled=false;
         btn.textContent=done?("RACHA "+st+" · MAÑANA"):"BONUS DEL DÍA";
         btn.classList.toggle("dailyok", done);
-        btn.onclick=()=>{
-          const r=claimDaily();
-          if (!r){ alert("Ya cobraste el bonus de hoy"); return; }
-          alert("Día "+r.st+": +"+r.pts+" pts +1 energía +25 XP"+r.extra);
-          refreshHome();
-        };
       }
     }
 
