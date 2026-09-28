@@ -311,8 +311,8 @@
           <div class="muted" id="meRank" style="font-size:12px">Novato</div>
         </div>
         <div style="text-align:right">
-          <div class="muted" style="font-size:10px">TGOLD</div>
-          <div class="big" id="meTgold" style="font-size:20px;color:#ffe08a">0</div>
+          <div class="muted" style="font-size:11px;letter-spacing:.08em">TGOLD</div>
+          <div class="big" id="meTgold" style="font-size:32px;line-height:1;color:#ffe08a;font-weight:900">0</div>
         </div>
       </div>
       <h2>PLANET GOLD</h2>
@@ -321,10 +321,13 @@
       <div class="xpwrap"><div class="xpbar"><i id="homeXpBar"></i></div></div>
       <div class="muted" id="homeStreak" style="margin-top:6px">Racha 0 días</div>
       <div class="muted" id="homeNear" style="margin-top:4px"></div>
-      <button class="main" id="dailyBtn" type="button" onclick="claimDailyNow()" style="margin-top:8px;padding:8px;font-size:13px">BONUS DEL DÍA</button>
-      <div class="muted">tgold en juego: <b id="homePend">0</b></div>
-      <button class="main" id="swapBtn" style="margin-top:10px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
-      <button class="main" id="guideBtn" type="button" onclick="openGuide(true)" style="margin-top:8px;padding:8px;font-size:13px">CÓMO JUGAR</button>
+      <div style="margin-top:10px;padding:8px 10px;border:1px solid #d4af37;border-radius:10px;background:#1a1608">
+        <div class="muted" style="font-size:11px">TGOLD en juego</div>
+        <div class="big" id="homePend" style="font-size:22px;color:#ffe08a">0</div>
+      </div>
+      <button class="main" id="dailyBtn" type="button" onclick="claimDailyNow()" style="margin-top:8px;padding:8px;font-size:13px;background:#2e8b57;color:#f4fff8">BONUS DEL DÍA</button>
+      <button class="main" id="swapBtn" style="margin-top:8px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
+      <button class="main" id="guideBtn" type="button" onclick="openGuide(true)" style="margin-top:8px;padding:8px;font-size:13px;background:#2a4a7a;color:#d6e6ff">CÓMO JUGAR</button>
       <div class="muted" style="margin-top:8px;display:flex;align-items:center;gap:6px"><svg class="bolt" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ffe08a" d="M13 2L4 14h7l-2 8 11-14h-7l2-6z"/></svg> Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:10px">
