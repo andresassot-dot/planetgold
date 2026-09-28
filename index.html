@@ -289,7 +289,13 @@
     .chestSlot.rara { border-color:#4aa3ff; box-shadow:0 0 12px #4aa3ff66; }
     .chestSlot.ultra { border-color:#c77dff; box-shadow:0 0 14px #c77dff88; }
     .chestSlot.holo { border-color:#d4af37; box-shadow:0 0 16px #ffe08a99; }
-    .chestLid { width:140px; height:90px; margin:10px auto 0; border-radius:14px; background:linear-gradient(180deg,#f3d077,#8a6a12); border:3px solid #ffe08a; display:flex; align-items:center; justify-content:center; font-weight:900; color:#1a1200; }
+    .chestLid { width:168px; height:118px; margin:10px auto 0; border-radius:18px 18px 14px 14px; background:
+      radial-gradient(circle at 50% 38%, #fff3c4 0 10px, transparent 11px),
+      linear-gradient(180deg,#f7e08a 0%,#d4af37 42%,#7a5610 100%);
+      border:3px solid #ffe08a; box-shadow:0 10px 24px #0008, inset 0 0 0 4px #8a6a12;
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-end; font-weight:900; color:#1a1200; padding-bottom:10px; position:relative; }
+    .chestLid:before { content:"◆"; position:absolute; top:28px; font-size:22px; color:#fff6c8; text-shadow:0 0 8px #ffe08a; }
+    .chestLid small { font-size:11px; letter-spacing:.12em; }
   </style>
 </head>
 <body>
@@ -490,7 +496,7 @@
   <div id="packs">
     <h1 style="color:#ffe08a;text-align:center">Sobres</h1>
     <p class="muted" style="text-align:center">2 cofres al día. 3 cartas: común, rara… la última puede ser holo.</p>
-    <div class="chestLid" id="packBox">COFRE<br>GOLD</div>
+    <div class="chestLid" id="packBox">COFRE GOLD<small>TGOLD</small></div>
     <div class="chestRow" id="chestRow">
       <div class="chestSlot" id="cs0">?</div>
       <div class="chestSlot" id="cs1">?</div>
@@ -1688,6 +1694,7 @@
 
     document.getElementById("openPack").onclick = () => {
       const msg = document.getElementById("packMsg");
+      let extraPay = false;
       const day = new Date().toISOString().slice(0,10);
       let used = 0;
       if (localStorage.getItem("pg_packDay") === day) used = Number(localStorage.getItem("pg_packN")||1);
@@ -1695,8 +1702,14 @@
         if (localStorage.getItem("pg_freePack")==="1") {
           localStorage.removeItem("pg_freePack");
         } else {
-          msg.textContent = "Ya abriste los 2 sobres de hoy. Vuelve mañana.";
-          return;
+          const pts = Number(localStorage.getItem("pg_pts")||0);
+          if (pts >= 400) {
+            localStorage.setItem("pg_pts", pts-400);
+            extraPay = true;
+          } else {
+            msg.textContent = "Sin cofres hoy. Mañana hay 2 gratis, o 400 pts ahora.";
+            return;
+          }
         }
       }
       localStorage.setItem("pg_packDay", day);
@@ -1716,6 +1729,7 @@
         Math.random()<0.45 ? "rara" : "comun",
         r3<0.10 ? "holo" : (r3<0.40 ? "ultra" : (r3<0.75 ? "rara" : "comun"))
       ];
+      [0,1,2].forEach(i=>{ const el=document.getElementById("cs"+i); if(el){ el.className="chestSlot"; el.textContent="..."; }});
       const got = kinds.map(pull);
       const notes = got.map(h => addDust(h.id));
       addXp(25);
