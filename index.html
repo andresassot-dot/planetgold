@@ -342,7 +342,7 @@
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
     <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · 12 s · elige rival del ranking</p>
-    <div id="rivalPick" style="display:flex;gap:6px;overflow:auto;padding:0 8px 8px"></div>
+    <div id="rivalPick" style="display:flex;gap:8px;overflow:auto;padding:4px 10px 10px;min-height:40px"></div>
     <div id="turnClock" style="margin:4px 10px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:36px;position:relative;box-shadow:0 0 12px rgba(212,175,55,.35)">
       <i id="turnBar" style="display:block;height:100%;width:100%;transform-origin:left center;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width 1s linear"></i>
       <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">TU TURNO 12s</b>
@@ -2132,7 +2132,7 @@
         startMyClock();
       }
     }
-    let duelRival = { name:"Máquina", deck:[] };
+    let duelRival = { name:"Maquina", deck:[] };
     function renderRivalPick(){
       const box = document.getElementById("rivalPick");
       if (!box) return;
@@ -2141,7 +2141,11 @@
       const me = rankKey(myProfile());
       const others = boardR.filter(p => rankKey(p) !== me).slice(0,12);
       const items = [{name:"Máquina", deck:[], photo:""}].concat(others);
-      box.innerHTML = items.map((p,i)=>`<button type="button" data-rv="${i}" style="flex:0 0 auto;border:1px solid ${(duelRival.name===(p.name||"Máquina"))?"#d4af37":"#3a4258"};background:#161a26;color:#ffe08a;border-radius:12px;padding:6px 8px;font-size:11px">${p.photo?`<img src="${p.photo}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:4px"/>`:""}${p.name||"Jugador"}</button>`).join("");
+      box.innerHTML = items.map((p,i)=>{
+        const on = duelRival.name===(p.name||"Maquina") || (i===0 && duelRival.name==="Máquina");
+        const label = i===0 ? "Maquina" : (p.name||"Jugador");
+        return `<button type="button" data-rv="${i}" style="flex:0 0 auto;border:1px solid ${on?"#d4af37":"#3a4258"};background:${on?"#d4af37":"#161a26"};color:${on?"#1a1408":"#ffe08a"};border-radius:16px;padding:8px 12px;font-size:13px;font-weight:800;white-space:nowrap">${p.photo?`<img src="${p.photo}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:6px"/>`:""}${label}</button>`;
+      }).join("");
       box.querySelectorAll("[data-rv]").forEach(b=>{
         b.onclick=()=>{
           const p = items[Number(b.getAttribute("data-rv"))];
@@ -2361,7 +2365,7 @@
     document.getElementById("cofreBack").onclick = () => showTab("pick");
     document.getElementById("lootOk").onclick = () => { document.getElementById("lootPop").classList.remove("on"); showTab("cofre"); };
     document.getElementById("mineBack").onclick = () => showTab("pick");
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Vs "+(duelRival.name||"Máquina")+" · 12s: 1 carta y ataca."; };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Vs "+(duelRival.name||"Maquina")+" · 12s: 1 carta y ataca."; };
     document.getElementById("duelEndOk").onclick = () => {
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false;
