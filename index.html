@@ -42,6 +42,8 @@
     #mazo.on { display: flex; }
     .mazoGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
     .mazoGrid .c { background:#161a26; border:1px solid #3a4258; border-radius:10px; overflow:hidden; text-align:center; }
+    .mazoGrid .c img { width:100%; height:168px; object-fit:contain; object-position:center; background:#0b0d14; display:block; }
+    .mazoGrid .c b, .mazoGrid .c span { display:block; padding:3px 4px; font-size:11px; }
     .mazoGrid img { width:100%; height:92px; object-fit:cover; object-position:top; display:block; }
     .mazoGrid b { display:block; font-size:11px; color:#ffe08a; padding:4px 4px 0; }
     .mazoGrid span { display:block; font-size:10px; color:#9aa4b8; padding:0 4px 6px; }
@@ -105,6 +107,8 @@
     #mazo.on { display: flex; }
     .mazoGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
     .mazoGrid .c { background:#161a26; border:1px solid #3a4258; border-radius:10px; overflow:hidden; text-align:center; }
+    .mazoGrid .c img { width:100%; height:168px; object-fit:contain; object-position:center; background:#0b0d14; display:block; }
+    .mazoGrid .c b, .mazoGrid .c span { display:block; padding:3px 4px; font-size:11px; }
     .mazoGrid img { width:100%; height:92px; object-fit:cover; object-position:top; display:block; }
     .mazoGrid b { display:block; font-size:11px; color:#ffe08a; padding:4px 4px 0; }
     .mazoGrid span { display:block; font-size:10px; color:#9aa4b8; padding:0 4px 6px; }
@@ -282,8 +286,8 @@
     .dailyok { opacity:.55; }
 
     .chestRow { display:flex; gap:8px; justify-content:center; margin:12px 0 6px; }
-    .chestSlot { width:96px; height:128px; border-radius:12px; background:#121622; border:2px solid #3a4258; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
-    .chestSlot img { width:100%; height:100%; object-fit:cover; object-position:top; }
+    .chestSlot { width:100px; height:148px; border-radius:12px; background:#121622; border:2px solid #3a4258; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+    .chestSlot img { width:100%; height:100%; object-fit:contain; object-position:center; background:#0b0d14; }
     .chestSlot b { position:absolute; bottom:4px; left:0; right:0; font-size:10px; text-align:center; color:#fff; text-shadow:0 1px 4px #000; }
     .chestSlot.com { border-color:#8a93a8; }
     .chestSlot.rara { border-color:#4aa3ff; box-shadow:0 0 12px #4aa3ff66; }
@@ -398,7 +402,7 @@
     <button class="main" data-tab="pick">EMPEZAR PARTIDA</button>
   </div>
 
-  <div id="zoom" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.82);align-items:center;justify-content:center;flex-direction:column;padding:18px">
+  <div id="zoom" style="display:none;position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.82);align-items:center;justify-content:center;flex-direction:column;padding:18px">
     <div id="zoomCard" style="width:min(86vw,340px);max-height:78vh;overflow:auto;border:4px solid #cd7f32;border-radius:16px;background:#161a26;text-align:center">
       <img id="zoomImg" alt="" style="width:100%;height:auto;max-height:58vh;object-fit:contain;object-position:center;display:block;background:#0b0d14" />
       <div style="padding:10px 12px 14px">
@@ -518,7 +522,7 @@
       <div class="chestSlot" id="cs2">?</div>
     </div>
     <div id="packCard">
-      <div class="fifa" style="width:180px;margin:0 auto"><img id="packImg" alt="" style="height:220px;object-fit:cover;object-position:top" /></div>
+      <div class="fifa" style="width:180px;margin:0 auto"><img id="packImg" alt="" style="height:260px;width:auto;max-width:92%;object-fit:contain;object-position:center" /></div>
       <b id="packName" style="display:block;margin-top:8px"></b>
       <small class="muted" id="packNote"></small>
     </div>
@@ -1351,10 +1355,13 @@
       const box=document.getElementById("mazoGrid");
       if (!box) return;
       if (!list.length) { box.innerHTML = '<p class="muted" style="grid-column:1/-1;text-align:center">Aún no tienes cartas. Abre sobres o gana duelos.</p>'; return; }
-      box.innerHTML = list.map(h => {
+      box.innerHTML = list.map((h,i) => {
         const n = (dustOf(h.id)||0) + (rankOf(h.id)||0);
-        return `<div class="c"><img src="${h.img}" alt=""><b>${h.name||h.id}</b><span>x${n}${(h.fusesTo && n<3)?" · "+n+"/3 holo":""} · ${h.rare||"normal"}</span></div>`;
+        return `<div class="c" data-zi="${i}"><img src="${h.img}" alt=""><b>${h.name||h.id}</b><span>x${n}${(h.fusesTo && n<3)?" · "+n+"/3 holo":""} · ${h.rare||"normal"}</span></div>`;
       }).join("");
+      box.querySelectorAll("[data-zi]").forEach(el => {
+        el.onclick = () => { try { openZoom(list[+el.getAttribute("data-zi")]); document.getElementById("zoom").style.display="flex"; } catch(e) {} };
+      });
     }
 
     function showTab(name) {
@@ -1767,8 +1774,13 @@
         const box = document.getElementById("packCard");
         box.style.display = "block";
         document.getElementById("packImg").src = best.img;
+        document.getElementById("packImg").onclick = () => { try { openZoom(best); document.getElementById("zoom").style.display="flex"; } catch(e) {} };
         document.getElementById("packName").textContent = best.name;
         document.getElementById("packNote").textContent = kinds[2].toUpperCase()+" · "+notes[2];
+        got.forEach((h,i)=>{
+          const el=document.getElementById("cs"+i);
+          if (el) el.onclick = () => { try { openZoom(h); document.getElementById("zoom").style.display="flex"; } catch(e) {} };
+        });
         msg.textContent = kinds[2]==="holo" ? "¡HOLO! +1 tgold" : ("3 cartas · la última fue "+kinds[2]);
         refreshHome();
       }
@@ -2188,6 +2200,11 @@
       document.getElementById("zoomUse").style.display = "none";
       document.getElementById("zoom").style.display = "flex";
     }
+    window.closeZoom = function(){ const z=document.getElementById("zoom"); if(z) z.style.display="none"; };
+    document.addEventListener("click", function(ev){
+      const z=document.getElementById("zoom");
+      if (z && z.style.display==="flex" && ev.target===z) window.closeZoom();
+    });
     function openZoom(h) {
       document.getElementById("zoomUse").style.display = "";
       hero = h;
