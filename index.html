@@ -264,6 +264,17 @@
     #packCard img { width: 180px; height: 220px; object-fit: cover; object-position: top; border-radius: 12px; border: 3px solid #d4af37; }
 
 
+
+    #guide { display:none; position:fixed; inset:0; z-index:80; background:rgba(6,8,16,.82); align-items:center; justify-content:center; padding:16px; }
+    #guide.on { display:flex; }
+    #guideBox { width:min(92vw,380px); background:#121622; border:2px solid #d4af37; border-radius:16px; padding:16px 16px 14px; text-align:center; }
+    #guideBox h2 { margin:0 0 8px; color:#ffe08a; font-size:20px; }
+    #guideBox p { margin:0 0 14px; color:#d5dceb; font-size:14px; line-height:1.45; }
+    #guideDots { display:flex; gap:6px; justify-content:center; margin:0 0 12px; }
+    #guideDots i { width:7px; height:7px; border-radius:50%; background:#3a4258; display:inline-block; }
+    #guideDots i.on { background:#d4af37; }
+    #guideBtns { display:flex; gap:8px; }
+    #guideBtns button { flex:1; }
   </style>
 </head>
 <body>
@@ -273,6 +284,19 @@
     <div class="sub">Cargando tu partida...</div>
     <div id="loadbar"><div id="loadfill"></div></div>
   </div>
+  
+  <div id="guide">
+    <div id="guideBox">
+      <h2 id="guideT"></h2>
+      <p id="guideP"></p>
+      <div id="guideDots"></div>
+      <div id="guideBtns">
+        <button type="button" id="guideSkip" style="background:#2a3146;color:#ffe08a">Saltar</button>
+        <button type="button" class="main" id="guideNext">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
   <div id="home" class="on">
     <div class="heroBan">
       <div class="meRow">
@@ -290,6 +314,7 @@
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">tgold en juego: <b id="homePend">0</b></div>
       <button class="main" id="swapBtn" style="margin-top:10px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
+      <button class="main" id="guideBtn" style="margin-top:8px;padding:8px;font-size:13px;background:#3a2a12">CÓMO JUGAR</button>
       <div class="muted" style="margin-top:8px;display:flex;align-items:center;gap:6px"><svg class="bolt" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ffe08a" d="M13 2L4 14h7l-2 8 11-14h-7l2-6z"/></svg> Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:10px">
@@ -1345,6 +1370,42 @@
       const wp = document.getElementById("walPend"); if (wp) wp.textContent = pend;
       const wu = document.getElementById("walUsd"); if (wu) wu.textContent = "≈ $" + (pend*lastPx()).toFixed(6);
     }
+    
+    const GUIDE = [
+      { t:"Planet Gold", p:"Ganas puntos jugando y minando. Con 20.000 pts puedes cambiar a 10 TGOLD. La energía se usa en duelos y se recarga sola." },
+      { t:"Duelo 6×6", p:"Cada turno pones 1 carta. Primero toca la carta, luego una casilla: ves a dónde ataca. Toca otra vez para confirmar." },
+      { t:"Cómo ganar", p:"Si tu ataque es mayor que la vida del rival, la carta cambia de dueño. Gana quien tiene más cartas al final." },
+      { t:"Minería", p:"En Minería picas vetas (madera, oro, platino…). No gasta energía de duelo. Con esos materiales forjas espadas y reliquias." },
+      { t:"Sobres y mazo", p:"En Jugar abres sobres. 3 copias iguales = holográfica. En MAZO ves tu colección. Solo juegas con las cartas que tienes." },
+      { t:"Mercado y Ads", p:"En Ranking ves a otros jugadores. En Ads ganas +1 energía visitando anuncios. En Wallet cobras TGOLD a tu Solana." }
+    ];
+    let guideI = 0;
+    function paintGuide(){
+      const g = GUIDE[guideI];
+      document.getElementById("guideT").textContent = g.t;
+      document.getElementById("guideP").textContent = g.p;
+      document.getElementById("guideDots").innerHTML = GUIDE.map((_,i)=>"<i class='"+(i===guideI?"on":"")+"'></i>").join("");
+      document.getElementById("guideNext").textContent = guideI===GUIDE.length-1 ? "¡Jugar!" : "Siguiente";
+    }
+    function openGuide(reset){
+      if (reset) guideI = 0;
+      document.getElementById("guide").classList.add("on");
+      paintGuide();
+    }
+    function closeGuide(){
+      document.getElementById("guide").classList.remove("on");
+      localStorage.setItem("pg_guide_ok","1");
+    }
+    function bootGuide(){
+      const btn = document.getElementById("guideBtn");
+      if (btn) btn.onclick = () => openGuide(true);
+      const n = document.getElementById("guideNext");
+      const s = document.getElementById("guideSkip");
+      if (n) n.onclick = () => { if (guideI>=GUIDE.length-1) closeGuide(); else { guideI++; paintGuide(); } };
+      if (s) s.onclick = closeGuide;
+      if (!localStorage.getItem("pg_guide_ok")) openGuide(true);
+    }
+
     function refreshHome() {
       try { grantStarter(); } catch(e) {}
       try { pingRank(); } catch(e) {}
