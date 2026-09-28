@@ -265,7 +265,7 @@
 
 
 
-    #guide { display:none; position:fixed; inset:0; z-index:80; background:rgba(6,8,16,.82); align-items:center; justify-content:center; padding:16px; }
+    #guide { display:none; position:fixed; inset:0; z-index:9999; background:rgba(6,8,16,.82); align-items:center; justify-content:center; padding:16px; }
     #guide.on { display:flex; }
     #guideBox { width:min(92vw,380px); background:#121622; border:2px solid #d4af37; border-radius:16px; padding:16px 16px 14px; text-align:center; }
     #guideBox h2 { margin:0 0 8px; color:#ffe08a; font-size:20px; }
@@ -314,7 +314,7 @@
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">tgold en juego: <b id="homePend">0</b></div>
       <button class="main" id="swapBtn" style="margin-top:10px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
-      <button class="main" id="guideBtn" style="margin-top:8px;padding:8px;font-size:13px;background:#3a2a12">CÓMO JUGAR</button>
+      <button class="main" id="guideBtn" type="button" onclick="openGuide(true)" style="margin-top:8px;padding:8px;font-size:13px">CÓMO JUGAR</button>
       <div class="muted" style="margin-top:8px;display:flex;align-items:center;gap:6px"><svg class="bolt" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ffe08a" d="M13 2L4 14h7l-2 8 11-14h-7l2-6z"/></svg> Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:10px">
@@ -1380,19 +1380,19 @@
       { t:"Mercado y Ads", p:"En Ranking ves a otros jugadores. En Ads ganas +1 energía visitando anuncios. En Wallet cobras TGOLD a tu Solana." }
     ];
     let guideI = 0;
-    function paintGuide(){
+    window.paintGuide = function paintGuide(){
       const g = GUIDE[guideI];
       document.getElementById("guideT").textContent = g.t;
       document.getElementById("guideP").textContent = g.p;
       document.getElementById("guideDots").innerHTML = GUIDE.map((_,i)=>"<i class='"+(i===guideI?"on":"")+"'></i>").join("");
       document.getElementById("guideNext").textContent = guideI===GUIDE.length-1 ? "¡Jugar!" : "Siguiente";
     }
-    function openGuide(reset){
+    window.openGuide = function openGuide(reset){
       if (reset) guideI = 0;
       document.getElementById("guide").classList.add("on");
       paintGuide();
     }
-    function closeGuide(){
+    window.closeGuide = function closeGuide(){
       document.getElementById("guide").classList.remove("on");
       localStorage.setItem("pg_guide_ok","1");
     }
@@ -2926,6 +2926,7 @@
       requestAnimationFrame(draw);
     }
     draw();
+    try { bootGuide(); } catch(e) {}
   </script>
 </body>
 </html>
