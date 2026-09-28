@@ -1047,11 +1047,16 @@
         } else {
           const r = await fetch("/api/ads");
           const j = await r.json();
-          if (j && j.ads) {
-            const local = loadAds();
+          const local = loadAds();
+          if (j && Array.isArray(j.ads)) {
             const map = {};
-            local.concat(j.ads).forEach(a => { map[a.id]=a; });
+            j.ads.concat(local).forEach(a => { if(a&&a.id) map[a.id]=a; });
             saveAds(Object.values(map));
+            if (local.length && (!j.ads || !j.ads.length)) {
+              for (const a of local.slice(0,8)) {
+                if (a.url) await fetch("/api/ads", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ act:"pub", id:a.id, kind:a.kind, url:a.url, title:a.title, by:a.by }) });
+              }
+            }
           }
         }
       } catch(e) {}
