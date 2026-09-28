@@ -1040,25 +1040,16 @@
     function whoAd(){ return String(playerName()).toLowerCase().replace(/^@/,""); }
     async function syncAds(payload){
       try {
-        if (payload) {
-          const r = await fetch("/api/ads", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload) });
-          const j = await r.json();
-          if (j && j.ads) saveAds(j.ads);
-        } else {
-          const r = await fetch("/api/ads");
-          const j = await r.json();
-          const local = loadAds();
-          if (j && Array.isArray(j.ads)) {
-            const map = {};
-            j.ads.concat(local).forEach(a => { if(a&&a.id) map[a.id]=a; });
-            saveAds(Object.values(map));
-            if (local.length && (!j.ads || !j.ads.length)) {
-              for (const a of local.slice(0,8)) {
-                if (a.url) await fetch("/api/ads", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ act:"pub", id:a.id, kind:a.kind, url:a.url, title:a.title, by:a.by }) });
-              }
-            }
-          }
+        const local = loadAds();
+        if (payload && payload.act==="pub" && payload.url) {
+          const row = { id: payload.id||("ad"+Date.now()), kind:payload.kind||"canal", url:payload.url, title:payload.title||"Anuncio", by:payload.by||"", left:100, at:Date.now() };
+          saveAds([row].concat(local));
         }
+        const ads = loadAds();
+        const r = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { at: Date.now(), ads: ads.slice(0,12) })) });
+        const j = await r.json();
+        if (j && Array.isArray(j.ads) && j.ads.length) saveAds(j.ads);
+        else if (j && Array.isArray(j.ads) && !j.ads.length && ads.length) saveAds(ads);
       } catch(e) {}
     }
     async function renderAds() {
@@ -1672,7 +1663,9 @@
       try {
         let known=[]; try{known=JSON.parse(localStorage.getItem("pg_board")||"[]");}catch(e){}
         let listings=[]; try{listings=JSON.parse(localStorage.getItem("pg_mkt")||"[]");}catch(e){}
-        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { at: Date.now(), peers: known.slice(0,20), listings: listings.slice(0,40) })) });
+        let ads=[]; try{ads=JSON.parse(localStorage.getItem("pg_ads")||"[]");}catch(e){}
+        const rr = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { at: Date.now(), peers: known.slice(0,20), listings: listings.slice(0,40), ads: ads.slice(0,12) })) });
+        try { const jj=await rr.json(); if (jj && jj.ads && jj.ads.length) localStorage.setItem("pg_ads", JSON.stringify(jj.ads)); } catch(_){}
       } catch(e) {}
     }
     async function pushRank() {
@@ -1682,7 +1675,8 @@
       let remote = [];
       try {
         let listings=[]; try{listings=JSON.parse(localStorage.getItem("pg_mkt")||"[]");}catch(e){}
-        const body = Object.assign({}, me, { peers: known.filter(x => rankKey(x) !== rankKey(me)).slice(0,20), listings: listings.slice(0,40) });
+        let ads=[]; try{ads=JSON.parse(localStorage.getItem("pg_ads")||"[]");}catch(e){}
+        const body = Object.assign({}, me, { peers: known.filter(x => rankKey(x) !== rankKey(me)).slice(0,20), listings: listings.slice(0,40), ads: ads.slice(0,12) });
         const r1 = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
         const j1 = await r1.json();
         if (j1 && j1.players) remote = j1.players;
@@ -1690,9 +1684,11 @@
           const r2 = await fetch("/api/rank");
           const j2 = await r2.json();
           if (j2 && j2.players) remote = j2.players;
+          if (j2 && j2.ads && j2.ads.length) localStorage.setItem("pg_ads", JSON.stringify(j2.ads));
         }
         const remoteList = (j1 && j1.listings) || [];
         if (remoteList.length) localStorage.setItem("pg_mkt", JSON.stringify(remoteList));
+        if (j1 && j1.ads && j1.ads.length) localStorage.setItem("pg_ads", JSON.stringify(j1.ads));
       } catch(e) {}
       return mergeBoard(remote);
     }
