@@ -196,7 +196,6 @@
     .gems b.corta { background:#3d9bff; }
     .gems b.media { background:#cfd6de; }
     .gems b.larga { background:#d4af37; }
-    #duelZoomGems .gems b{width:14px;height:14px;border-width:2px}
     .g-N{top:1px;left:50%;margin-left:-5px} .g-S{bottom:1px;left:50%;margin-left:-5px}
     .g-O{left:1px;top:50%;margin-top:-5px} .g-E{right:1px;top:50%;margin-top:-5px}
     .g-NO{top:1px;left:1px} .g-NE{top:1px;right:1px} .g-SO{bottom:1px;left:1px} .g-SE{bottom:1px;right:1px}
@@ -342,10 +341,7 @@
   </div>
 
   <div id="duelFloat" style="display:none;position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:60;width:150px;text-align:center;pointer-events:auto;top:auto">
-    <div id="duelZoomFrame" style="position:relative;width:150px;height:178px;margin:0 auto">
     <img id="duelZoomImg" alt="" style="width:150px;height:178px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 12px 40px rgba(0,0,0,.75)" />
-    <div id="duelZoomGems"></div>
-    </div>
     <div id="duelZoomTxt" style="margin-top:6px;font-size:12px;color:#ffe08a;text-shadow:0 2px 6px #000;line-height:1.35"></div>
   </div>
   <div id="duelEnd" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(8,10,18,.86);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px">
@@ -2300,10 +2296,10 @@
           const hh = HEROES.find(x=>x.id===u.id)||{};
           const synOn = synBonus(u.who).names.includes(hh.syn);
           if (synOn) d.classList.add("synGlow");
-          d.innerHTML = `<img src="${u.img}" alt="">`+gemsHTML(hh,u.who)+`<span class="hp">${u.hp}</span><div class="hpbar${u.hp<=3?" low":""}"><i style="width:${pct}%"></i></div>`;
+          d.innerHTML = `<img src="${u.img}" alt=""><span class="hp">${u.hp}</span><div class="hpbar${u.hp<=3?" low":""}"><i style="width:${pct}%"></i></div>`;
         } else if (isGhost) {
           const hh = HEROES.find(x=>x.id===selectedCard);
-          if (hh) d.innerHTML = `<img src="${hh.img}" alt="" style="opacity:.55">`+gemsHTML(hh,"me");
+          if (hh) d.innerHTML = `<img src="${hh.img}" alt="" style="opacity:.55">`;
         }
         d.onclick = () => {
           if (duelBusy) return;
@@ -2400,7 +2396,7 @@
       const box = document.getElementById("duelPick");
       if (!myHand.length) dealHand();
       const cards = myHand.map(id => HEROES.find(h=>h.id===id)).filter(Boolean);
-      box.innerHTML = cards.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}" style="position:relative"><img src="${h.img}" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" />`+gemsHTML(h,"me")+`</div>`).join("");
+      box.innerHTML = cards.map(h => `<div class="card${selectedCard===h.id?" on":""}" data-id="${h.id}"><img src="${h.img}" onerror="this.onerror=null;this.src=this.src.includes('.JPG')?this.src.replace('.JPG','.jpg'):this.src.replace('.jpg','.JPG')" /></div>`).join("");
       const rest = ownedCards().filter(h => !myHand.includes(h.id));
       const dn = document.getElementById("deckN");
       if (dn) dn.textContent = ownedCards().length + " mias";
@@ -2423,7 +2419,7 @@
         const z = document.getElementById("duelFloat");
         const zi = document.getElementById("duelZoomImg");
         const zt = document.getElementById("duelZoomTxt");
-        if (z) { sfx("tap"); z.style.display="block"; zi.src=h.img; const zg=document.getElementById("duelZoomGems"); if(zg) zg.innerHTML=gemsHTML(h,"me"); const st=h.atk||{corta:3,media:3,larga:3}; zt.innerHTML="<b>"+(h.name||"")+"</b> · "+(h.rare||"normal")+"<br>❤ "+(h.hp||4)+" · ⚔"+st.corta+" 🗡"+st.media+" 🏹"+st.larga+(h.syn?"<br>sinergia "+h.syn:""); }
+        if (z) { sfx("tap"); z.style.display="block"; zi.src=h.img; const st=h.atk||{corta:3,media:3,larga:3}; zt.innerHTML="<b>"+(h.name||"")+"</b> · "+(h.rare||"normal")+"<br>❤ "+(h.hp||4)+" · ⚔"+st.corta+" 🗡"+st.media+" 🏹"+st.larga+(h.syn?"<br>sinergia "+h.syn:""); }
         document.getElementById("duelMsg").textContent = "Casillas azules = puedes poner a " + h.name;
         renderDuelPick(); renderBoard();
       });
