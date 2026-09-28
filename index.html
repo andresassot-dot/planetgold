@@ -353,11 +353,11 @@
   </div>
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
-    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · 12 s · elige rival del ranking</p>
+    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · 30 s · elige rival del ranking</p>
     <div id="rivalPick" style="display:flex;gap:8px;overflow:auto;padding:4px 10px 10px;min-height:40px"></div>
     <div id="turnClock" style="margin:4px 10px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:36px;position:relative;box-shadow:0 0 12px rgba(212,175,55,.35)">
       <i id="turnBar" style="display:block;height:100%;width:100%;transform-origin:left center;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width 1s linear"></i>
-      <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">TU TURNO 12s</b>
+      <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">TU TURNO 30s</b>
     </div>
     <button type="button" id="rivalGo" style="margin:0 10px 6px;padding:4px;background:transparent;border:0;color:#8a93a8;font-size:11px;width:auto;display:block">pasar al rival ▸</button>
     <div id="fxEn" class="fxrow"></div>
@@ -1913,14 +1913,14 @@
     let myHand = [];
     let placedTurn = false;
     let turnWho = "me";
-    let turnSec = 12;
+    let turnSec = 30;
     let turnT = null;
     function setClock(who, sec, animate) {
       turnWho = who; turnSec = sec;
       const box = document.getElementById("turnClock");
       const bar = document.getElementById("turnBar");
       const txt = document.getElementById("turnTxt");
-      const max = who==="me" ? 12 : 3;
+      const max = who==="me" ? 30 : 3;
       if (box) box.style.borderColor = who==="me" ? "#d4af37" : "#e74c3c";
       if (bar) {
         bar.style.transition = animate ? "width 1s linear" : "none";
@@ -1934,9 +1934,9 @@
       stopClock(); placedTurn=false;
       const bar = document.getElementById("turnBar");
       if (bar) { bar.style.transition = "none"; bar.style.width = "100%"; }
-      setClock("me", 12, false);
+      setClock("me", 30, false);
       requestAnimationFrame(() => {
-        if (bar) { bar.style.transition = "width 12s linear"; bar.style.width = "0%"; }
+        if (bar) { bar.style.transition = "width 30s linear"; bar.style.width = "0%"; }
       });
       turnT = setInterval(() => {
         turnSec--;
@@ -2462,7 +2462,7 @@
     document.getElementById("cofreBack").onclick = () => showTab("pick");
     document.getElementById("lootOk").onclick = () => { document.getElementById("lootPop").classList.remove("on"); showTab("cofre"); };
     document.getElementById("mineBack").onclick = () => showTab("pick");
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Vs "+(duelRival.name||"Maquina")+" · 12s: 1 carta y ataca."; };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Vs "+(duelRival.name||"Maquina")+" · 30s: 1 carta y ataca."; };
     document.getElementById("duelEndOk").onclick = () => {
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false;
@@ -2476,7 +2476,7 @@
       board = Array(36).fill(null); dealHand(); placedTurn=false; spawnAI();
       selectedCard = null; selectedIdx=null; previewIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1; parley = true;
       fxMe=[]; fxEn=[]; selectedFx=null;
-      document.getElementById("duelMsg").textContent = "Tienes 12s: 1 carta y ataca.";
+      document.getElementById("duelMsg").textContent = "Tienes 30s: 1 carta y ataca.";
       renderFx(); renderBoard(); renderDuelPick(); renderFxPick(); startMyClock();
     };
     document.getElementById("duelNext").onclick = () => { turnN++; document.getElementById("duelMsg").textContent = "Turno " + turnN + "/12"; };
