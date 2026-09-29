@@ -1406,7 +1406,7 @@
     const flyBtn = document.getElementById("flyBtn");
     if (flyBtn) flyBtn.onclick = () => { showTab("vuelo"); flyReady(); };
 
-    let flyRAF=0, flyRun=false, flyY=0, flyV=0, flyPipes=[], flyScr=0, flyDead=false, flyW=0, flyH=0;
+    let flyRAF=0, flyRun=false, flyY=0, flyV=0, flyPipes=[], flyPick=[], flyScr=0, flyDead=false, flyW=0, flyH=0, flyGlow=0, flyGotC=0, flyGotP=0;
     function flyHudEn(){
       const el=document.getElementById("flyEn");
       if (el) el.textContent = "⚡ "+getEnergy()+"/"+ (typeof MAX_EN!=="undefined"?MAX_EN:5);
@@ -1434,6 +1434,7 @@
       flyHudEn(); refreshHome();
       document.getElementById("flyOver").classList.remove("on");
       flyY=flyH*0.4; flyV=-5; flyPipes=[{x:flyW+20,gap:flyH*0.38,h:80+Math.random()*(flyH-220)}];
+      flyPick=[]; flyGotC=0; flyGotP=0; flyGlow=0;
       flyScr=0; flyDead=false; flyRun=true;
       document.getElementById("flyScore").textContent="0";
       cancelAnimationFrame(flyRAF);
@@ -1479,7 +1480,7 @@
       if (flyDead) return;
       flyDead=true; flyRun=false;
       const msg=flyPay(flyScr);
-      document.getElementById("flyRes").textContent = flyScr+" tubos · "+msg;
+      document.getElementById("flyRes").textContent = flyScr+" tubos · "+msg+(flyGotC?" · +"+flyGotC+" TGOLD":"")+(flyGotP?" · +"+flyGotP+" sobre":"");
       document.getElementById("flyOver").classList.add("on");
       flyHudEn();
       try { refreshHome(); } catch(e){}
@@ -1491,9 +1492,32 @@
       const spd=flySpd();
       flyPipes.forEach(p => p.x -= spd);
       if (flyPipes.length && flyPipes[flyPipes.length-1].x < flyW-210) {
-        flyPipes.push({x:flyW+10, gap:flyGap(), h:60+Math.random()*(flyH-200)});
+        const gap=flyGap();
+        const h=60+Math.random()*(flyH-200-gap);
+        flyPipes.push({x:flyW+10, gap:gap, h:h});
+        if (Math.random()<0.55) {
+          const kind = (flyScr>=8 && Math.random()<0.28) ? "pack" : "coin";
+          flyPick.push({x:flyW+28, y:h+gap*0.45, kind:kind, got:false, pulse:0});
+        }
       }
       flyPipes = flyPipes.filter(p => p.x>-70);
+      flyPick.forEach(k => k.x -= spd);
+      flyPick = flyPick.filter(k => k.x>-40 && !k.gone);
+      flyPick.forEach(k => {
+        if (k.got) return;
+        const dx=56-k.x, dy=flyY-k.y;
+        if (dx*dx+dy*dy < 28*28) {
+          k.got=true; k.gone=true; flyGlow=14;
+          if (k.kind==="coin") {
+            flyGotC++;
+            localStorage.setItem("pg_pend", String(Number(localStorage.getItem("pg_pend")||0)+1));
+          } else {
+            flyGotP++;
+            const pool=(typeof HEROES!=="undefined"?HEROES:[]).filter(h=>!h.holo);
+            if (pool.length && typeof addDust==="function") addDust(pool[Math.floor(Math.random()*pool.length)].id);
+          }
+        }
+      });
       const bx=56, by=flyY, br=16;
       if (flyY<br || flyY>flyH-br) flyDie();
       flyPipes.forEach(p => {
@@ -1532,6 +1556,33 @@
         g.fillRect(p.x-3,p.h-10,52,10);
         g.fillRect(p.x-3,p.h+p.gap,52,10);
       });
+      (flyPick||[]).forEach(k=>{
+        if (k.got) return;
+        k.pulse=(k.pulse||0)+0.12;
+        const r=11+Math.sin(k.pulse)*2;
+        if (k.kind==="coin") {
+          g.save();
+          g.shadowColor="#ffe08a"; g.shadowBlur=16;
+          const cg=g.createRadialGradient(k.x,k.y,2,k.x,k.y,r+4);
+          cg.addColorStop(0,"#fff4b0"); cg.addColorStop(1,"#d4af37");
+          g.fillStyle=cg; g.beginPath(); g.arc(k.x,k.y,r,0,Math.PI*2); g.fill();
+          g.restore();
+          g.fillStyle="#7a5a10"; g.font="10px sans-serif"; g.textAlign="center"; g.fillText("G", k.x, k.y+3);
+        } else {
+          g.save();
+          g.shadowColor="#7dd3fc"; g.shadowBlur=14;
+          g.fillStyle="#1e3a5f";
+          g.fillRect(k.x-10,k.y-13,20,18);
+          g.fillStyle="#f3d077";
+          g.fillRect(k.x-10,k.y-13,20,6);
+          g.restore();
+        }
+      });
+      if (flyGlow>0) {
+        g.fillStyle="rgba(255,224,138,"+(flyGlow/18)+")";
+        g.beginPath(); g.arc(56,flyY,26+flyGlow,0,Math.PI*2); g.fill();
+        flyGlow--;
+      }
       const y=flyY;
       if (flyImg.complete && flyImg.naturalWidth) {
         g.drawImage(flyImg, 56-22, y-22, 44, 44);
