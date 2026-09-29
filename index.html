@@ -2085,6 +2085,9 @@
       const pet = HEROES.find(h=>h.id===w.pet);
       return {
         id, name: playerName(),
+        username: u.username || "",
+        first: u.first_name || "",
+        aliases: [u.username, u.first_name, playerName(), localStorage.getItem("pg_name")].filter(Boolean),
         photo: u.photo_url || "",
         en: (typeof getEnergy==="function")?getEnergy():0,
         gifts: Number(localStorage.getItem("pg_gifts")||0),
@@ -2157,6 +2160,8 @@
       localStorage.setItem("pg_saleNote", msg);
       ["buyMsg","sellMsg","salePop"].forEach(id => { const n=document.getElementById(id); if(n) n.textContent=msg; });
       try { refreshHome(); renderMarket(); } catch(e){}
+      const mt=document.getElementById("meTgold"); if(mt) mt.textContent=localStorage.getItem("pg_pend")||0;
+      const hp=document.getElementById("homePend"); if(hp) hp.textContent=localStorage.getItem("pg_pend")||0;
     }
 
     async function pingRank(){
@@ -2356,7 +2361,7 @@
           const dead = { kind, id, qty:0, gone:1, unit, pay: tgold?"tgold":"pts", by:o.by, sid: o.sid||o.idKey||[o.by,kind,id,tgold?"tgold":"pts"].join("|"), idKey: o.idKey||"", at: Date.now() };
           await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), {
             listings: [dead],
-            sale: (seller && seller !== me) ? { to: seller, pts: tgold?0:cost, tgold: tgold?cost:0 } : null
+            sale: (seller && seller !== me) ? { to: seller, also: [o.by, seller], pts: tgold?0:cost, tgold: tgold?cost:0 } : null
           })) });
         } catch(e){}
         try{ await pushRank(); renderMarket(); }catch(e){}
