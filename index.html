@@ -486,8 +486,10 @@
   </div>
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
-    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · 30 s · elige rival del ranking</p>
+    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · Vs jugador 60 s · Máquina 30 s</p>
     <div id="rivalPick" style="display:flex;gap:8px;overflow:auto;padding:4px 10px 10px;min-height:40px"></div>
+    <button class="main" id="pvpBtn" style="margin:0 10px 8px;background:#1a4f9c;color:#d6e8ff">VS JUGADOR · 1 min</button>
+    <p class="muted" id="pvpMsg" style="text-align:center;margin:0 10px 6px"></p>
     <div id="turnClock" style="margin:4px 10px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:36px;position:relative;box-shadow:0 0 12px rgba(212,175,55,.35)">
       <i id="turnBar" style="display:block;height:100%;width:100%;transform-origin:left center;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width 1s linear"></i>
       <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">TU TURNO 30s</b>
@@ -1612,6 +1614,98 @@
     if (flyAgain) { flyAgain.onclick = function(e){ e.preventDefault(); e.stopPropagation(); window.flyGoAgain(); }; }
     window.addEventListener("resize", ()=>{ if(document.getElementById("vuelo")?.classList.contains("on")) flyReady(); });
 
+    
+    window.pvpOn = false;
+    window.pvpMatch = null;
+    window.pvpRole = null;
+    window.pvpPollT = null;
+    function pvpMsg(s){ const n=document.getElementById("pvpMsg"); if(n) n.textContent=s||""; }
+    function pvpStop(){
+      window.pvpOn=false; window.pvpMatch=null; window.pvpRole=null;
+      if (window.pvpPollT) { clearInterval(window.pvpPollT); window.pvpPollT=null; }
+    }
+    function boardToNet(){
+      return (board||[]).map(u => u ? {id:u.id, hp:u.hp, who: u.who==="me" ? window.pvpRole : (window.pvpRole==="a"?"b":"a")} : null);
+    }
+    function boardFromNet(arr){
+      if (!Array.isArray(arr) || arr.length!==36) return;
+      const role = window.pvpRole;
+      board = arr.map(u => u ? {id:u.id, img:(HEROES.find(h=>h.id===u.id)||{}).img, hp:u.hp, who: u.who===role ? "me" : "en"} : null);
+    }
+    async function pvpSeek(){
+      window.pvpOn = true;
+      pvpMsg("Buscando jugador…");
+      try {
+        const r = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { pvpSeek:true })) });
+        const j = await r.json();
+        if (j.pvp && j.pvp.id) { pvpJoin(j.pvp, j.pvpRole); return; }
+        pvpMsg("Esperando rival (1 min por turno)…");
+        if (window.pvpPollT) clearInterval(window.pvpPollT);
+        window.pvpPollT = setInterval(pvpTick, 2000);
+      } catch(e) { pvpMsg("No hay red PvP"); window.pvpOn=false; }
+    }
+    function pvpJoin(m, role){
+      window.pvpOn=true; window.pvpMatch=m; window.pvpRole=role|| (m.a && rankKey(myProfile())===rankKey(m.a) ? "a":"b");
+      const other = window.pvpRole==="a" ? m.b : m.a;
+      duelRival = { name: other.name || "Rival", deck: [], photo: other.photo||"" };
+      pvpMsg("Vs "+(other.name||"rival")+" · turno 60 s");
+      boardFromNet(m.board||Array(36).fill(null));
+      renderBoard(); renderDuelPick();
+      const mine = (m.turn===window.pvpRole);
+      if (mine) startMyClock();
+      else {
+        stopClock(); setClock("en", 60, true);
+        const txt=document.getElementById("turnTxt");
+        if (txt) txt.textContent = "TURNO RIVAL";
+      }
+      if (window.pvpPollT) clearInterval(window.pvpPollT);
+      window.pvpPollT = setInterval(pvpTick, 2000);
+    }
+    async function pvpTick(){
+      if (!window.pvpOn) return;
+      try {
+        const body = Object.assign({}, myProfile(), { pvpGet:true, matchId: window.pvpMatch && window.pvpMatch.id });
+        const r = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+        const j = await r.json();
+        if (!window.pvpMatch && j.pvp && j.pvp.id) { pvpJoin(j.pvp, j.pvpRole); return; }
+        if (!j.pvp) { if (!j.pvpWait) pvpMsg("Buscando…"); return; }
+        window.pvpMatch = j.pvp;
+        if (j.pvpRole) window.pvpRole = j.pvpRole;
+        boardFromNet(j.pvp.board);
+        renderBoard();
+        if (j.pvp.winner) {
+          const meWin = (j.pvp.winner === window.pvpRole) || nickKey(j.pvp.winner)===nickKey(playerName());
+          pvpStop(); endDuel(!!meWin, "PvP");
+          return;
+        }
+        const mine = j.pvp.turn === window.pvpRole;
+        if (mine && placedTurn) { placedTurn=false; startMyClock(); }
+        if (!mine) {
+          stopClock();
+          const txt=document.getElementById("turnTxt");
+          if (txt) txt.textContent = "TURNO RIVAL";
+        }
+      } catch(e){}
+    }
+    async function pvpPush(next){
+      if (!window.pvpOn || !window.pvpMatch) return;
+      try {
+        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), {
+          pvpMove:true, matchId: window.pvpMatch.id, board: boardToNet(),
+          nextTurn: next, turnN: turnN, winner: null
+        })) });
+      } catch(e){}
+    }
+    const pvpBtn = document.getElementById("pvpBtn");
+    if (pvpBtn) pvpBtn.onclick = () => {
+      showTab("duel");
+      document.getElementById("duelEnd").style.display="none";
+      duelBusy=false; board=Array(36).fill(null); dealHand();
+      placedTurn=false; selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1;
+      renderFx(); renderBoard(); renderDuelPick();
+      pvpSeek();
+    };
+
     function showTab(name) {
       ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(id => {
         const el = document.getElementById(id);
@@ -1627,6 +1721,10 @@
       if (name === "mazo") renderMazo();
       if (name === "vuelo") flyReady();
       if (name === "duel") { try { bgmStart("war"); } catch(e) {} }
+      else if (window.pvpOn && name!=="duel") {
+        try { fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { pvpLeave:true, matchId: window.pvpMatch && window.pvpMatch.id })) }); } catch(e){}
+        pvpStop();
+      }
       else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
@@ -2634,7 +2732,7 @@
       const box = document.getElementById("turnClock");
       const bar = document.getElementById("turnBar");
       const txt = document.getElementById("turnTxt");
-      const max = who==="me" ? 30 : 3;
+      const max = who==="me" ? (window.pvpOn?60:30) : (window.pvpOn?60:3);
       if (box) box.style.borderColor = who==="me" ? "#d4af37" : "#e74c3c";
       if (bar) {
         bar.style.transition = animate ? "width 1s linear" : "none";
@@ -2646,11 +2744,12 @@
     function stopClock(){ if (turnT) { clearInterval(turnT); turnT=null; } }
     function startMyClock(){
       stopClock(); placedTurn=false;
+      const max = window.pvpOn ? 60 : 30;
       const bar = document.getElementById("turnBar");
       if (bar) { bar.style.transition = "none"; bar.style.width = "100%"; }
-      setClock("me", 30, false);
+      setClock("me", max, false);
       requestAnimationFrame(() => {
-        if (bar) { bar.style.transition = "width 30s linear"; bar.style.width = "0%"; }
+        if (bar) { bar.style.transition = "width "+max+"s linear"; bar.style.width = "0%"; }
       });
       turnT = setInterval(() => {
         turnSec--;
@@ -3063,7 +3162,7 @@
               ? (h.name + " en Parlamento (sin ataque).")
               : (h.name + (flips ? " voltea "+flips : " sin volteo") + " · "+countSide("me")+"–"+countSide("en"));
             renderBoard(); renderDuelPick();
-            setTimeout(() => { if (!checkEnded()) duelEnemyTurn(); }, 700);
+            setTimeout(() => { if (checkEnded()) return; if (window.pvpOn) { turnN++; pvpPush(window.pvpRole==="a"?"b":"a"); placedTurn=true; const tx=document.getElementById("turnTxt"); if(tx) tx.textContent="TURNO RIVAL"; stopClock(); return; } duelEnemyTurn(); }, 700);
             return;
           }
           if (false && targets[i] && board[i] && board[i].who==="en") {
