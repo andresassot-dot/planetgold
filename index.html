@@ -196,7 +196,7 @@
     #flyHud { display:flex; justify-content:space-between; align-items:center; color:#ffe08a; font-size:13px; padding:4px 2px 8px; }
     #flyBox { position:relative; flex:1; min-height:280px; border:2px solid #d4af37; border-radius:14px; overflow:hidden; background:#0a1228; }
     #flyCan { width:100%; height:100%; display:block; }
-    #flyOver { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(0,0,0,.72); text-align:center; padding:16px; }
+    #flyOver { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(0,0,0,.72); text-align:center; padding:16px; z-index:5; pointer-events:auto; }
     #flyOver.on { display:flex; }
     #flyOver h2 { color:#ffe08a; margin:0 0 8px; }
 
@@ -457,8 +457,8 @@
       <div id="flyOver">
         <h2>GAME OVER</h2>
         <div class="muted" id="flyRes"></div>
-        <button class="main" id="flyAgain" style="margin-top:12px">OTRA PARTIDA</button>
-        <button class="main" id="flyExit" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">SALIR</button>
+        <button class="main" id="flyAgain" style="margin-top:12px" onclick="event.stopPropagation();window.flyGoAgain&&window.flyGoAgain()">OTRA PARTIDA</button>
+        <button class="main" id="flyExit" style="margin-top:8px;background:#1e3a5f;color:#ffe08a" onclick="event.stopPropagation();window.flyGoOut&&window.flyGoOut()">SALIR</button>
       </div>
     </div>
     <p class="muted" style="text-align:center;margin-top:8px">Toca para subir · 1 energía por partida</p>
@@ -1500,6 +1500,9 @@
       flyDraw();
       if (flyRun) flyRAF=requestAnimationFrame(flyLoop);
     }
+    const flyImg = new Image();
+    flyImg.src = "sol.svg";
+    flyImg.onerror = function(){ flyImg.src = "sol.png"; };
     function flyDraw(){
       const c=document.getElementById("flyCan");
       if (!c) return;
@@ -1516,19 +1519,27 @@
         g.fillRect(p.x-3,p.h+p.gap,52,10);
       });
       const y=flyY;
-      const grd=g.createLinearGradient(40,y-16,72,y+16);
-      grd.addColorStop(0,"#9945FF"); grd.addColorStop(1,"#14F195");
-      g.beginPath(); g.arc(56,y,16,0,Math.PI*2); g.fillStyle=grd; g.fill();
-      g.fillStyle="#fff"; g.fillRect(48,y-6,16,4); g.fillRect(50,y-1,14,4); g.fillRect(52,y+4,12,4);
-      g.fillStyle="#f3d077";
-      g.beginPath(); g.ellipse(38,y-4,10,5, -0.4,0,Math.PI*2); g.fill();
-      g.beginPath(); g.ellipse(38,y+6,10,5, 0.4,0,Math.PI*2); g.fill();
+      if (flyImg.complete && flyImg.naturalWidth) {
+        g.drawImage(flyImg, 56-22, y-22, 44, 44);
+      } else {
+        const grd=g.createLinearGradient(40,y-16,72,y+16);
+        grd.addColorStop(0,"#9945FF"); grd.addColorStop(1,"#14F195");
+        g.beginPath(); g.arc(56,y,16,0,Math.PI*2); g.fillStyle=grd; g.fill();
+      }
     }
-    const flyBox=document.getElementById("flyBox");
-    if (flyBox) {
-      flyBox.onclick = flyFlap;
-      flyBox.ontouchstart = (e)=>{ e.preventDefault(); flyFlap(); };
+    const flyCan=document.getElementById("flyCan");
+    if (flyCan) {
+      flyCan.onclick = (e)=>{ e.stopPropagation(); flyFlap(); };
+      flyCan.ontouchstart = (e)=>{ e.preventDefault(); e.stopPropagation(); flyFlap(); };
     }
+    const flyOverEl=document.getElementById("flyOver");
+    if (flyOverEl) flyOverEl.onclick = (e)=> e.stopPropagation();
+    window.flyGoOut = function(){ flyStop(); showTab("pick"); };
+    window.flyGoAgain = function(){ flyStart(); };
+    const flyExit = document.getElementById("flyExit");
+    const flyAgain = document.getElementById("flyAgain");
+    if (flyExit) { flyExit.onclick = function(e){ e.preventDefault(); e.stopPropagation(); window.flyGoOut(); }; }
+    if (flyAgain) { flyAgain.onclick = function(e){ e.preventDefault(); e.stopPropagation(); window.flyGoAgain(); }; }
     window.addEventListener("resize", ()=>{ if(document.getElementById("vuelo")?.classList.contains("on")) flyReady(); });
 
     function showTab(name) {
