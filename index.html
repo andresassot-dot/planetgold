@@ -187,6 +187,19 @@
     .offer { display:flex; gap:10px; align-items:center; background:#161a26; border:1px solid #3a4258; border-radius:12px; padding:10px; margin:8px 0; }
     .offer img { width:48px; height:62px; object-fit:cover; border-radius:6px; border:1px solid #d4af37; }
         #duel { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 12px 10px 108px; overflow: auto; }
+    
+    #vuelo {
+      position: fixed; inset: 0; z-index: 19; background: #070b16;
+      display: none; flex-direction: column; padding: 8px 10px 88px;
+    }
+    #vuelo.on { display: flex; }
+    #flyHud { display:flex; justify-content:space-between; align-items:center; color:#ffe08a; font-size:13px; padding:4px 2px 8px; }
+    #flyBox { position:relative; flex:1; min-height:280px; border:2px solid #d4af37; border-radius:14px; overflow:hidden; background:#0a1228; }
+    #flyCan { width:100%; height:100%; display:block; }
+    #flyOver { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; background:rgba(0,0,0,.72); text-align:center; padding:16px; }
+    #flyOver.on { display:flex; }
+    #flyOver h2 { color:#ffe08a; margin:0 0 8px; }
+
     #duel.on { display: flex; }
     .b66 { display:grid; grid-template-columns:repeat(6,1fr); gap:2px; margin:2px 0 6px; padding:6px; padding-bottom:8px;
       background:#0b1020 url("cards/tablero-mundo.jpg") center / cover no-repeat;
@@ -433,6 +446,22 @@
     <button class="main" id="duelBtn" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">DUELO DE CARTAS</button>
     <button class="main" id="mineBtn" style="margin-top:8px;background:#3a2a12;color:#ffe08a">MINERÍA</button>
     <button class="main" id="cofreBtn" style="margin-top:8px;background:#2a2414;color:#ffe08a">COFRE</button>
+    <button class="main" id="flyBtn" style="margin-top:8px;background:#3d1a5c;color:#c4b5fd">VUELO SOL</button>
+  </div>
+
+  
+  <div id="vuelo">
+    <div id="flyHud"><b>VUELO SOL</b><span id="flyScore">0</span><span id="flyEn">⚡</span></div>
+    <div id="flyBox">
+      <canvas id="flyCan"></canvas>
+      <div id="flyOver">
+        <h2>GAME OVER</h2>
+        <div class="muted" id="flyRes"></div>
+        <button class="main" id="flyAgain" style="margin-top:12px">OTRA PARTIDA</button>
+        <button class="main" id="flyExit" style="margin-top:8px;background:#1e3a5f;color:#ffe08a">SALIR</button>
+      </div>
+    </div>
+    <p class="muted" style="text-align:center;margin-top:8px">Toca para subir · 1 energía por partida</p>
   </div>
 
   <div id="duelFloat" style="display:none;position:fixed;left:50%;bottom:92px;transform:translateX(-50%);z-index:60;width:150px;text-align:center;pointer-events:auto;top:auto">
@@ -1364,8 +1393,146 @@
       });
     }
 
+    
+    const flyBtn = document.getElementById("flyBtn");
+    if (flyBtn) flyBtn.onclick = () => { showTab("vuelo"); flyReady(); };
+    const flyExit = document.getElementById("flyExit");
+    if (flyExit) flyExit.onclick = () => { flyStop(); showTab("pick"); };
+    const flyAgain = document.getElementById("flyAgain");
+    if (flyAgain) flyAgain.onclick = () => flyStart();
+
+    let flyRAF=0, flyRun=false, flyY=0, flyV=0, flyPipes=[], flyScr=0, flyDead=false, flyW=0, flyH=0;
+    function flyHudEn(){
+      const el=document.getElementById("flyEn");
+      if (el) el.textContent = "⚡ "+getEnergy()+"/"+ (typeof MAX_EN!=="undefined"?MAX_EN:5);
+    }
+    function flyReady(){
+      flyHudEn();
+      document.getElementById("flyOver").classList.remove("on");
+      document.getElementById("flyRes").textContent = "Toca para empezar";
+      document.getElementById("flyScore").textContent = "0";
+      const c=document.getElementById("flyCan");
+      const box=document.getElementById("flyBox");
+      flyW = box.clientWidth||320; flyH = box.clientHeight||360;
+      c.width=flyW; c.height=flyH;
+      flyY=flyH*0.4; flyV=0; flyPipes=[]; flyScr=0; flyDead=false; flyRun=false;
+      flyDraw();
+    }
+    function flyStart(){
+      if (flyRun) return;
+      if (!spendEnergy()) {
+        document.getElementById("flyOver").classList.add("on");
+        document.getElementById("flyRes").textContent = "Sin energía. Mira un anuncio o espera.";
+        flyHudEn(); refreshHome();
+        return;
+      }
+      flyHudEn(); refreshHome();
+      document.getElementById("flyOver").classList.remove("on");
+      flyY=flyH*0.4; flyV=-6; flyPipes=[{x:flyW+20,gap:flyH*0.38,h:80+Math.random()*(flyH-220)}];
+      flyScr=0; flyDead=false; flyRun=true;
+      document.getElementById("flyScore").textContent="0";
+      cancelAnimationFrame(flyRAF);
+      flyLoop();
+    }
+    function flyStop(){ flyRun=false; cancelAnimationFrame(flyRAF); }
+    function flyFlap(){ if(!flyRun){ flyStart(); return; } if(!flyDead) flyV=-7.2; }
+    function flyGap(){
+      if (flyScr<5) return 118;
+      if (flyScr<15) return 100;
+      if (flyScr<25) return 86;
+      return 74;
+    }
+    function flySpd(){
+      if (flyScr<5) return 2.4;
+      if (flyScr<15) return 2.9;
+      if (flyScr<25) return 3.5;
+      return 4.2;
+    }
+    function flyPay(n){
+      let pts=5, ore=null, extra="";
+      if (n>=30) { pts=150; extra="carta?"; }
+      else if (n>=20) { pts=80; ore="gold"; }
+      else if (n>=10) { pts=40; ore="wood"; }
+      else if (n>=5) { pts=15; }
+      const cur=Number(localStorage.getItem("pg_pts")||0);
+      localStorage.setItem("pg_pts", cur+pts);
+      if (ore==="wood" && typeof addOre==="function") addOre("wood",1);
+      if (ore==="gold" && typeof addOre==="function") {
+        const id = Math.random()<0.5 ? "gold":"stone";
+        addOre(id,1);
+      }
+      if (n>=30 && typeof addDust==="function") {
+        const pool=HEROES.filter(h=>!h.holo);
+        if (pool.length && Math.random()<0.35) { addDust(pool[Math.floor(Math.random()*pool.length)].id); extra=" + carta"; }
+      }
+      const best=Number(localStorage.getItem("pg_flyBest")||0);
+      let rec="";
+      if (n>best) { localStorage.setItem("pg_flyBest", n); if (typeof addXp==="function") addXp(10); rec=" · NUEVO RÉCORD"; }
+      return "+"+pts+" pts"+(ore?" + mineral":"")+extra+rec+" · mejor "+Math.max(best,n);
+    }
+    function flyDie(){
+      if (flyDead) return;
+      flyDead=true; flyRun=false;
+      const msg=flyPay(flyScr);
+      document.getElementById("flyRes").textContent = flyScr+" tubos · "+msg;
+      document.getElementById("flyOver").classList.add("on");
+      flyHudEn();
+      try { refreshHome(); } catch(e){}
+    }
+    function flyLoop(){
+      if (!flyRun) return;
+      flyV += 0.42;
+      flyY += flyV;
+      const spd=flySpd();
+      flyPipes.forEach(p => p.x -= spd);
+      if (flyPipes.length && flyPipes[flyPipes.length-1].x < flyW-160) {
+        flyPipes.push({x:flyW+10, gap:flyGap(), h:60+Math.random()*(flyH-200)});
+      }
+      flyPipes = flyPipes.filter(p => p.x>-70);
+      const bx=56, by=flyY, br=16;
+      if (flyY<br || flyY>flyH-br) flyDie();
+      flyPipes.forEach(p => {
+        const topH=p.h, bot=p.h+p.gap;
+        const hitX = bx+br>p.x && bx-br<p.x+46;
+        if (hitX && (by-br<topH || by+br>bot)) flyDie();
+        if (!p.got && p.x+46 < bx) { p.got=true; flyScr++; document.getElementById("flyScore").textContent=String(flyScr); }
+      });
+      flyDraw();
+      if (flyRun) flyRAF=requestAnimationFrame(flyLoop);
+    }
+    function flyDraw(){
+      const c=document.getElementById("flyCan");
+      if (!c) return;
+      const g=c.getContext("2d");
+      g.fillStyle="#07101f"; g.fillRect(0,0,flyW,flyH);
+      g.fillStyle="#0d1a33";
+      for(let i=0;i<18;i++){ g.fillRect((i*37+(Date.now()/80))%flyW, 20+(i*47)%flyH, 2,2); }
+      flyPipes.forEach(p=>{
+        g.fillStyle="#c9a227";
+        g.fillRect(p.x,0,46,p.h);
+        g.fillRect(p.x,p.h+p.gap,46,flyH);
+        g.fillStyle="#f3d077";
+        g.fillRect(p.x-3,p.h-10,52,10);
+        g.fillRect(p.x-3,p.h+p.gap,52,10);
+      });
+      const y=flyY;
+      const grd=g.createLinearGradient(40,y-16,72,y+16);
+      grd.addColorStop(0,"#9945FF"); grd.addColorStop(1,"#14F195");
+      g.beginPath(); g.arc(56,y,16,0,Math.PI*2); g.fillStyle=grd; g.fill();
+      g.fillStyle="#fff"; g.fillRect(48,y-6,16,4); g.fillRect(50,y-1,14,4); g.fillRect(52,y+4,12,4);
+      g.fillStyle="#f3d077";
+      g.beginPath(); g.ellipse(38,y-4,10,5, -0.4,0,Math.PI*2); g.fill();
+      g.beginPath(); g.ellipse(38,y+6,10,5, 0.4,0,Math.PI*2); g.fill();
+    }
+    const flyBox=document.getElementById("flyBox");
+    if (flyBox) {
+      flyBox.onclick = flyFlap;
+      flyBox.ontouchstart = (e)=>{ e.preventDefault(); flyFlap(); };
+    }
+    window.addEventListener("resize", ()=>{ if(document.getElementById("vuelo")?.classList.contains("on")) flyReady(); });
+
     function showTab(name) {
-      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
@@ -1377,6 +1544,7 @@
       if (name === "mercado") { renderRank(); renderMarket(); }
       if (name === "ads") renderAds();
       if (name === "mazo") renderMazo();
+      if (name === "vuelo") flyReady();
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
       if (name === "wallet") {
@@ -1980,7 +2148,7 @@
     const whoClose = document.getElementById("whoClose");
     if (whoClose) whoClose.onclick = () => { document.getElementById("whoBox").style.display = "none"; };
     function marketList() {
-      try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]"); } catch(e){ return []; }
+      try { return JSON.parse(localStorage.getItem("pg_mkt")||"[]").filter(x=>x && !x.gone && (x.qty||1)>0); } catch(e){ return []; }
     }
     function offerLabel(o){
       const kind = o.kind || "card";
@@ -2028,28 +2196,42 @@
         const L = offerLabel(o);
         const pic = L.img ? `<img src="${L.img}" style="width:42px;height:42px;object-fit:contain" />` : `<div style="width:36px;text-align:center;font-size:22px">${L.ico||"•"}</div>`;
         const total = (o.unit||o.price||0) * (o.qty||1);
-        return `<div class="offer">${pic}<div style="flex:1"><b>${L.name}</b><div class="muted">${total} pts · ${L.sub} · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
+        const money = (o.pay==="tgold") ? (total+" TGOLD") : (total+" pts");
+        return `<div class="offer">${pic}<div style="flex:1"><b>${L.name}</b><div class="muted">${money} · ${L.sub} · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
       }).join("");
       box.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
         const i = Number(b.getAttribute("data-buy"));
         const list = marketList();
         const o = list[i];
         if (!o) return;
-        const pts = Number(localStorage.getItem("pg_pts")||0);
         const qty = o.qty || 1;
         const cost = (o.unit || o.price || 0) * qty;
-        if (pts < cost) { document.getElementById("sellMsg").textContent = "No te llegan los puntos."; return; }
-        localStorage.setItem("pg_pts", pts - cost);
+        const tgold = (o.pay==="tgold");
+        if (tgold) {
+          const pend = Number(localStorage.getItem("pg_pend")||0);
+          if (pend < cost) { document.getElementById("sellMsg").textContent = "No te llegan los TGOLD."; return; }
+          localStorage.setItem("pg_pend", pend - cost);
+        } else {
+          const pts = Number(localStorage.getItem("pg_pts")||0);
+          if (pts < cost) { document.getElementById("sellMsg").textContent = "No te llegan los puntos."; return; }
+          localStorage.setItem("pg_pts", pts - cost);
+        }
         const kind = o.kind || "card";
         if (kind==="ore") addOre(o.id, qty);
         else if (kind==="gear") addGear(o.id, qty);
         else for (let n=0;n<qty;n++) addDust(o.id);
-        list.splice(i,1);
-        localStorage.setItem("pg_mkt", JSON.stringify(list));
+        o.gone=1; o.qty=0; list[i]=o; localStorage.setItem("pg_mkt", JSON.stringify(list.filter(x=>!x.gone && (x.qty||0)>0)));
         refreshHome(); renderMarket(); renderMine();
         document.getElementById("sellMsg").textContent = "Comprado.";
       });
     }
+    document.querySelectorAll("#sellPay [data-pay]").forEach(b => b.onclick = () => {
+      document.querySelectorAll("#sellPay [data-pay]").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on");
+      const pay = b.getAttribute("data-pay");
+      const inp = document.getElementById("sellPrice");
+      if (inp && !inp.dataset.touched) inp.value = pay==="tgold" ? 5 : 800;
+    });
     document.querySelectorAll("#sellKinds [data-sk]").forEach(b => b.onclick = () => {
       document.querySelectorAll("#sellKinds [data-sk]").forEach(x=>x.classList.remove("on"));
       b.classList.add("on");
@@ -2086,12 +2268,16 @@
       }
       const list = marketList();
       const same = list.findIndex(o => o.kind===kind && o.id===id && o.by===by);
+      const payBtn0 = document.querySelector("#sellPay [data-pay].on");
+      const pay0 = (payBtn0 && payBtn0.getAttribute("data-pay")) || "tgold";
       if (same >= 0) {
         list[same].qty = (list[same].qty||1) + qty;
         list[same].unit = unit;
         list[same].price = unit * list[same].qty;
+        list[same].pay = pay0;
+        list[same].idKey = [by,kind,id,pay0].join("|");
       } else {
-        list.unshift({ kind, id, qty, unit, price: unit*qty, by });
+        list.unshift({ kind, id, qty, unit, price: unit*qty, by, pay: ((document.querySelector("#sellPay [data-pay].on")||{}).getAttribute && document.querySelector("#sellPay [data-pay].on").getAttribute("data-pay")) || "tgold", idKey: [by,kind,id,"pay"].join("|") });
       }
       localStorage.setItem("pg_mkt", JSON.stringify(list));
       msg.textContent = "Oferta: "+qty+" × "+unit+" pts = "+(qty*unit)+" pts.";;
