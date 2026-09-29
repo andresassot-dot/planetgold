@@ -2164,6 +2164,22 @@
       const hp=document.getElementById("homePend"); if(hp) hp.textContent=localStorage.getItem("pg_pend")||0;
     }
 
+    
+    function applyRemoteWallet(rows){
+      try {
+        const u = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) || {};
+        const keys = [playerName(), u.username, u.first_name, localStorage.getItem("pg_name")].map(nickKey).filter(Boolean);
+        const hit = (rows||[]).find(p => keys.includes(nickKey(p.name)) || keys.includes(nickKey(p.id)));
+        if (!hit) return;
+        const rp = Number(hit.pend||0);
+        const lp = Number(localStorage.getItem("pg_pend")||0);
+        if (rp > lp) {
+          localStorage.setItem("pg_pend", rp);
+          localStorage.setItem("pg_saleNote", "Te compraron · +"+(rp-lp)+" TGOLD");
+          try { refreshHome(); } catch(e){}
+        }
+      } catch(e){}
+    }
     async function pingRank(){
       try {
         let known=[]; try{known=JSON.parse(localStorage.getItem("pg_board")||"[]");}catch(e){}
@@ -2174,7 +2190,7 @@
           const jj=await rr.json();
           if (jj && jj.ads && jj.ads.length) localStorage.setItem("pg_ads", JSON.stringify(jj.ads));
           if (jj && Array.isArray(jj.listings)) localStorage.setItem("pg_mkt", JSON.stringify(jj.listings));
-          await takeSale(jj);
+          await takeSale(jj); applyRemoteWallet(jj && jj.players);
         } catch(_){}
       } catch(e) {}
     }
@@ -2199,7 +2215,7 @@
         const remoteList = (j1 && j1.listings) || [];
         if (j1 && Array.isArray(j1.listings)) localStorage.setItem("pg_mkt", JSON.stringify(j1.listings));
         if (j1 && j1.ads && j1.ads.length) localStorage.setItem("pg_ads", JSON.stringify(j1.ads));
-        await takeSale(j1);
+        await takeSale(j1); applyRemoteWallet(j1 && j1.players);
       } catch(e) {}
       return mergeBoard(remote);
     }
