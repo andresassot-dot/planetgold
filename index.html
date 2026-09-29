@@ -2140,6 +2140,22 @@
         localStorage.setItem("pg_board_v2","1");
       }
     } catch(e) {}
+    
+    function nickKey(s){ return String(s||"").toLowerCase().replace(/^@/,"").trim(); }
+    async function takeSale(jj){
+      if (!jj || !jj.sale) return;
+      const pts = Number(jj.sale.pts||0), gold = Number(jj.sale.tgold||0);
+      if (pts<=0 && gold<=0) return;
+      if (pts) localStorage.setItem("pg_pts", Number(localStorage.getItem("pg_pts")||0)+pts);
+      if (gold) localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+gold);
+      try {
+        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { claimSale:true })) });
+      } catch(e){}
+      const note = document.getElementById("buyMsg") || document.getElementById("sellMsg");
+      if (note) note.textContent = "Te compraron · +"+(pts?pts+" pts ":"")+(gold?gold+" TGOLD":"");
+      try { refreshHome(); } catch(e){}
+    }
+
     async function pingRank(){
       try {
         let known=[]; try{known=JSON.parse(localStorage.getItem("pg_board")||"[]");}catch(e){}
@@ -2150,6 +2166,7 @@
           const jj=await rr.json();
           if (jj && jj.ads && jj.ads.length) localStorage.setItem("pg_ads", JSON.stringify(jj.ads));
           if (jj && Array.isArray(jj.listings)) localStorage.setItem("pg_mkt", JSON.stringify(jj.listings));
+          await takeSale(jj);
         } catch(_){}
       } catch(e) {}
     }
@@ -2174,6 +2191,7 @@
         const remoteList = (j1 && j1.listings) || [];
         if (j1 && Array.isArray(j1.listings)) localStorage.setItem("pg_mkt", JSON.stringify(j1.listings));
         if (j1 && j1.ads && j1.ads.length) localStorage.setItem("pg_ads", JSON.stringify(j1.ads));
+        await takeSale(j1);
       } catch(e) {}
       return mergeBoard(remote);
     }
@@ -2286,7 +2304,7 @@
         const money = (o.pay==="tgold") ? (total+" TGOLD") : (total+" pts");
         return `<div class="offer">${pic}<div style="flex:1"><b>${L.name}</b><div class="muted">${money} · ${L.sub} · ${o.by||"tú"}</div></div><button class="main" style="width:auto;margin:0;padding:8px 10px" data-buy="${i}">Comprar</button></div>`;
       }).join("");
-      box.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => {
+      box.querySelectorAll("[data-buy]").forEach(b => b.onclick = async () => {
         const i = Number(b.getAttribute("data-buy"));
         const list = marketList();
         const o = list[i];
@@ -2328,7 +2346,14 @@
         const left = list.filter(x=>x!==o && !x.gone && (x.qty||0)>0);
         localStorage.setItem("pg_mkt", JSON.stringify(left));
         refreshHome(); renderMarket(); try{renderMine();}catch(e){}
-        if(note) note.textContent = "Comprado: "+(o.qty||qty)+" "+(id||"");
+        if(note) note.textContent = "Comprado: "+qty+" "+(id||"");
+        try {
+          const me = nickKey(playerName());
+          const seller = nickKey(o.by);
+          if (seller && seller !== me) {
+            await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { sale: { to: seller, pts: tgold?0:cost, tgold: tgold?cost:0 } })) });
+          }
+        } catch(e){}
         try{ pushRank(); }catch(e){}
       });
       const wipe = document.getElementById("wipeMkt");
