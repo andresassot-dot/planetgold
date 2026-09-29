@@ -1396,10 +1396,6 @@
     
     const flyBtn = document.getElementById("flyBtn");
     if (flyBtn) flyBtn.onclick = () => { showTab("vuelo"); flyReady(); };
-    const flyExit = document.getElementById("flyExit");
-    if (flyExit) flyExit.onclick = () => { flyStop(); showTab("pick"); };
-    const flyAgain = document.getElementById("flyAgain");
-    if (flyAgain) flyAgain.onclick = () => flyStart();
 
     let flyRAF=0, flyRun=false, flyY=0, flyV=0, flyPipes=[], flyScr=0, flyDead=false, flyW=0, flyH=0;
     function flyHudEn(){
@@ -1428,25 +1424,25 @@
       }
       flyHudEn(); refreshHome();
       document.getElementById("flyOver").classList.remove("on");
-      flyY=flyH*0.4; flyV=-6; flyPipes=[{x:flyW+20,gap:flyH*0.38,h:80+Math.random()*(flyH-220)}];
+      flyY=flyH*0.4; flyV=-5; flyPipes=[{x:flyW+20,gap:flyH*0.38,h:80+Math.random()*(flyH-220)}];
       flyScr=0; flyDead=false; flyRun=true;
       document.getElementById("flyScore").textContent="0";
       cancelAnimationFrame(flyRAF);
       flyLoop();
     }
     function flyStop(){ flyRun=false; cancelAnimationFrame(flyRAF); }
-    function flyFlap(){ if(!flyRun){ flyStart(); return; } if(!flyDead) flyV=-7.2; }
+    function flyFlap(){ if(!flyRun){ flyStart(); return; } if(!flyDead) flyV=-6.2; }
     function flyGap(){
-      if (flyScr<5) return 118;
-      if (flyScr<15) return 100;
-      if (flyScr<25) return 86;
-      return 74;
+      if (flyScr<8) return 168;
+      if (flyScr<18) return 148;
+      if (flyScr<28) return 128;
+      return 112;
     }
     function flySpd(){
-      if (flyScr<5) return 2.4;
-      if (flyScr<15) return 2.9;
-      if (flyScr<25) return 3.5;
-      return 4.2;
+      if (flyScr<8) return 1.9;
+      if (flyScr<18) return 2.3;
+      if (flyScr<28) return 2.8;
+      return 3.2;
     }
     function flyPay(n){
       let pts=5, ore=null, extra="";
@@ -1481,11 +1477,11 @@
     }
     function flyLoop(){
       if (!flyRun) return;
-      flyV += 0.42;
+      flyV += 0.32;
       flyY += flyV;
       const spd=flySpd();
       flyPipes.forEach(p => p.x -= spd);
-      if (flyPipes.length && flyPipes[flyPipes.length-1].x < flyW-160) {
+      if (flyPipes.length && flyPipes[flyPipes.length-1].x < flyW-210) {
         flyPipes.push({x:flyW+10, gap:flyGap(), h:60+Math.random()*(flyH-200)});
       }
       flyPipes = flyPipes.filter(p => p.x>-70);
@@ -1507,9 +1503,18 @@
       const c=document.getElementById("flyCan");
       if (!c) return;
       const g=c.getContext("2d");
-      g.fillStyle="#07101f"; g.fillRect(0,0,flyW,flyH);
-      g.fillStyle="#0d1a33";
-      for(let i=0;i<18;i++){ g.fillRect((i*37+(Date.now()/80))%flyW, 20+(i*47)%flyH, 2,2); }
+      const sky=g.createLinearGradient(0,0,0,flyH);
+      sky.addColorStop(0,"#1a1040");
+      sky.addColorStop(0.45,"#0c1b3a");
+      sky.addColorStop(1,"#14210a");
+      g.fillStyle=sky; g.fillRect(0,0,flyW,flyH);
+      g.fillStyle="#ffe08a";
+      for(let i=0;i<28;i++){ g.globalAlpha=0.35+((i*13)%7)/20; g.fillRect((i*47)%flyW, 8+(i*29)%(flyH*0.55), 2,2); }
+      g.globalAlpha=1;
+      g.fillStyle="#0a3318";
+      g.beginPath(); g.moveTo(0,flyH-36);
+      for(let x=0;x<=flyW;x+=28) g.lineTo(x, flyH-28-Math.abs(Math.sin(x/40))*16);
+      g.lineTo(flyW,flyH); g.lineTo(0,flyH); g.fill();
       flyPipes.forEach(p=>{
         g.fillStyle="#c9a227";
         g.fillRect(p.x,0,46,p.h);
