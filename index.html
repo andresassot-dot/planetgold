@@ -1625,6 +1625,9 @@
       if (window.pvpPollT) { clearInterval(window.pvpPollT); window.pvpPollT=null; }
     }
     function pvpFlip(i){ return 35 - i; }
+    function pvpHash(arr){
+      return (arr||[]).map(u => u ? (u.id+"."+u.who+"."+u.hp) : ".").join("|");
+    }
     function boardToNet(){
       const role = window.pvpRole || "a";
       const out = Array(36).fill(null);
@@ -1701,9 +1704,14 @@
           return;
         }
         const mine = j.pvp.turn === window.pvpRole;
-        if (!window.pvpLock) {
-          boardFromNet(j.pvp.board);
-          renderBoard();
+        const picking = !!(selectedCard || previewIdx!=null);
+        if (!window.pvpLock && !picking && Array.isArray(j.pvp.board)) {
+          const incoming = j.pvp.board;
+          const local = boardToNet();
+          if (pvpHash(incoming) !== pvpHash(local)) {
+            boardFromNet(incoming);
+            renderBoard();
+          }
         }
         if (!mine) {
           window.pvpLock = false;
@@ -1713,7 +1721,7 @@
         } else if (prevTurn && prevTurn !== j.pvp.turn) {
           window.pvpLock = false;
           placedTurn = false;
-          startMyClock();
+          if (!picking) startMyClock();
         }
       } catch(e){}
     }
