@@ -1692,27 +1692,34 @@
         const j = await r.json();
         if (!window.pvpMatch && j.pvp && j.pvp.id) { pvpJoin(j.pvp, j.pvpRole); return; }
         if (!j.pvp) { if (!j.pvpWait) pvpMsg("Buscando…"); return; }
+        const prevTurn = window.pvpMatch && window.pvpMatch.turn;
         window.pvpMatch = j.pvp;
-        if (j.pvpRole) window.pvpRole = j.pvpRole;
-        boardFromNet(j.pvp.board);
-        renderBoard();
         if (j.pvp.winner) {
           const meWin = (j.pvp.winner === window.pvpRole) || nickKey(j.pvp.winner)===nickKey(playerName());
           pvpStop(); endDuel(!!meWin, "PvP");
           return;
         }
         const mine = j.pvp.turn === window.pvpRole;
-        if (mine && placedTurn) { placedTurn=false; startMyClock(); }
+        if (!window.pvpLock) {
+          boardFromNet(j.pvp.board);
+          renderBoard();
+        }
         if (!mine) {
+          window.pvpLock = false;
           stopClock();
           const txt=document.getElementById("turnTxt");
           if (txt) txt.textContent = "TURNO RIVAL";
+        } else if (prevTurn && prevTurn !== j.pvp.turn) {
+          window.pvpLock = false;
+          placedTurn = false;
+          startMyClock();
         }
       } catch(e){}
     }
     async function pvpPush(next){
       if (!window.pvpOn || !window.pvpMatch) return;
       try {
+        window.pvpLock = true;
         await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), {
           pvpMove:true, matchId: window.pvpMatch.id, board: boardToNet(),
           nextTurn: next, turnN: turnN, winner: null
