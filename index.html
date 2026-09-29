@@ -1624,13 +1624,28 @@
       window.pvpOn=false; window.pvpMatch=null; window.pvpRole=null;
       if (window.pvpPollT) { clearInterval(window.pvpPollT); window.pvpPollT=null; }
     }
+    function pvpFlip(i){ return 35 - i; }
     function boardToNet(){
-      return (board||[]).map(u => u ? {id:u.id, hp:u.hp, who: u.who==="me" ? window.pvpRole : (window.pvpRole==="a"?"b":"a")} : null);
+      const role = window.pvpRole || "a";
+      const out = Array(36).fill(null);
+      (board||[]).forEach((u,i) => {
+        if (!u) return;
+        const si = role==="b" ? pvpFlip(i) : i;
+        out[si] = { id:u.id, hp:u.hp, who: u.who==="me" ? role : (role==="a"?"b":"a") };
+      });
+      return out;
     }
     function boardFromNet(arr){
       if (!Array.isArray(arr) || arr.length!==36) return;
-      const role = window.pvpRole;
-      board = arr.map(u => u ? {id:u.id, img:(HEROES.find(h=>h.id===u.id)||{}).img, hp:u.hp, who: u.who===role ? "me" : "en"} : null);
+      const role = window.pvpRole || "a";
+      const next = Array(36).fill(null);
+      arr.forEach((u,si) => {
+        if (!u) return;
+        const i = role==="b" ? pvpFlip(si) : si;
+        const h = HEROES.find(x=>x.id===u.id) || {};
+        next[i] = { id:u.id, img:h.img, hp:u.hp, who: u.who===role ? "me" : "en" };
+      });
+      board = next;
     }
     async function pvpSeek(){
       window.pvpOn = true;
@@ -1644,8 +1659,16 @@
         window.pvpPollT = setInterval(pvpTick, 2000);
       } catch(e) { pvpMsg("No hay red PvP"); window.pvpOn=false; }
     }
+    function pvpIsMe(pl){
+      if (!pl) return false;
+      const keys = [playerName(), (myProfile().username||""), (myProfile().first||""), myProfile().id, myProfile().name].map(nickKey);
+      return keys.includes(nickKey(pl.id)) || keys.includes(nickKey(pl.name));
+    }
     function pvpJoin(m, role){
-      window.pvpOn=true; window.pvpMatch=m; window.pvpRole=role|| (m.a && rankKey(myProfile())===rankKey(m.a) ? "a":"b");
+      window.pvpOn=true; window.pvpMatch=m;
+      if (pvpIsMe(m.a)) window.pvpRole = "a";
+      else if (pvpIsMe(m.b)) window.pvpRole = "b";
+      else window.pvpRole = role || "b";
       const other = window.pvpRole==="a" ? m.b : m.a;
       duelRival = { name: other.name || "Rival", deck: [], photo: other.photo||"" };
       pvpMsg("Vs "+(other.name||"rival")+" · turno 60 s");
