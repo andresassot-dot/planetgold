@@ -763,8 +763,7 @@
       try {
         actx = actx || new (window.AudioContext||window.webkitAudioContext)();
         actx.resume();
-        playIntro();
-        bgmStart(document.getElementById("duel") && document.getElementById("duel").classList.contains("on") ? "war" : "calm");
+        if (introAud) { try { introAud.pause(); introAud.currentTime=0; } catch(e){} }
       } catch(e) {}
     }, { once:true });
     let bgmOn = false, bgmTimer = null, bgmMaster = null;
@@ -772,6 +771,7 @@
       if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
       if (bgmMaster) { try { bgmMaster.disconnect(); } catch(e){} bgmMaster = null; }
       bgmOn = false;
+      if (introAud) { try { introAud.pause(); introAud.loop=false; } catch(e){} }
     }
     function bgmStart(mode) {
       bgmStop();
@@ -1620,6 +1620,8 @@
       if (name === "ads") renderAds();
       if (name === "mazo") renderMazo();
       if (name === "vuelo") flyReady();
+      if (name === "duel") { try { bgmStart("war"); } catch(e) {} }
+      else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
       if (name === "wallet") {
@@ -2702,6 +2704,7 @@
     }
     function endDuel(win, why) {
       duelBusy = true;
+      try { bgmStop(); } catch(e) {}
       try { sfx(win ? "gol" : "hit"); } catch(e) {}
       const pts = Number(localStorage.getItem("pg_pts")||0);
       const pend = Number(localStorage.getItem("pg_pend")||0);
