@@ -1672,6 +1672,7 @@
       const other = window.pvpRole==="a" ? m.b : m.a;
       duelRival = { name: other.name || "Rival", deck: [], photo: other.photo||"" };
       pvpMsg("Vs "+(other.name||"rival")+" · turno 60 s");
+      parley = false;
       boardFromNet(m.board||Array(36).fill(null));
       renderBoard(); renderDuelPick();
       const mine = (m.turn===window.pvpRole);
@@ -1731,7 +1732,7 @@
       showTab("duel");
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false; board=Array(36).fill(null); dealHand();
-      placedTurn=false; selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1;
+      placedTurn=false; selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; parley=false;
       renderFx(); renderBoard(); renderDuelPick();
       pvpSeek();
     };
@@ -3192,7 +3193,7 @@
               ? (h.name + " en Parlamento (sin ataque).")
               : (h.name + (flips ? " voltea "+flips : " sin volteo") + " · "+countSide("me")+"–"+countSide("en"));
             renderBoard(); renderDuelPick();
-            setTimeout(() => { if (checkEnded()) return; if (window.pvpOn) { turnN++; pvpPush(window.pvpRole==="a"?"b":"a"); placedTurn=true; const tx=document.getElementById("turnTxt"); if(tx) tx.textContent="TURNO RIVAL"; stopClock(); return; } duelEnemyTurn(); }, 700);
+            setTimeout(() => { if (checkEnded()) return; if (window.pvpOn) { parley=false; turnN++; pvpPush(window.pvpRole==="a"?"b":"a"); placedTurn=true; const tx=document.getElementById("turnTxt"); if(tx) tx.textContent="TURNO RIVAL"; stopClock(); return; } duelEnemyTurn(); }, 700);
             return;
           }
           if (false && targets[i] && board[i] && board[i].who==="en") {
