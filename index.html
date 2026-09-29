@@ -2149,7 +2149,7 @@
         try {
           const jj=await rr.json();
           if (jj && jj.ads && jj.ads.length) localStorage.setItem("pg_ads", JSON.stringify(jj.ads));
-          if (jj && jj.listings && jj.listings.length) localStorage.setItem("pg_mkt", JSON.stringify(jj.listings));
+          if (jj && Array.isArray(jj.listings)) localStorage.setItem("pg_mkt", JSON.stringify(jj.listings));
         } catch(_){}
       } catch(e) {}
     }
@@ -2172,7 +2172,7 @@
           if (j2 && j2.ads && j2.ads.length) localStorage.setItem("pg_ads", JSON.stringify(j2.ads));
         }
         const remoteList = (j1 && j1.listings) || [];
-        if (remoteList.length) localStorage.setItem("pg_mkt", JSON.stringify(remoteList));
+        if (j1 && Array.isArray(j1.listings)) localStorage.setItem("pg_mkt", JSON.stringify(j1.listings));
         if (j1 && j1.ads && j1.ads.length) localStorage.setItem("pg_ads", JSON.stringify(j1.ads));
       } catch(e) {}
       return mergeBoard(remote);
@@ -2336,7 +2336,12 @@
         wipe.style.display = (typeof isDm==="function" && isDm()) ? "block" : "none";
         wipe.onclick = async () => {
           localStorage.setItem("pg_mkt","[]");
-          try { await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ clearMarket:true, name:"wipe" }) }); } catch(e){}
+          localStorage.setItem("pg_mktWipe", String(Date.now()));
+          try {
+            const wr = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ clearMarket:true, name:"wipe" }) });
+            const wj = await wr.json();
+            if (wj && Array.isArray(wj.listings)) localStorage.setItem("pg_mkt", JSON.stringify(wj.listings));
+          } catch(e){}
           renderMarket();
           const note = document.getElementById("buyMsg");
           if (note) note.textContent = "Mercado limpio.";
@@ -2393,9 +2398,9 @@
         list[same].unit = unit;
         list[same].price = unit * list[same].qty;
         list[same].pay = pay0;
-        list[same].idKey = [by,kind,id,pay0].join("|");
+        list[same].idKey = [by,kind,id,pay0].join("|"); list[same].at = Date.now(); list[same].sid = list[same].idKey;
       } else {
-        list.unshift({ kind, id, qty, unit, price: unit*qty, by, pay: pay0, sid: [by,kind,id,pay0].join("|"), idKey: [by,kind,id,pay0].join("|") });
+        list.unshift({ kind, id, qty, unit, price: unit*qty, by, pay: pay0, sid: [by,kind,id,pay0].join("|"), idKey: [by,kind,id,pay0].join("|"), at: Date.now() });
       }
       localStorage.setItem("pg_mkt", JSON.stringify(list));
       msg.textContent = "Oferta: "+qty+" × "+unit+" "+(pay0==="tgold"?"TGOLD":"pts")+" = "+(qty*unit)+"."; try{ pushRank(); }catch(e){}
