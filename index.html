@@ -1622,7 +1622,7 @@
       });
       if (name === "home") refreshHome();
       if (name === "pick") renderGrid();
-      if (name === "mercado") { renderRank(); renderMarket(); }
+      if (name === "mercado") { renderRank(); renderMarket(); try{ pushRank().then(()=>renderMarket()); }catch(e){} const n=document.getElementById("buyMsg"); if(n && localStorage.getItem("pg_saleNote")) n.textContent=localStorage.getItem("pg_saleNote"); }
       if (name === "ads") renderAds();
       if (name === "mazo") renderMazo();
       if (name === "vuelo") flyReady();
@@ -1837,6 +1837,8 @@
     }
 
     function refreshHome() {
+      const sp=document.getElementById("salePop"); if(sp) sp.textContent=localStorage.getItem("pg_saleNote")||"";
+
       try { grantStarter(); } catch(e) {}
       try { pingRank(); } catch(e) {}
 
@@ -2151,9 +2153,10 @@
       try {
         await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { claimSale:true })) });
       } catch(e){}
-      const note = document.getElementById("buyMsg") || document.getElementById("sellMsg");
-      if (note) note.textContent = "Te compraron · +"+(pts?pts+" pts ":"")+(gold?gold+" TGOLD":"");
-      try { refreshHome(); } catch(e){}
+      const msg = "Te compraron · +"+(pts?pts+" pts ":"")+(gold?gold+" TGOLD":"");
+      localStorage.setItem("pg_saleNote", msg);
+      ["buyMsg","sellMsg","salePop"].forEach(id => { const n=document.getElementById(id); if(n) n.textContent=msg; });
+      try { refreshHome(); renderMarket(); } catch(e){}
     }
 
     async function pingRank(){
@@ -2350,11 +2353,13 @@
         try {
           const me = nickKey(playerName());
           const seller = nickKey(o.by);
-          if (seller && seller !== me) {
-            await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { sale: { to: seller, pts: tgold?0:cost, tgold: tgold?cost:0 } })) });
-          }
+          const dead = { kind, id, qty:0, gone:1, unit, pay: tgold?"tgold":"pts", by:o.by, sid: o.sid||o.idKey||[o.by,kind,id,tgold?"tgold":"pts"].join("|"), idKey: o.idKey||"", at: Date.now() };
+          await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), {
+            listings: [dead],
+            sale: (seller && seller !== me) ? { to: seller, pts: tgold?0:cost, tgold: tgold?cost:0 } : null
+          })) });
         } catch(e){}
-        try{ pushRank(); }catch(e){}
+        try{ await pushRank(); renderMarket(); }catch(e){}
       });
       const wipe = document.getElementById("wipeMkt");
       if (wipe) {
