@@ -639,6 +639,8 @@
       <p class="muted" id="sellMsg" style="text-align:center"></p>
     </div>
     <h2 style="color:#ffe08a;font-size:16px;margin:16px 0 8px">Ofertas</h2>
+    <button class="main" id="wipeMkt" style="display:none;background:#5a1a1a;color:#ffd0d0;margin-bottom:8px">LIMPIAR MERCADO</button>
+    <p class="muted" id="buyMsg" style="text-align:center"></p>
     <div id="offers"></div>
   </div>
   <div id="wallet">
@@ -2288,27 +2290,58 @@
         const i = Number(b.getAttribute("data-buy"));
         const list = marketList();
         const o = list[i];
-        if (!o) return;
-        const qty = o.qty || 1;
-        const cost = (o.unit || o.price || 0) * qty;
+        const note = document.getElementById("buyMsg") || document.getElementById("sellMsg");
+        if (!o) { if(note) note.textContent="Oferta ya no está."; return; }
+        const qty = Math.max(1, Number(o.qty||1));
+        const unit = Number(o.unit||0) || Math.round(Number(o.price||0)/qty) || Number(o.price||0);
+        const cost = unit * qty;
         const tgold = (o.pay==="tgold");
+        let kind = o.kind;
+        let id = o.id;
+        const nm = String(o.name||id||"").toLowerCase();
+        if (!kind) {
+          if ((typeof ORES!=="undefined") && ORES.some(x=>x.id===id || x.name.toLowerCase()===nm)) kind="ore";
+          else if ((typeof GEAR!=="undefined") && GEAR.some(x=>x.id===id || String(x.name||"").toLowerCase()===nm)) kind="gear";
+          else kind="card";
+        }
+        if (kind==="ore" && !(ORES||[]).some(x=>x.id===id)) {
+          const hit=(ORES||[]).find(x=>x.name.toLowerCase()===nm || nm.indexOf(x.id)>=0);
+          if (hit) id=hit.id;
+        }
+        if (kind==="gear" && !(GEAR||[]).some(x=>x.id===id)) {
+          const hit=(GEAR||[]).find(x=>String(x.name||"").toLowerCase()===nm);
+          if (hit) id=hit.id;
+        }
         if (tgold) {
           const pend = Number(localStorage.getItem("pg_pend")||0);
-          if (pend < cost) { document.getElementById("sellMsg").textContent = "No te llegan los TGOLD."; return; }
+          if (pend < cost) { if(note) note.textContent = "Te faltan TGOLD. Coste "+cost+" · tienes "+pend; return; }
           localStorage.setItem("pg_pend", pend - cost);
         } else {
           const pts = Number(localStorage.getItem("pg_pts")||0);
-          if (pts < cost) { document.getElementById("sellMsg").textContent = "No te llegan los puntos."; return; }
+          if (pts < cost) { if(note) note.textContent = "Te faltan puntos. Coste "+cost+" · tienes "+pts; return; }
           localStorage.setItem("pg_pts", pts - cost);
         }
-        const kind = o.kind || "card";
-        if (kind==="ore") addOre(o.id, qty);
-        else if (kind==="gear") addGear(o.id, qty);
-        else for (let n=0;n<qty;n++) addDust(o.id);
-        o.gone=1; o.qty=0; list[i]=o; localStorage.setItem("pg_mkt", JSON.stringify(list.filter(x=>!x.gone && (x.qty||0)>0)));
-        refreshHome(); renderMarket(); renderMine();
-        document.getElementById("sellMsg").textContent = "Comprado."; try{ pushRank(); }catch(e){}
+        if (kind==="ore") addOre(id, qty);
+        else if (kind==="gear") addGear(id, qty);
+        else for (let n=0;n<qty;n++) addDust(id);
+        o.gone=1; o.qty=0; o.id=id; o.kind=kind;
+        const left = list.filter(x=>x!==o && !x.gone && (x.qty||0)>0);
+        localStorage.setItem("pg_mkt", JSON.stringify(left));
+        refreshHome(); renderMarket(); try{renderMine();}catch(e){}
+        if(note) note.textContent = "Comprado: "+(o.qty||qty)+" "+(id||"");
+        try{ pushRank(); }catch(e){}
       });
+      const wipe = document.getElementById("wipeMkt");
+      if (wipe) {
+        wipe.style.display = (typeof isDm==="function" && isDm()) ? "block" : "none";
+        wipe.onclick = async () => {
+          localStorage.setItem("pg_mkt","[]");
+          try { await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ clearMarket:true, name:"wipe" }) }); } catch(e){}
+          renderMarket();
+          const note = document.getElementById("buyMsg");
+          if (note) note.textContent = "Mercado limpio.";
+        };
+      }
     }
     document.querySelectorAll("#sellPay [data-pay]").forEach(b => b.onclick = () => {
       document.querySelectorAll("#sellPay [data-pay]").forEach(x=>x.classList.remove("on"));
