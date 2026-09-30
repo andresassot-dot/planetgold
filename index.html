@@ -1026,6 +1026,17 @@
         d3.sec -= 1;
         paint();
         if (d3.sec <= 0) {
+          if (window.pvpOn && window.pvpGame==="d3") {
+            d3.sec = 60;
+            if (d3.turn==="me") {
+              d3.turn="en";
+              try { d3PvpSend({ type:"pass" }, true); } catch(e){}
+            } else {
+              d3.turn="me"; d3.acted=false;
+            }
+            paint();
+            return;
+          }
           d3StopClock();
           var mh = d3.me.reduce(function(s,u){ return s+(u.hp>0?u.hp:0); },0);
           var eh = d3.en.reduce(function(s,u){ return s+(u.hp>0?u.hp:0); },0);
@@ -1180,7 +1191,7 @@
       if (d3.over) return;
       d3.over = true; d3.busy = true;
       if (window.pvpOn && window.pvpGame==="d3" && !d3._fromNet) {
-        d3PvpSend({ type:"end", win: window.pvpRole });
+        d3PvpSend({ type:"end", win: window.pvpRole, id:"WIN:"+window.pvpRole }, true);
         pvpPush(window.pvpRole, win ? window.pvpRole : (window.pvpRole==="a"?"b":"a"));
       }
       window._d3Active = true;
@@ -2572,7 +2583,7 @@
         if (j.pvp && j.pvp.id) { pvpJoin(j.pvp, j.pvpRole); return; }
         pvpMsg("Esperando rival (1 min por turno)…");
         if (window.pvpPollT) clearInterval(window.pvpPollT);
-        window.pvpPollT = setInterval(pvpTick, 2000);
+        window.pvpPollT = setInterval(pvpTick, window.pvpGame==="d3" ? 800 : 2000);
       } catch(e) { pvpMsg("No hay red PvP"); window.pvpOn=false; }
     }
     function pvpIsMe(pl){
@@ -2600,7 +2611,7 @@
         if (txt) txt.textContent = "TURNO RIVAL";
       }
       if (window.pvpPollT) clearInterval(window.pvpPollT);
-      window.pvpPollT = setInterval(pvpTick, 2000);
+      window.pvpPollT = setInterval(pvpTick, window.pvpGame==="d3" ? 800 : 2000);
     }
     async function pvpTick(){
       if (!window.pvpOn) return;
@@ -2628,9 +2639,13 @@
         const picking = window.pvpGame==="d3" ? false : !!(selectedCard || previewIdx!=null);
         if (!picking) {
           (j.pvp.moves || []).forEach(d => {
-            if (!d || d.n <= (window.pvpSeen||0)) return;
+            if (!d) return;
+            if (window.pvpGame==="d3" && (d.type==="end" || d.i===33 || (d.id&&String(d.id).indexOf("WIN:")===0))) {
+              try { d3ApplyNet(Object.assign({}, d, { type:"end", win: d.win || (String(d.id||"").split(":")[1]) })); } catch(e){}
+            }
+            if (d.n <= (window.pvpSeen||0)) return;
             window.pvpSeen = d.n;
-            if (window.pvpGame==="d3") { try { d3ApplyNet(d); } catch(e){} }
+            if (window.pvpGame==="d3" || d.d3 || d.i>=30) { try { d3ApplyNet(d); } catch(e){} }
             else applyNetDrop(d);
           });
         }
@@ -2703,7 +2718,7 @@
       window.pvpLastDrop = Object.assign({
         d3:1,
         i: p.type==="play" ? 30 : (p.type==="atk" ? 31 : (p.type==="deck" ? 32 : 33)),
-        id: p.id || p.fromId || (p.cards && p.cards[0]) || "d3",
+        id: p.type==="end" ? ("WIN:"+(p.win||window.pvpRole)) : (p.id || p.fromId || (p.cards && p.cards[0]) || "d3"),
         hp: p.hp || 1,
         role: window.pvpRole,
         uid: String((myProfile().uid)||"")
@@ -2716,7 +2731,8 @@
       if (!d.d3 && d.i!==30 && d.i!==31 && d.i!==32 && d.i!==33 && !d.type) return;
       if (!d.type && d.i===30) d.type="play";
       if (!d.type && d.i===31) d.type="atk";
-      if (!d.type && d.i===32) d.type="deck";
+      if (!d.type && d.i===33) d.type="end";
+      if (!d.type && d.id && String(d.id).indexOf("WIN:")===0) { d.type="end"; d.win = String(d.id).split(":")[1]; }
       var mineUid = String((myProfile().uid)||"");
       var own = (d.uid && mineUid && String(d.uid)===mineUid);
       if (!own && d.role && d.role===window.pvpRole && d.uid) own = false;
