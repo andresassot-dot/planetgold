@@ -907,6 +907,7 @@
       d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false; d3.needPick=true;
       var msg=document.getElementById("d3Msg");
       if (msg) msg.textContent = "Elige la primera carta de abajo. Hasta que caiga no puedes cambiar.";
+      window._d3Active = true;
       try { bgmStart("war"); } catch(e){}
       d3Paint();
       d3StartClock();
@@ -1061,14 +1062,20 @@
     function d3End(win){
       if (d3.over) return;
       d3.over = true; d3.busy = true;
+      window._d3Active = true;
       d3StopClock();
       try { bgmStop(); } catch(e){}
-      try { sfx(win?"gol":"fall"); } catch(e){}
-      var pts = Number(localStorage.getItem("pg_pts")||0) + (win?40:10);
+      try { sfx(win?"goal":"fall"); } catch(e){}
+      var addPts = win ? 50 : 12;
+      var addPend = win ? 1 : 0;
+      var pts = Number(localStorage.getItem("pg_pts")||0) + addPts;
       localStorage.setItem("pg_pts", pts);
-      try { addXp(win?20:6); } catch(e){}
+      try { addXp(win?22:6); } catch(e){}
+      if (addPend) { try { grantTgold(addPend); } catch(e){} }
+      try { markMission("duel"); } catch(e){}
+      try { refreshHome(); } catch(e){}
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent = (win?"HAS GANADO":"HAS PERDIDO")+" · +"+(win?40:10)+" pts";
+      if (msg) msg.textContent = (win?"HAS GANADO":"HAS PERDIDO")+" · +"+addPts+" pts"+(addPend?" · +"+addPend+" tgold":"");
       var star = win ? d3Best("me") : d3Best("en");
       var box=document.getElementById("duelEnd");
       var tit=document.getElementById("duelEndTitle");
@@ -1076,11 +1083,16 @@
       var nam=document.getElementById("duelEndName");
       var txt=document.getElementById("duelEndTxt");
       if (tit) tit.textContent = win ? "HAS GANADO" : "HAS PERDIDO";
-      if (img) img.src = star.img || "";
-      if (nam) nam.textContent = star.name || "";
-      if (txt) txt.textContent = win ? "Tu carta más fuerte" : "Carta más fuerte del rival";
-      if (box) { box.style.display="flex"; }
-      window.duelPlayAgain = function(){ box.style.display="none"; startDuel3(); };
+      if (img) {
+        img.src = star.img || "cards/capitan.jpg";
+        img.style.display="block";
+        img.style.width="200px";
+        img.style.height="260px";
+        img.style.objectFit="contain";
+      }
+      if (nam) nam.textContent = (star.name||"") + (win ? " · MVP" : " · rival");
+      if (txt) txt.textContent = (win?"Premio":"Consolación")+" · +"+addPts+" pts"+(addPend?" · +"+addPend+" TGOLD":"");
+      if (box) { box.style.display="flex"; box.style.zIndex="200050"; box.style.pointerEvents="auto"; }
     }
     window.duelLeaveEnd = function(){
       var box=document.getElementById("duelEnd");
@@ -1097,6 +1109,11 @@
       if (box) box.style.display="none";
       try { duelBusy=false; } catch(e){}
       try { if (window.stopClock) stopClock(); } catch(e){}
+      if (window._d3Active && window.startDuel3) {
+        window._d3Active=false;
+        startDuel3();
+        return;
+      }
       if (window._pvpRematch && window.pvpSeek) {
         window._pvpRematch=false;
         try { pvpSeek(); return; } catch(e){}
