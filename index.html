@@ -1319,14 +1319,13 @@
     let minePos={x:2,y:2};
     let mineSlime={x:4,y:2,hp:3};
     function mineTile(x,y){
-      if (x===1&&y===0) return {t:"tree", vein:"madera", ico:"🌳"};
-      if (x===3&&y===0) return {t:"gold", vein:"oro", ico:"🟡"};
-      if (x===0&&y===2) return {t:"tree", vein:"madera", ico:"🌲"};
-      if (x===1&&y===4) return {t:"cave", vein:"piedra", ico:"🕳️"};
-      if (x===4&&y===4) return {t:"plat", vein:"platino", ico:"⚪"};
-      return {t:"grass", ico:""};
+      const trees={[1+","+0]:1,[0+","+2]:1,[2+","+1]:1,[4+","+1]:1,[0+","+0]:1,[4+","+3]:1,[2+","+3]:1};
+      if (x===3&&y===0) return {t:"gold", vein:"oro", name:"Veta de oro"};
+      if (x===1&&y===4) return {t:"cave", vein:"piedra", name:"Cueva"};
+      if (x===4&&y===4) return {t:"plat", vein:"platino", name:"Cristal"};
+      if (trees[x+","+y]) return {t:"tree", vein:"madera", name:"Árbol"};
+      return {t:"grass"};
     }
-    
     function openMinePlay(){
       const box=document.getElementById("minePlay");
       if (!box) { alert("Bosque no encontrado"); return; }
@@ -1352,27 +1351,42 @@
     function paintStage(){
       const st=document.getElementById("mineStage");
       if (!st) return;
-      const w=st.clientWidth||300, h=st.clientHeight||300;
+      const w=st.clientWidth||320, h=st.clientHeight||360;
       const cw=w/MINE_W, ch=h/MINE_H;
+      const deco=(x,y)=>{
+        const tile=mineTile(x,y);
+        if (tile.t==="tree") return `<div style="font-size:${Math.min(cw,ch)*0.62}px;line-height:1;filter:drop-shadow(0 2px 0 #0a1a0c)">🌳</div>`;
+        if (tile.t==="gold") return `<div style="text-align:center"><div style="font-size:${Math.min(cw,ch)*0.5}px">🪨</div><div style="font-size:9px;color:#ffe08a;font-weight:800">ORO</div></div>`;
+        if (tile.t==="cave") return `<div style="text-align:center"><div style="width:${cw*0.7}px;height:${ch*0.55}px;margin:0 auto;background:#1a1a22;border:3px solid #5a5a68;border-radius:50% 50% 8px 8px;box-shadow:inset 0 10px 12px #000"></div><div style="font-size:9px;color:#c8c8d8;font-weight:800">CUEVA</div></div>`;
+        if (tile.t==="plat") return `<div style="text-align:center;font-size:${Math.min(cw,ch)*0.48}px">💎</div>`;
+        return "";
+      };
       let html="";
       for (let y=0;y<MINE_H;y++){
         for (let x=0;x<MINE_W;x++){
+          const odd=(x+y)%2;
           const tile=mineTile(x,y);
-          html += `<div data-mx="${x}" data-my="${y}" style="position:absolute;left:${x*cw}px;top:${y*ch}px;width:${cw}px;height:${ch}px;box-sizing:border-box;border:1px solid rgba(0,0,0,.25);background:${tile.t==="gold"?"#3a3010":(tile.t==="cave"||tile.t==="plat"?"#1a1f28":"#1d4a28")};display:flex;align-items:center;justify-content:center;font-size:${Math.min(cw,ch)*0.45}px">${tile.ico||""}</div>`;
+          const bg= tile.t==="gold"?"#3d3214":(tile.t==="cave"||tile.t==="plat"?"#222433":(odd?"#245c32":"#1c4a28"));
+          html += `<div data-mx="${x}" data-my="${y}" style="position:absolute;left:${x*cw}px;top:${y*ch}px;width:${cw}px;height:${ch}px;box-sizing:border-box;border:1px solid rgba(0,0,0,.2);background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.06),transparent 50%),${bg};display:flex;align-items:center;justify-content:center">${deco(x,y)}</div>`;
         }
       }
-      const px=minePos.x*cw+cw*0.15, py=minePos.y*ch+ch*0.08;
-      html += `<div id="mineHero" style="position:absolute;left:${px}px;top:${py}px;width:${cw*0.7}px;height:${ch*0.85}px;transition:left .22s ease,top .22s ease;z-index:3;display:flex;align-items:flex-end;justify-content:center;font-size:${ch*0.55}px;filter:drop-shadow(0 2px 2px #000)">🧙‍♂️</div>`;
+      const px=minePos.x*cw+cw*0.12, py=minePos.y*ch+ch*0.05;
+      html += `<div id="mineHero" style="position:absolute;left:${px}px;top:${py}px;width:${cw*0.76}px;height:${ch*0.9}px;transition:left .2s ease,top .2s ease;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;pointer-events:none">
+        <div style="font-size:${ch*0.58}px;line-height:1;filter:drop-shadow(0 3px 0 #000)">🛡️</div>
+        <div style="font-size:8px;color:#ffe08a;font-weight:800">TÚ</div>
+      </div>`;
       if (mineSlime.hp>0){
-        const sx=mineSlime.x*cw+cw*0.12, sy=mineSlime.y*ch+ch*0.2;
-        html += `<div id="mineSlimeEl" style="position:absolute;left:${sx}px;top:${sy}px;width:${cw*0.76}px;height:${ch*0.62}px;z-index:2;transition:left .25s">
-          <div style="width:100%;height:78%;background:radial-gradient(circle at 30% 30%,#b6ff6a,#3a9a22 70%);border-radius:50% 50% 46% 46%;border:2px solid #1a4a12;position:relative;box-shadow:0 4px 0 #0d2808">
-            <b style="position:absolute;left:22%;top:28%;width:18%;height:18%;background:#111;border-radius:50%"></b>
-            <b style="position:absolute;right:22%;top:28%;width:18%;height:18%;background:#111;border-radius:50%"></b>
-            <b style="position:absolute;left:35%;top:62%;width:30%;height:8%;background:#1a4a12;border-radius:8px"></b>
+        const sx=mineSlime.x*cw+cw*0.1, sy=mineSlime.y*ch+ch*0.12;
+        html += `<div id="mineSlimeEl" style="position:absolute;left:${sx}px;top:${sy}px;width:${cw*0.8}px;z-index:3;pointer-events:none;text-align:center">
+          <div style="width:${cw*0.72}px;height:${ch*0.48}px;margin:0 auto;background:radial-gradient(circle at 35% 30%,#e8ff6a,#7adf22 45%,#2f7a14);border-radius:50% 50% 42% 42%;border:2px solid #1d4a10;box-shadow:0 4px 0 #102808,0 0 12px #c8ff4a55;position:relative">
+            <span style="position:absolute;left:22%;top:28%;width:14%;height:22%;background:#111;border-radius:50%"></span>
+            <span style="position:absolute;right:22%;top:28%;width:14%;height:22%;background:#111;border-radius:50%"></span>
+            <span style="position:absolute;left:30%;bottom:18%;width:40%;height:10%;background:#1a4a10;border-radius:8px"></span>
           </div>
+          <div style="font-size:8px;color:#d8ff8a;font-weight:800">SLIME ${mineSlime.hp}</div>
         </div>`;
       }
+      st.style.background="#14331c";
       st.innerHTML=html;
       st.querySelectorAll("[data-mx]").forEach(el=>{
         el.onclick=()=>{
@@ -1386,8 +1400,9 @@
       if (pico && typeof getPico==="function") pico.textContent="Pico "+getPico()+"/12";
       const tile=mineTile(minePos.x,minePos.y);
       const adjS=mineSlime.hp>0 && Math.abs(minePos.x-mineSlime.x)+Math.abs(minePos.y-mineSlime.y)===1;
-      mineMsg(adjS ? "Slime cerca · ATACAR" : (tile.vein ? "PICAR aquí" : "Toca casilla de al lado"));
+      mineMsg(adjS ? "Slime cerca · ATACAR" : (tile.vein ? ("PICAR · "+(tile.name||tile.t)) : "Camina con casillas de al lado"));
     }
+    
     function mineMsg(s){ ["liveVeinTxt","mineMsg","minePlayMsg"].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=s; }); }
     function swingLive(){
       const tile=mineTile(minePos.x,minePos.y);
