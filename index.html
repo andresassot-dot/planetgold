@@ -1764,6 +1764,11 @@
         const j = await r.json();
         if (!window.pvpMatch && j.pvp && j.pvp.id) { pvpJoin(j.pvp, j.pvpRole); return; }
         if (!j.pvp) { if (!j.pvpWait) pvpMsg("Buscando…"); return; }
+        if (window.pvpMatch && j.pvp.id && window.pvpMatch.id !== j.pvp.id) {
+          window.pvpSeen = 0;
+          window.pvpPasses = 0;
+          board = Array(36).fill(null);
+        }
         const prevTurn = window.pvpMatch && window.pvpMatch.turn;
         window.pvpMatch = j.pvp;
         const picking = !!(selectedCard || previewIdx!=null);
