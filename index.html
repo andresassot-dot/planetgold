@@ -291,8 +291,11 @@
 
 
 
-    #guide { display:none; position:fixed; inset:0; z-index:99999; background:rgba(6,8,16,.88); align-items:flex-end; justify-content:center; padding:12px 12px 78px; pointer-events:auto; }
+    #guide { display:none; position:fixed; inset:0; z-index:99999; background:rgba(6,8,16,.55); align-items:flex-start; justify-content:center; padding:56px 12px 96px; pointer-events:auto; }
     #guide.on { display:flex !important; }
+    #guideHand { position:fixed; z-index:100000; font-size:42px; pointer-events:none; display:none; filter:drop-shadow(0 2px 4px #000); animation:handBob .7s ease-in-out infinite; }
+    @keyframes handBob { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(10px) } }
+    #nav button.guideGlow { outline:3px solid #ffe08a; outline-offset:-2px; background:#2a2208; color:#ffe08a; border-radius:10px; }
     #guideBox { width:min(94vw,400px); max-height:78vh; overflow:auto; background:#121622; border:2px solid #d4af37; border-radius:16px; padding:16px 16px 14px; text-align:left; }
     #guideBox h2 { margin:0 0 8px; color:#ffe08a; font-size:18px; text-align:center; }
     #guideBox p { margin:0 0 10px; color:#d5dceb; font-size:15px; line-height:1.5; }
@@ -350,13 +353,15 @@
   </div>
   
   <div id="guide">
+    <div id="guideHand" aria-hidden="true">👆</div>
     <div id="guideBox">
+      <div id="guideStepN" style="color:#ffe08a;font-size:12px;text-align:center;margin-bottom:4px"></div>
       <h2 id="guideT"></h2>
       <p id="guideP"></p>
       <div id="guideDots"></div>
       <div id="guideBtns">
-        <button type="button" id="guideSkip" style="background:#2a3146;color:#ffe08a">Saltar</button>
-        <button type="button" class="main" id="guideNext">Siguiente</button>
+        <button type="button" id="guideSkip">Saltar</button>
+        <button type="button" class="main" id="guideNext">TOCA AQUÍ →</button>
       </div>
     </div>
   </div>
@@ -698,13 +703,13 @@
   </div>
   
   <nav id="nav">
-    <button data-tab="home" class="on"><svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>Inicio</button>
-    <button data-tab="pick"><svg viewBox="0 0 24 24"><path d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v2H6v-2H3v-2h3V9h2v2h3v2zm4.5 2A1.5 1.5 0 1 1 17 13.5 1.5 1.5 0 0 1 15.5 15zm4-3A1.5 1.5 0 1 1 21 10.5 1.5 1.5 0 0 1 19.5 12z"/></svg>Jugar</button>
-    <button data-tab="mine"><svg viewBox="0 0 24 24"><path d="M3 20l8-8M14 4l6 6M14 4l-4 4 6 6 4-4-6-6zM4 14l6 6"/></svg>Mina</button>
-    <button data-tab="mazo"><svg viewBox="0 0 24 24"><path d="M7 4h10l2 3H5l2-3zm-2 5h14v11H5V9zm3 2v7h2v-7H8zm6 0v7h2v-7h-2z"/></svg>Mazo</button>
-    <button data-tab="ads"><svg viewBox="0 0 24 24"><path d="M4 9H2v6h2l5 3V6L4 9zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.7c.92-.82 1.5-2.02 1.5-3.35zM14 5.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>Ads</button>
-    <button data-tab="mercado"><svg viewBox="0 0 24 24"><path d="M5 9.2h3.2V19H5V9.2zm5.4-4.2H14V19h-3.6V5zm5.4 8H22V19h-3.6v-6z"/></svg>Mercado</button>
-    <button data-tab="wallet"><svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-1.2 7.2a1.3 1.3 0 1 1 1.3-1.3 1.3 1.3 0 0 1-1.3 1.3zM4 4h15v2H4z"/></svg>Wallet</button>
+    <button data-tab="home" id="navHome" class="on"><svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>Inicio</button>
+    <button data-tab="pick" id="navPlay"><svg viewBox="0 0 24 24"><path d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v2H6v-2H3v-2h3V9h2v2h3v2zm4.5 2A1.5 1.5 0 1 1 17 13.5 1.5 1.5 0 0 1 15.5 15zm4-3A1.5 1.5 0 1 1 21 10.5 1.5 1.5 0 0 1 19.5 12z"/></svg>Jugar</button>
+    <button data-tab="mine" id="navMine"><svg viewBox="0 0 24 24"><path d="M3 20l8-8M14 4l6 6M14 4l-4 4 6 6 4-4-6-6zM4 14l6 6"/></svg>Mina</button>
+    <button data-tab="mazo" id="navMazo"><svg viewBox="0 0 24 24"><path d="M7 4h10l2 3H5l2-3zm-2 5h14v11H5V9zm3 2v7h2v-7H8zm6 0v7h2v-7h-2z"/></svg>Mazo</button>
+    <button data-tab="ads" id="navAds"><svg viewBox="0 0 24 24"><path d="M4 9H2v6h2l5 3V6L4 9zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.7c.92-.82 1.5-2.02 1.5-3.35zM14 5.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>Ads</button>
+    <button data-tab="mercado" id="navMercado"><svg viewBox="0 0 24 24"><path d="M5 9.2h3.2V19H5V9.2zm5.4-4.2H14V19h-3.6V5zm5.4 8H22V19h-3.6v-6z"/></svg>Mercado</button>
+    <button data-tab="wallet" id="navWallet"><svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-1.2 7.2a1.3 1.3 0 1 1 1.3-1.3 1.3 1.3 0 0 1-1.3 1.3zM4 4h15v2H4z"/></svg>Wallet</button>
   </nav>
 
   
@@ -2133,16 +2138,41 @@
     }
     
     const GUIDE = [
-      { t:"1 / 8  Bienvenido", p:"Esto es PLANET GOLD. Abajo hay 5 pestañas. Toca Siguiente y te digo qué hace cada una, en orden." },
-      { t:"2 / 8  Inicio", p:"Aquí ves tu perfil, puntos, TGOLD y tu mejor carta. El botón FREE abre anuncios: si entras al enlace ganas +1 energía." },
-      { t:"3 / 8  Jugar", p:"Hay 2 modos: DUELO DE CARTAS (tablero 6x6) y FARMEO TGOLD (el pajarito / vuelo). El duelo gasta energía. El vuelo da TGOLD si coges monedas." },
-      { t:"4 / 8  Cómo se gana el duelo", p:"Pones 1 carta por turno en TU mitad. Las piedras azules dicen hacia dónde pega. Espada = casilla de al lado. Lanza = 2. Arco = 3. Si tu golpe es mayor que la vida rival, esa carta cambia a TU color. Quien tenga más cartas al final, gana." },
-      { t:"5 / 8  Mina", p:"Pica vetas (madera, piedra, oro…). Con eso forjas armas y huevos. 5 de un nivel + mineral = el siguiente. No gasta energía." },
-      { t:"6 / 8  Cartas y sobres", p:"En Jugar abre SOBRES para conseguir cartas. 3 iguales = holográfica. Las holográficas pegan más. En Mercado puedes vender o comprar." },
-      { t:"7 / 8  Wallet", p:"Ahí pegas tu wallet de Solana para COBRAR TGOLD. Mínimo de cobro: 10 $. Arriba ves cuántos TGOLD tienes en el juego." },
-      { t:"8 / 8  Empieza por aquí", p:"1) Toca Jugar. 2) Abre un sobre. 3) Dale a Duelo vs máquina. Si te pierdes, el botón GUÍA del Inicio abre esto otra vez." }
+      { t:"Bienvenido", p:"Toca el botón AMARILLO de abajo. Esa manita te va a señalar cada cosa.", point:"#guideNext", tab:null },
+      { t:"Inicio", p:"Esta pestaña es tu casa: puntos, TGOLD y nivel. La manita señala INICIO.", point:"#navHome", tab:"home" },
+      { t:"Jugar", p:"Aquí se juega. Toca JUGAR abajo (la manita). Hay Duelo de cartas y Farmeo TGOLD.", point:"#navPlay", tab:"pick" },
+      { t:"Duelo fácil", p:"En el duelo pones 1 carta por turno. Las piedras azules = hacia dónde pega. Si pegas más que la vida rival, la carta cambia a tu color.", point:"#navPlay", tab:"pick" },
+      { t:"Mina", p:"Aquí picas madera, piedra y oro. No gasta energía. La manita señala MINA.", point:"#navMine", tab:"mine" },
+      { t:"Mazo y sobres", p:"En MAZO ves tus cartas. 3 iguales = holográfica. Los sobres están en Jugar.", point:"#navMazo", tab:"mazo" },
+      { t:"Wallet", p:"Aquí pegas tu wallet Solana para cobrar TGOLD. La manita señala WALLET.", point:"#navWallet", tab:"wallet" },
+      { t:"Ya está", p:"Ahora: 1) Jugar  2) abre un sobre  3) Duelo vs máquina. Si te pierdes, CÓMO JUGAR en Inicio.", point:"#guideNext", tab:"home" }
     ];
     let guideI = 0;
+    let guideBusy = false;
+    function guideClearGlow(){
+      document.querySelectorAll("#nav button.guideGlow").forEach(b=>b.classList.remove("guideGlow"));
+    }
+    function guidePoint(){
+      const hand = document.getElementById("guideHand");
+      const g = GUIDE[guideI];
+      guideClearGlow();
+      if (!hand) return;
+      const sel = g && g.point;
+      const el = sel ? document.querySelector(sel) : null;
+      if (!el) { hand.style.display = "none"; return; }
+      if (el.id && el.id.indexOf("nav")===0) el.classList.add("guideGlow");
+      const r = el.getBoundingClientRect();
+      hand.style.display = "block";
+      if (sel === "#guideNext") {
+        hand.textContent = "👆";
+        hand.style.left = (r.left + r.width/2 - 21) + "px";
+        hand.style.top = (r.top - 48) + "px";
+      } else {
+        hand.textContent = "👇";
+        hand.style.left = (r.left + r.width/2 - 21) + "px";
+        hand.style.top = (r.top - 46) + "px";
+      }
+    }
     window.paintGuide = function paintGuide(){
       try {
         if (guideI < 0) guideI = 0;
@@ -2152,10 +2182,17 @@
         const P = document.getElementById("guideP");
         const D = document.getElementById("guideDots");
         const N = document.getElementById("guideNext");
+        const S = document.getElementById("guideStepN");
+        if (S) S.textContent = (guideI+1) + " / " + GUIDE.length;
         if (T) T.textContent = g.t;
-        if (P) P.innerHTML = g.p;
+        if (P) P.textContent = g.p;
         if (D) D.innerHTML = GUIDE.map((_,i)=>"<i class='"+(i===guideI?"on":"")+"'></i>").join("");
-        if (N) N.textContent = guideI===GUIDE.length-1 ? "¡Entendido!" : "Siguiente";
+        if (N) N.textContent = guideI===GUIDE.length-1 ? "¡ENTENDIDO!" : "SIGUIENTE  →";
+        if (g.tab && typeof showTab === "function") {
+          try { showTab(g.tab); } catch(e) {}
+        }
+        requestAnimationFrame(guidePoint);
+        setTimeout(guidePoint, 80);
       } catch(e) { console.log("guide paint", e); }
     }
     window.openGuide = function openGuide(reset){
@@ -2168,21 +2205,38 @@
     }
     window.closeGuide = function closeGuide(){
       const el = document.getElementById("guide");
+      const hand = document.getElementById("guideHand");
       if (el) { el.classList.remove("on"); el.style.display = "none"; }
-      try { localStorage.setItem("pg_guide_v2","1"); } catch(e) {}
+      if (hand) hand.style.display = "none";
+      guideClearGlow();
+      try { localStorage.setItem("pg_guide_v3","1"); } catch(e) {}
+    }
+    window.guideNext = function guideNext(){
+      if (guideBusy) return;
+      guideBusy = true;
+      try {
+        if (guideI >= GUIDE.length-1) closeGuide();
+        else { guideI++; paintGuide(); }
+      } finally { setTimeout(function(){ guideBusy = false; }, 180); }
     }
     function bootGuide(){
+      const root = document.getElementById("guide");
       const btn = document.getElementById("guideBtn");
-      if (btn) btn.onclick = function(e){ e.preventDefault(); openGuide(true); };
-      const n = document.getElementById("guideNext");
-      const s = document.getElementById("guideSkip");
-      function next(e){ if (e) e.preventDefault(); if (guideI>=GUIDE.length-1) closeGuide(); else { guideI++; paintGuide(); } }
-      if (n) { n.onclick = next; n.ontouchend = function(e){ e.preventDefault(); next(e); }; }
-      if (s) { s.onclick = function(e){ e.preventDefault(); closeGuide(); }; s.ontouchend = function(e){ e.preventDefault(); closeGuide(); }; }
-      try { if (!localStorage.getItem("pg_guide_v2")) openGuide(true); } catch(e) { openGuide(true); }
+      if (btn) btn.addEventListener("click", function(e){ e.preventDefault(); openGuide(true); }, {passive:false});
+      function onPtr(e){
+        const t = e.target && e.target.closest ? e.target.closest("button") : null;
+        if (!t) return;
+        if (t.id === "guideNext") { e.preventDefault(); e.stopPropagation(); guideNext(); }
+        if (t.id === "guideSkip") { e.preventDefault(); e.stopPropagation(); closeGuide(); }
+      }
+      if (root) {
+        root.addEventListener("pointerdown", onPtr, {passive:false});
+        root.addEventListener("click", onPtr, {passive:false});
+      }
+      window.addEventListener("resize", function(){ if (document.getElementById("guide") && document.getElementById("guide").classList.contains("on")) guidePoint(); });
+      try { if (!localStorage.getItem("pg_guide_v3")) openGuide(true); } catch(e) { openGuide(true); }
     }
 
-    
     function todayKey(){
       const d=new Date();
       return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
