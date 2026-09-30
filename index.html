@@ -1042,7 +1042,13 @@
         var msg=document.getElementById("d3Msg");
         if (msg) msg.textContent="En juego: "+(d3Hero(u).name||"carta")+" · toca la grande para atacar. No cambias hasta que caiga.";
         d3Paint();
-        if (window.pvpOn && window.pvpGame==="d3") d3PvpSend({ type:"play", id:u.id, hp:u.hp, max:u.max });
+        if (window.pvpOn && window.pvpGame==="d3") {
+          d3.turn = "me";
+          d3PvpSend({ type:"play", id:u.id, hp:u.hp, max:u.max }, false);
+          var mm=document.getElementById("d3Msg");
+          if (!(d3.en&&d3.en[0])) { if(mm) mm.textContent="En juego. Esperando carta del rival…"; }
+          else { if(mm) mm.textContent="Los dos en mesa. Toca la grande para atacar."; }
+        }
         return;
       }
       var msg=document.getElementById("d3Msg");
@@ -1063,6 +1069,11 @@
       if (d3.phase==="pick") return;
       if (kind) window.d3Kind = kind;
       if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
+      if (window.pvpOn && window.pvpGame==="d3" && !(d3.en&&d3.en[0]&&d3.en[0].hp>0)) {
+        var zx=document.getElementById("d3Msg");
+        if (zx) zx.textContent="Espera a que el rival ponga carta.";
+        return;
+      }
       if (!d3.me[d3.mi] || d3.me[d3.mi].hp<=0) return;
       d3Hit("me","en", window.d3Kind||kind||"corta");
     };
@@ -1072,7 +1083,7 @@
       d3.turn="en"; d3.acted=false;
       var msg=document.getElementById("d3Msg");
       if (msg) msg.textContent="Turno del rival...";
-      if (window.pvpOn && window.pvpGame==="d3") d3PvpSend({ type:"pass" });
+      if (window.pvpOn && window.pvpGame==="d3") d3PvpSend({ type:"pass" }, true);
       else setTimeout(d3Enemy, 600);
     };
     function d3Hit(from, to, kind){
@@ -1128,8 +1139,7 @@
           if (msg) msg.textContent = "Has atacado. Turno rival...";
           d3.turn="en";
           if (window.pvpOn && window.pvpGame==="d3") {
-            d3PvpSend({ type:"atk", kind: kind, fromId: a.id, toId: b.id, hpMe: (d3.me[0]&&d3.me[0].hp)||0, hpEn: (d3.en[0]&&d3.en[0].hp)||0 });
-            pvpPush(window.pvpRole==="a"?"b":"a");
+            d3PvpSend({ type:"atk", kind: kind, fromId: a.id, toId: b.id, hpMe: (d3.me[0]&&d3.me[0].hp)||0, hpEn: (d3.en[0]&&d3.en[0].hp)||0 }, true);
           } else setTimeout(d3Enemy, 400);
         }
       }, 620);
@@ -2609,7 +2619,7 @@
         }
         const prevTurn = window.pvpMatch && window.pvpMatch.turn;
         window.pvpMatch = j.pvp;
-        const picking = !!(selectedCard || previewIdx!=null);
+        const picking = window.pvpGame==="d3" ? false : !!(selectedCard || previewIdx!=null);
         if (!picking) {
           (j.pvp.moves || []).forEach(d => {
             if (!d || d.n <= (window.pvpSeen||0)) return;
@@ -2666,10 +2676,11 @@
     };
 
     function d3PvpMsg(s){ var n=document.getElementById("d3PvpMsg"); if(n) n.textContent=s||""; }
-    window.d3PvpSend = function d3PvpSend(payload){
+    window.d3PvpSend = function d3PvpSend(payload, passTurn){
       if (!window.pvpOn || !window.pvpMatch) return;
       window.pvpLastDrop = Object.assign({ d3:1, role: window.pvpRole, uid: (myProfile().uid||"") }, payload||{});
-      pvpPush(window.pvpRole==="a"?"b":"a");
+      var next = passTurn ? (window.pvpRole==="a"?"b":"a") : window.pvpRole;
+      pvpPush(next);
     };
     function d3ApplyNet(d){
       if (!d || !d.d3) return;
@@ -2685,7 +2696,11 @@
         var h = (HEROES||[]).find(function(x){return x.id===d.id;}) || {id:d.id,hp:d.hp||6};
         var u = d3Unit(h); u.hp = d.hp||u.hp; u.max = d.max||u.max;
         d3.en = [u]; d3.ei = 0;
+        d3.turn = "me";
+        d3.acted = false;
         d3Paint();
+        var mx=document.getElementById("d3Msg");
+        if (mx) mx.textContent = (d3.me&&d3.me[0]) ? "Rival en mesa. Toca tu carta para atacar." : "El rival ya puso carta. Pon la tuya.";
       }
       if (d.type==="atk") {
         d3Hit("en","me", d.kind||"corta");
@@ -2704,6 +2719,7 @@
     var d3PvpBtn = document.getElementById("d3PvpBtn");
     if (d3PvpBtn) d3PvpBtn.onclick = function(){
       window.pvpGame = "d3";
+      try { selectedCard=null; previewIdx=null; } catch(e){}
       showTab("duel3");
       d3PvpMsg("Buscando jugador…");
       try { if (window.startDuel3) startDuel3(); } catch(e){}
