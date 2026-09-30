@@ -788,6 +788,7 @@
   </div>
 
   <div id="bonus">
+    <button type="button" class="backTop" id="bonusExit" onclick="event.preventDefault();try{bgmStop()}catch(e){};showTab('home');return false;">← SALIR</button>
     <h1 style="color:#ffe08a;text-align:center;margin:0">BONUS</h1>
     <p class="muted" style="text-align:center;margin:4px 0 8px">Arrastra <b style="color:#c084fc">SOL</b> · también hay BNB · ETH · BTC · XRP · G</p>
     <div class="heroBan" style="padding:10px;text-align:center">
@@ -1371,6 +1372,17 @@
     }
     function bgmStart(mode) {
       bgmStop();
+      if (mode === "bonus") {
+        try {
+          duelBgm = new Audio("sfx/start.mp3");
+          duelBgm.loop = true;
+          duelBgm.volume = 0.22;
+          duelBgm.currentTime = 0;
+          duelBgm.play().catch(function(){});
+          bgmOn = true;
+        } catch(e) {}
+        return;
+      }
       if (mode === "war") {
         try {
           duelBgm = duelBgm || new Audio("sfx/duel.mp3");
@@ -3118,7 +3130,8 @@
       else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
-      if (name === "bonus") { try { crPaintBags(); crPaint(); } catch(e){} }
+      if (name === "bonus") { try { crPaintBags(); crPaint(); bgmStart("bonus"); sfx("menu"); } catch(e){} }
+      else if (name !== "duel" && name !== "duel3" && name !== "home") { try { bgmStop(); } catch(e){} }
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walPend").textContent = p;
