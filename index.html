@@ -246,6 +246,8 @@
     .d3hand .d3card { width:62px; }
     .d3hand .d3card img { width:62px; height:88px; border-color:#ffe08a; }
     .d3card.on img { border-color:#ffe08a; box-shadow:0 0 10px rgba(255,224,138,.55); }
+    .d3hand.picking .d3card.on img { border-color:#ff2a2a; border-width:3px; box-shadow:0 0 12px rgba(255,40,40,.85); }
+    #d3Msg.pick { color:#ff3b3b !important; font-weight:800; }
     .d3card.dead { opacity:.35; filter:grayscale(.8); }
     .d3card b { display:block; font-size:9px; color:#ffe08a; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .d3card span { display:block; font-size:9px; color:#c9d2e4; }
@@ -914,6 +916,7 @@
     function d3PaintPick(){
       var hand=document.getElementById("d3Hand");
       if (!hand) return;
+      hand.classList.add("picking");
       var ids = d3.pick||[];
       hand.innerHTML = (d3.owned||[]).map(function(h){
         var on = ids.indexOf(h.id)>=0 ? " on" : "";
@@ -924,7 +927,11 @@
         c.onclick=function(){ window.d3TogglePick&&window.d3TogglePick(c.getAttribute("data-id")); };
       });
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent = "Elegidas "+ids.length+"/5 · toca para meter o quitar.";
+      if (msg) {
+        msg.classList.add("pick");
+        msg.textContent = "Elegidas "+ids.length+"/5 · toca para meter o quitar.";
+        msg.style.color = "#ff3b3b";
+      }
       var md=document.getElementById("d3MeDeckN"); if (md) md.textContent = (d3.owned||[]).length;
     }
     window.d3TogglePick = function d3TogglePick(id){
@@ -950,6 +957,8 @@
       if (!bag.length) bag = d3Owned().slice(0,5);
       var foe = d3Pool(false).map(d3Unit);
       d3.phase = "fight";
+      var handEl=document.getElementById("d3Hand"); if (handEl) handEl.classList.remove("picking");
+      var msg0=document.getElementById("d3Msg"); if (msg0) { msg0.classList.remove("pick"); msg0.style.color=""; }
       d3.me = [];
       d3.hand = bag.map(d3Unit);
       d3.deck = extra.map(d3Unit);
