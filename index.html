@@ -488,13 +488,13 @@
     <img id="duelZoomImg" alt="" style="width:150px;height:178px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 12px 40px rgba(0,0,0,.75)" />
     <div id="duelZoomTxt" style="margin-top:6px;font-size:12px;color:#ffe08a;text-shadow:0 2px 6px #000;line-height:1.35"></div>
   </div>
-  <div id="duelEnd" style="display:none;position:fixed;inset:0;z-index:80;background:rgba(8,10,18,.86);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px">
+  <div id="duelEnd" style="display:none;position:fixed;inset:0;z-index:200050;background:rgba(8,10,18,.92);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;pointer-events:auto">
     <h1 id="duelEndTitle" style="color:#ffe08a;font-size:28px;margin:0 0 8px">Fin</h1>
     <img id="duelEndImg" alt="" style="width:160px;height:200px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 10px 30px #000;margin:8px 0;background:#111" />
     <p id="duelEndName" style="color:#ffe08a;font-weight:800;margin:0 0 6px"></p>
     <p id="duelEndTxt" class="muted"></p>
-    <button class="main" id="duelEndAgain" style="max-width:240px">OTRA PARTIDA</button>
-    <button class="main" id="duelEndOk" style="max-width:240px;background:#2a3146;color:#ffe08a">SALIR</button>
+    <button type="button" class="main" id="duelEndAgain" style="max-width:240px;pointer-events:auto;position:relative;z-index:2" onclick="event.stopPropagation();window.duelPlayAgain&&window.duelPlayAgain();return false;">OTRA PARTIDA</button>
+    <button type="button" class="main" id="duelEndOk" style="max-width:240px;background:#2a3146;color:#ffe08a;pointer-events:auto;position:relative;z-index:2;margin-top:8px" onclick="event.stopPropagation();window.duelLeaveEnd&&window.duelLeaveEnd();return false;">SALIR</button>
   </div>
   <div id="duel">
     <button type="button" class="backTop" id="duelExitTop" onclick="window.goPick&&window.goPick();return false;">← SALIR</button>
@@ -3452,7 +3452,13 @@
       const nm = document.getElementById("duelEndName");
       if (img) { img.src = (star && star.img) || h.img || "cards/capitan.jpg"; img.style.display="block"; }
       if (nm) nm.textContent = (h.name||"") + (win ? " · MVP" : " · rival");
+      try { document.getElementById("guide") && document.getElementById("guide").classList.remove("on"); } catch(e){}
+      try { document.getElementById("guideHand") && (document.getElementById("guideHand").style.display="none"); } catch(e){}
+      try { document.getElementById("lootPop") && document.getElementById("lootPop").classList.remove("on"); } catch(e){}
+      try { document.getElementById("duelFloat") && (document.getElementById("duelFloat").style.display="none"); } catch(e){}
       box.style.display = "flex";
+      box.style.zIndex = "200050";
+      box.style.pointerEvents = "auto";
       sfx(win ? "goal" : "fall");
     }
     function countSide(who){ return board.filter(u=>u&&u.who===who).length; }
@@ -3853,28 +3859,32 @@
     document.getElementById("lootOk").onclick = () => { document.getElementById("lootPop").classList.remove("on"); showTab("cofre"); };
     document.getElementById("mineBack").onclick = () => showTab("pick");
     document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); startMachineDuel(); };
-    document.getElementById("duelEndOk").onclick = () => {
-      document.getElementById("duelEnd").style.display="none";
+    window.duelLeaveEnd = function duelLeaveEnd(){
+      const box=document.getElementById("duelEnd");
+      if (box) box.style.display="none";
       duelBusy=false;
       window._pvpRematch=false;
       try { pvpClose(); } catch(e){}
       try { stopClock(); } catch(e) {}
+      try { bgmStop(); } catch(e){}
       showTab("pick");
-      renderGrid();
+      try { renderGrid(); } catch(e){}
     };
-    const again=document.getElementById("duelEndAgain");
-    if (again) again.onclick = () => {
-      document.getElementById("duelEnd").style.display="none";
+    window.duelPlayAgain = function duelPlayAgain(){
+      const box=document.getElementById("duelEnd");
+      if (box) box.style.display="none";
       duelBusy=false;
+      try { stopClock(); } catch(e) {}
       if (window._pvpRematch) {
         window._pvpRematch=false;
-        const pb=document.getElementById("pvpBtn");
-        if (pb) pb.click();
-        else pvpSeek();
+        try { pvpSeek(); } catch(e){ startMachineDuel(); }
       } else {
         startMachineDuel();
       }
     };
+    document.getElementById("duelEndOk").onclick = function(){ window.duelLeaveEnd(); };
+    const again=document.getElementById("duelEndAgain");
+    if (again) again.onclick = function(){ window.duelPlayAgain(); };
     const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); duelEnemyTurn(); };
     
     window.leaveDuel = function leaveDuel(){
