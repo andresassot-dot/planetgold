@@ -381,6 +381,7 @@
       <div style="margin-top:10px;padding:8px 10px;border:1px solid #d4af37;border-radius:10px;background:#1a1608">
         <div class="muted" style="font-size:11px">TGOLD en juego</div>
         <div class="big" id="homePend" style="font-size:22px;color:#ffe08a">0</div>
+        <div class="muted" id="tgoldCap" style="font-size:11px">Hoy farmeo 25/25</div>
       </div>
       <button class="main" id="dailyBtn" type="button" onclick="claimDailyNow()" style="margin-top:8px;padding:8px;font-size:13px;background:#2e8b57;color:#f4fff8">BONUS DEL DÍA</button>
       <button class="main" id="swapBtn" style="margin-top:8px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
@@ -486,7 +487,7 @@
   </div>
   <div id="duel">
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
-    <p class="muted" style="text-align:center;margin:6px 0">1 carta por turno · Vs jugador 60 s · Máquina 30 s</p>
+    <p class="muted" style="text-align:center;margin:6px 0">Rojo = ataque · si ganas, la carta es tuya<br>1 carta · Vs jugador 60 s · Máquina 30 s</p>
     <div id="rivalPick" style="display:flex;gap:8px;overflow:auto;padding:4px 10px 10px;min-height:40px"></div>
     <button class="main" id="pvpBtn" style="margin:0 10px 8px;background:#1a4f9c;color:#d6e8ff">VS JUGADOR · 1 min</button>
     <p class="muted" id="pvpMsg" style="text-align:center;margin:0 10px 6px"></p>
@@ -499,7 +500,7 @@
     <div id="board66" class="b66" style="position:relative"></div>
     <div id="duelHand">
     <div id="fxMe" class="fxrow"></div>
-    <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Elige carta del mazo.</p>
+    <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Rojo = ataque · si ganas, la carta pasa a tu color.</p>
     <div id="duelPickRow"><div id="duelPick"></div><div id="deckPile"><img src="cards/mazo.jpg" alt="mazo" /><span id="deckN">0</span></div></div>
     <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px"></div>
     <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
@@ -977,6 +978,32 @@
       return "Fusión: "+(nx?nx.name:g.fusesTo);
     }
     const DM_NAMES = ["blockkchainpro"];
+    
+    const TGOLD_DAY_CAP = 25;
+    function dayKey(){ return new Date().toISOString().slice(0,10); }
+    function tgoldDay(){
+      try { return JSON.parse(localStorage.getItem("pg_tgoldDay")||"{}"); } catch(e){ return {}; }
+    }
+    function tgoldLeft(){
+      const d = tgoldDay();
+      if (d.day !== dayKey()) return TGOLD_DAY_CAP;
+      return Math.max(0, TGOLD_DAY_CAP - Number(d.got||0));
+    }
+    function grantTgold(n){
+      n = Math.max(0, Math.floor(Number(n)||0));
+      if (!n) return 0;
+      let d = tgoldDay();
+      if (d.day !== dayKey()) d = { day: dayKey(), got: 0 };
+      const left = Math.max(0, TGOLD_DAY_CAP - Number(d.got||0));
+      const add = Math.min(n, left);
+      if (add) {
+        localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+add);
+        d.got = Number(d.got||0)+add;
+        d.day = dayKey();
+        localStorage.setItem("pg_tgoldDay", JSON.stringify(d));
+      }
+      return add;
+    }
     function isDm(){
       const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
       const name = String(u.username||"").toLowerCase();
@@ -1517,7 +1544,7 @@
           k.got=true; k.gone=true; flyGlow=14;
           if (k.kind==="coin") {
             flyGotC++;
-            localStorage.setItem("pg_pend", String(Number(localStorage.getItem("pg_pend")||0)+1));
+            grantTgold(1);
           } else {
             flyGotP++;
             const pool=(typeof HEROES!=="undefined"?HEROES:[]).filter(h=>!h.holo);
@@ -1935,8 +1962,8 @@
         extra=" · sobre gratis";
       }
       if (st%7===0){
-        localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+2);
-        extra+=" · +2 tgold";
+        const g=grantTgold(2);
+        extra += g ? (" · +"+g+" tgold") : " · tope TGOLD diario";
       }
       return { st, extra, pts:40+st*10 };
     }
@@ -2005,6 +2032,8 @@
       document.getElementById("homePend").textContent = localStorage.getItem("pg_pend")||0;
       const mt = document.getElementById("meTgold");
       if (mt) mt.textContent = localStorage.getItem("pg_pend")||0;
+      const cap = document.getElementById("tgoldCap");
+      if (cap) cap.textContent = "Hoy farmeo "+tgoldLeft()+"/"+TGOLD_DAY_CAP+" TGOLD";
       const en = document.getElementById("homeEn");
       if (en) en.textContent = getEnergy() + "/" + MAX_EN;
       const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
@@ -2979,7 +3008,7 @@
       const addPend = win ? (streak>=3 ? 2 : 1) : 0;
       addXp(win ? 40 : 10);
       localStorage.setItem("pg_pts", pts + addPts);
-      localStorage.setItem("pg_pend", pend + addPend);
+      if (addPend) grantTgold(addPend);
       try { refreshHome(); } catch(e) {}
       try { stopClock(); } catch(e) {}
       const box = document.getElementById("duelEnd");
@@ -3531,8 +3560,7 @@
       if (state.enHp <= 0) {
         state.pts += 500;
         localStorage.setItem("pg_pts", state.pts);
-        const pend = Number(localStorage.getItem("pg_pend")||0) + 1;
-        localStorage.setItem("pg_pend", pend);
+        grantTgold(1);
         const up = addDust(hero.id);
         turnEl.textContent = "VICTORIA";
         msg.textContent = "+500 pts · " + up + " · " + state.pts;
