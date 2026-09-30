@@ -2634,13 +2634,24 @@
             else applyNetDrop(d);
           });
         }
-        if (window.pvpGame==="d3" && window.pvpOn && d3.me && d3.me[0] && !(d3.en && d3.en[0])) {
+        if (window.pvpGame==="d3" && window.pvpOn && d3.over) {
+          window._d3EndSend = (window._d3EndSend||0)+1;
+          if (window._d3EndSend<6) d3PvpSend({ type:"end", win: window.pvpRole }, true);
+        } else if (window.pvpGame==="d3" && window.pvpOn && d3.me && d3.me[0] && !(d3.en && d3.en[0])) {
           window._d3Resend = (window._d3Resend||0)+1;
           if (window._d3Resend%3===1) d3PvpSend({ type:"play", id:d3.me[0].id, hp:d3.me[0].hp, max:d3.me[0].max }, false);
         }
         if (j.pvp.winner) {
           stopClock();
           const meWin = (j.pvp.winner === window.pvpRole) || nickKey(j.pvp.winner)===nickKey(playerName());
+          if (window.pvpGame==="d3") {
+            d3StopClock();
+            d3._fromNet = true;
+            try { d3End(!!meWin); } catch(e){}
+            d3._fromNet = false;
+            pvpStop();
+            return;
+          }
           const meN = countSide("me"), enN = countSide("en");
           pvpStop();
           endDuel(meN>enN || (meN===enN && meWin), "Posesión "+meN+"–"+enN);
@@ -2736,8 +2747,9 @@
         if (mm) mm.textContent="Tu turno.";
       }
       if (d.type==="end") {
+        d3StopClock();
         d3._fromNet = true;
-        d3End(d.win!==window.pvpRole);
+        d3End(d.win===window.pvpRole);
         d3._fromNet = false;
       }
     }
