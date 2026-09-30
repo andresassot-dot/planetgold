@@ -1326,11 +1326,24 @@
       if (trees[x+","+y]) return {t:"tree", vein:"madera", name:"Árbol"};
       return {t:"grass"};
     }
+        let mineBgm;
+    function mineBgmStart(){
+      try {
+        if (mineBgm) { mineBgm.pause(); }
+        mineBgm = new Audio("sfx/overworld.mp3");
+        mineBgm.loop = true; mineBgm.volume = 0.32;
+        mineBgm.play().catch(()=>{});
+      } catch(e){}
+    }
+    function mineBgmStop(){
+      try { if (mineBgm) { mineBgm.pause(); mineBgm.currentTime=0; } } catch(e){}
+      mineBgm=null;
+    }
     function openMinePlay(){
       const box=document.getElementById("minePlay");
       if (!box) { alert("Bosque no encontrado"); return; }
       box.style.display="flex";
-      box.style.zIndex="200";
+      box.style.zIndex="200"; 
       const nav=document.getElementById("nav");
       if (nav) nav.style.display="none";
       requestAnimationFrame(()=>{ try{ paintStage(); }catch(e){ console.log(e); } });
@@ -1342,6 +1355,7 @@
       if (box) box.style.display="none";
       const nav=document.getElementById("nav");
       if (nav) nav.style.display="";
+      
     }
     window.closeMinePlay = closeMinePlay;
     function paintLiveMine(){
@@ -2026,6 +2040,18 @@
       if (a) a.onclick=atkLive;
     })();
 
+        let homeBgm;
+    function homeBgmStart(){
+      try{
+        if (homeBgm && !homeBgm.paused) return;
+        homeBgm = homeBgm || new Audio("sfx/home.mp3");
+        homeBgm.loop = true; homeBgm.volume = 0.22;
+        homeBgm.play().catch(()=>{});
+      }catch(e){}
+    }
+    function homeBgmStop(){
+      try{ if(homeBgm){ homeBgm.pause(); } }catch(e){}
+    }
     function showTab(name) {
       ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(id => {
         const el = document.getElementById(id);
