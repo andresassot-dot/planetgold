@@ -1246,7 +1246,12 @@
       document.getElementById("veins").innerHTML = VEINS.map(v =>
         `<div class="vein" style="${hotVein===v.id?'border-color:#ffe08a;box-shadow:0 0 12px rgba(255,200,60,.45)':''}"><div style="width:40px;text-align:center">${orePic(v.ore,36)}</div><div style="flex:1"><b>${v.name}${hotVein===v.id?' · CALIENTE':''}</b><small>Golpes ${(veinHits[v.id]||0)}/${v.hits} · pico ${v.cost} · no gasta energía de duelo</small><div style="height:6px;background:#1a1f2c;border-radius:4px;margin-top:4px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,100*(veinHits[v.id]||0)/v.hits)}%;background:#d4af37"></i></div></div><button class="pico" data-vein="${v.id}">PICAR</button></div>`
       ).join("");
-      document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => { doMine(el.getAttribute("data-vein")); paintLiveMine(); });
+      document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => {
+        hotVein = el.getAttribute("data-vein");
+        const m=document.getElementById("mineMsg");
+        if (m) m.textContent = "Ve al tablero y PICAR · "+hotVein;
+        paintLiveMine();
+      });
       const lv=document.getElementById("liveVein");
       const lp=document.getElementById("livePico");
       if (lv) lv.onclick = swingLive;
@@ -1369,7 +1374,7 @@
       } else mineMsg("Slime "+mineSlime.hp+"/3");
       paintLiveMine();
     }
-    function doMine(function doMine(id){
+    function doMine(id){
       const v = VEINS.find(x => x.id===id);
       const msg = document.getElementById("mineMsg");
       if (!v) return;
