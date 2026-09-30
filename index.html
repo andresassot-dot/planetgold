@@ -578,6 +578,8 @@
   <div id="duel3">
     <button type="button" class="backTop" onclick="event.preventDefault();window.goPick&&window.goPick();return false;">← SALIR</button>
     <p class="muted" style="text-align:center;margin:0 0 4px;font-size:11px">Mano solo tuya · partida 60 s</p>
+    <button type="button" class="main" id="d3PvpBtn" style="margin:0 10px 4px;padding:8px;background:#1a4f9c;color:#d6e8ff">VS JUGADOR · 1 min</button>
+    <p class="muted" id="d3PvpMsg" style="text-align:center;margin:0 10px 4px"></p>
     <button type="button" class="main" onclick="window.openDuelGuide&&window.openDuelGuide('3',true);return false;" style="margin:0 10px 4px;padding:6px;font-size:12px;background:#2a4a7a;color:#d6e6ff">GUÍA DUELO 3</button>
     <div id="d3Clock" style="margin:0 8px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:32px;position:relative">
       <i id="d3Bar" style="display:block;height:32px;width:100%;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width .4s linear"></i>
@@ -958,7 +960,9 @@
         bag.push(extra[i]); extra.splice(i,1);
       }
       if (!bag.length) bag = d3Owned().slice(0,5);
-      var foe = d3Pool(false).map(d3Unit);
+      var foe = (window.pvpOn && window.pvpGame==="d3")
+        ? (d3.foeBag||[]).map(d3Unit)
+        : d3Pool(false).map(d3Unit);
       d3.phase = "fight";
       var handEl=document.getElementById("d3Hand"); if (handEl) handEl.classList.remove("picking");
       var msg0=document.getElementById("d3Msg"); if (msg0) { msg0.classList.remove("pick"); msg0.style.color=""; }
@@ -975,6 +979,13 @@
       if (msg) msg.textContent = "Toca una de abajo para salir la primera. Hasta que caiga no cambias.";
       d3Paint();
       d3StartClock();
+      if (window.pvpOn && window.pvpGame==="d3") {
+        d3PvpSend({ type:"deck", cards: bag.map(function(h){ return h.id; }) });
+        if (!(d3.en||[]).length) {
+          var m=document.getElementById("d3Msg");
+          if (m) m.textContent = "Esperando el mazo del rival…";
+        }
+      }
     };
     function d3StartPickClock(){
       d3StopClock();
@@ -1031,6 +1042,7 @@
         var msg=document.getElementById("d3Msg");
         if (msg) msg.textContent="En juego: "+(d3Hero(u).name||"carta")+" · toca la grande para atacar. No cambias hasta que caiga.";
         d3Paint();
+        if (window.pvpOn && window.pvpGame==="d3") d3PvpSend({ type:"play", id:u.id, hp:u.hp, max:u.max });
         return;
       }
       var msg=document.getElementById("d3Msg");
@@ -1055,11 +1067,13 @@
       d3Hit("me","en", window.d3Kind||kind||"corta");
     };
     window.d3EndTurn = function d3EndTurn(){
+      if (d3.phase==="pick") return;
       if (d3.over || d3.busy || d3.turn!=="me") return;
       d3.turn="en"; d3.acted=false;
       var msg=document.getElementById("d3Msg");
       if (msg) msg.textContent="Turno del rival...";
-      setTimeout(d3Enemy, 600);
+      if (window.pvpOn && window.pvpGame==="d3") d3PvpSend({ type:"pass" });
+      else setTimeout(d3Enemy, 600);
     };
     function d3Hit(from, to, kind){
       d3.busy = true;
@@ -1113,11 +1127,15 @@
         } else {
           if (msg) msg.textContent = "Has atacado. Turno rival...";
           d3.turn="en";
-          setTimeout(d3Enemy, 400);
+          if (window.pvpOn && window.pvpGame==="d3") {
+            d3PvpSend({ type:"atk", kind: kind, fromId: a.id, toId: b.id, hpMe: (d3.me[0]&&d3.me[0].hp)||0, hpEn: (d3.en[0]&&d3.en[0].hp)||0 });
+            pvpPush(window.pvpRole==="a"?"b":"a");
+          } else setTimeout(d3Enemy, 400);
         }
       }, 620);
     }
     function d3Enemy(){
+      if (window.pvpOn && window.pvpGame==="d3") return;
       if (d3.over) return;
       if (d3.busy) { setTimeout(d3Enemy, 200); return; }
       var kinds=["corta","media","larga"];
@@ -1145,6 +1163,10 @@
     function d3End(win){
       if (d3.over) return;
       d3.over = true; d3.busy = true;
+      if (window.pvpOn && window.pvpGame==="d3" && !d3._fromNet) {
+        d3PvpSend({ type:"end", win: window.pvpRole });
+        pvpPush(window.pvpRole, win ? window.pvpRole : (window.pvpRole==="a"?"b":"a"));
+      }
       window._d3Active = true;
       d3StopClock();
       try { bgmStop(); } catch(e){}
@@ -2527,6 +2549,7 @@
       board = Array(36).fill(null);
       try { renderBoard(); } catch(e){}
       pvpMsg("Buscando jugador…");
+      if (window.pvpGame==="d3") d3PvpMsg("Buscando jugador…");
       try {
         const r = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { pvpSeek:true })) });
         const j = await r.json();
@@ -2549,6 +2572,7 @@
       const other = window.pvpRole==="a" ? m.b : m.a;
       duelRival = { name: other.name || "Rival", deck: [], photo: other.photo||"" };
       pvpMsg("Vs "+(other.name||"rival")+" · turno 60 s");
+      if (window.pvpGame==="d3") d3PvpMsg("Vs "+(other.name||"rival")+" · elige 5 y LISTO");
       parley = false;
       if (m.board && m.board.filter(Boolean).length) boardFromNet(m.board);
       renderBoard(); renderDuelPick();
@@ -2590,7 +2614,8 @@
           (j.pvp.moves || []).forEach(d => {
             if (!d || d.n <= (window.pvpSeen||0)) return;
             window.pvpSeen = d.n;
-            applyNetDrop(d);
+            if (d.d3) { try { d3ApplyNet(d); } catch(e){} }
+            else applyNetDrop(d);
           });
         }
         if (j.pvp.winner) {
@@ -2631,11 +2656,57 @@
     }
     const pvpBtn = document.getElementById("pvpBtn");
     if (pvpBtn) pvpBtn.onclick = () => {
+      window.pvpGame = "66";
       showTab("duel");
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false; board=Array(36).fill(null); dealHand();
       placedTurn=false; selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; parley=false;
       renderFx(); renderBoard(); renderDuelPick();
+      pvpSeek();
+    };
+
+    function d3PvpMsg(s){ var n=document.getElementById("d3PvpMsg"); if(n) n.textContent=s||""; }
+    window.d3PvpSend = function d3PvpSend(payload){
+      if (!window.pvpOn || !window.pvpMatch) return;
+      window.pvpLastDrop = Object.assign({ d3:1, role: window.pvpRole, uid: (myProfile().uid||"") }, payload||{});
+      pvpPush(window.pvpRole==="a"?"b":"a");
+    };
+    function d3ApplyNet(d){
+      if (!d || !d.d3) return;
+      if (d.role && d.role===window.pvpRole) return;
+      if (d.type==="deck" && Array.isArray(d.cards)) {
+        d3.foeBag = d.cards.map(function(id){ return (HEROES||[]).find(function(h){return h.id===id;})||{id:id,hp:6}; }).filter(Boolean);
+        if (d3.phase==="fight" && !(d3.en||[]).length) {
+          d3.en = d3.foeBag.map(d3Unit);
+          d3Paint();
+        }
+      }
+      if (d.type==="play" && d.id) {
+        var h = (HEROES||[]).find(function(x){return x.id===d.id;}) || {id:d.id,hp:d.hp||6};
+        var u = d3Unit(h); u.hp = d.hp||u.hp; u.max = d.max||u.max;
+        d3.en = [u]; d3.ei = 0;
+        d3Paint();
+      }
+      if (d.type==="atk") {
+        d3Hit("en","me", d.kind||"corta");
+      }
+      if (d.type==="pass") {
+        d3.turn="me"; d3.acted=false;
+        var mm=document.getElementById("d3Msg");
+        if (mm) mm.textContent="Tu turno.";
+      }
+      if (d.type==="end") {
+        d3._fromNet = true;
+        d3End(d.win!==window.pvpRole);
+        d3._fromNet = false;
+      }
+    }
+    var d3PvpBtn = document.getElementById("d3PvpBtn");
+    if (d3PvpBtn) d3PvpBtn.onclick = function(){
+      window.pvpGame = "d3";
+      showTab("duel3");
+      d3PvpMsg("Buscando jugador…");
+      try { if (window.startDuel3) startDuel3(); } catch(e){}
       pvpSeek();
     };
 
