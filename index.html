@@ -740,13 +740,14 @@
       tap: "sfx/click_001.ogg", menu: "sfx/switch_001.ogg", open: "sfx/maximize_004.ogg",
       close: "sfx/minimize_002.ogg", place: "sfx/card-place.ogg", ray: "sfx/glass_004.ogg",
       hit: "sfx/card-miss.ogg", fall: "sfx/card-flip.ogg", gol: "sfx/win-fanfare.ogg",
-      save: "sfx/bong_001.ogg", pack: "sfx/confirmation_002.ogg", intro: "sfx/intro.ogg"
+      save: "sfx/bong_001.ogg", pack: "sfx/confirmation_002.ogg", intro: "sfx/intro.ogg",
+      flap: "sfx/flap.mp3", coin: "sfx/coin.mp3", crash: "sfx/crash.mp3", flybg: "sfx/fly-bg.mp3"
     };
     function sfx(type) {
       beep(type);
       const src = SFXFILE[type];
       if (!src) return;
-      try { const a = new Audio(src); a.volume = 0.5; a.play().catch(()=>{}); } catch(e) {}
+      try { const a = new Audio(src); a.volume = (type==="coin"||type==="flap") ? 0.75 : 0.5; a.play().catch(()=>{}); } catch(e) {}
     }
     let introAud;
     function playIntro() {
@@ -1469,13 +1470,26 @@
       document.getElementById("flyOver").classList.remove("on");
       flyY=flyH*0.4; flyV=-5; flyPipes=[{x:flyW+20,gap:flyH*0.38,h:80+Math.random()*(flyH-220)}];
       flyPick=[]; flyGotC=0; flyGotP=0; flyGlow=0;
-      flyScr=0; flyDead=false; flyRun=true;
+      flyScr=0; flyDead=false; flyRun=true; try{flyBgmStart();}catch(e){}
       document.getElementById("flyScore").textContent="0";
       cancelAnimationFrame(flyRAF);
       flyLoop();
     }
     function flyStop(){ flyRun=false; cancelAnimationFrame(flyRAF); }
-    function flyFlap(){ if(!flyRun){ flyStart(); return; } if(!flyDead) flyV=-6.2; }
+        let flyBgm;
+    function flyBgmStart(){
+      try {
+        if (flyBgm) { flyBgm.pause(); flyBgm=null; }
+        flyBgm = new Audio("sfx/fly-bg.mp3");
+        flyBgm.loop = true; flyBgm.volume = 0.28;
+        flyBgm.play().catch(()=>{});
+      } catch(e){}
+    }
+    function flyBgmStop(){
+      try { if (flyBgm) { flyBgm.pause(); flyBgm.currentTime=0; } } catch(e){}
+      flyBgm=null;
+    }
+    function flyFlap(){ if(!flyRun){ flyStart(); try{sfx("flap");}catch(e){} return; } if(!flyDead){ flyV=-6.2; try{sfx("flap");}catch(e){} } }
     function flyGap(){
       if (flyScr<8) return 168;
       if (flyScr<18) return 148;
@@ -1512,7 +1526,7 @@
     }
     function flyDie(){
       if (flyDead) return;
-      flyDead=true; flyRun=false;
+      flyDead=true; flyRun=false; try{sfx("crash");}catch(e){} try{flyBgmStop();}catch(e){}
       const msg=flyPay(flyScr);
       document.getElementById("flyRes").textContent = flyScr+" tubos · "+msg+(flyGotC?" · +"+flyGotC+" TGOLD":"")+(flyGotP?" · +"+flyGotP+" sobre":"");
       document.getElementById("flyOver").classList.add("on");
@@ -1543,10 +1557,10 @@
         if (dx*dx+dy*dy < 28*28) {
           k.got=true; k.gone=true; flyGlow=14;
           if (k.kind==="coin") {
-            flyGotC++;
+            flyGotC++; try{sfx("coin");}catch(e){}
             grantTgold(1);
           } else {
-            flyGotP++;
+            flyGotP++; try{sfx("pack");}catch(e){}
             const pool=(typeof HEROES!=="undefined"?HEROES:[]).filter(h=>!h.holo);
             if (pool.length && typeof addDust==="function") addDust(pool[Math.floor(Math.random()*pool.length)].id);
           }
@@ -1848,6 +1862,7 @@
       if (name === "mazo") renderMazo();
       if (name === "vuelo") flyReady();
       if (name === "duel") { try { bgmStart("war"); } catch(e) {} }
+      if (name !== "vuelo") { try { flyBgmStop(); } catch(e) {} }
       else if (window.pvpOn && name!=="duel") {
         try { fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { pvpLeave:true, matchId: window.pvpMatch && window.pvpMatch.id })) }); } catch(e){}
         pvpStop();
