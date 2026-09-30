@@ -461,7 +461,7 @@
 
   
   <div id="vuelo">
-    <div id="flyHud"><b>FARMEO DE TGOLD</b><span id="flyScore">0</span><span id="flyBestHud" style="opacity:.8"></span><span id="flyEn">⚡</span></div>
+    <div id="flyHud"><b>FARMEO DE TGOLD</b><span id="flyScore">0</span><span id="flyBestHud" style="opacity:.85;margin-left:8px">mejor 0</span><span id="flyEn">⚡</span></div>
     <div id="flyBox">
       <canvas id="flyCan"></canvas>
       <div id="flyOver">
@@ -1455,7 +1455,7 @@
       flyHudEn();
       document.getElementById("flyOver").classList.remove("on");
       document.getElementById("flyRes").textContent = "Toca para empezar";
-      document.getElementById("flyScore").textContent = "0";
+      var __fs=document.getElementById("flyScore"); if(__fs) __fs.textContent = "0";
       const c=document.getElementById("flyCan");
       const box=document.getElementById("flyBox");
       flyW = box.clientWidth||320; flyH = box.clientHeight||360;
@@ -1476,7 +1476,9 @@
       flyY=flyH*0.4; flyV=-5; flyPipes=[{x:flyW+20,gap:flyH*0.38,h:80+Math.random()*(flyH-220)}];
       flyPick=[]; flyGotC=0; flyGotP=0; flyGlow=0;
       flyScr=0; flyDead=false; flyRun=true; try{flyBgmStart();}catch(e){}
-      document.getElementById("flyScore").textContent="0";
+      const bh=document.getElementById("flyBestHud");
+      if (bh) bh.textContent="mejor "+(localStorage.getItem("pg_flyBest")||0);
+      var __fs=document.getElementById("flyScore"); if(__fs) __fs.textContent="0";
       cancelAnimationFrame(flyRAF);
       flyLoop();
     }
@@ -1527,6 +1529,9 @@
       const best=Number(localStorage.getItem("pg_flyBest")||0);
       let rec="";
       if (n>best) { localStorage.setItem("pg_flyBest", n); try{ pingRank && pingRank(); }catch(e){} if (typeof addXp==="function") addXp(10); rec=" · NUEVO RÉCORD"; }
+      const bh2=document.getElementById("flyBestHud");
+      if (bh2) bh2.textContent="mejor "+Math.max(best,n);
+      try { refreshHome(); } catch(e) {}
       return "+"+pts+" pts"+(ore?" + mineral":"")+extra+rec+" · mejor "+Math.max(best,n);
     }
     function flyDie(){
@@ -1577,7 +1582,7 @@
         const topH=p.h, bot=p.h+p.gap;
         const hitX = bx+br>p.x && bx-br<p.x+46;
         if (hitX && (by-br<topH || by+br>bot)) flyDie();
-        if (!p.got && p.x+46 < bx) { p.got=true; flyScr++; document.getElementById("flyScore").textContent=String(flyScr); }
+        if (!p.got && p.x+46 < bx) { p.got=true; flyScr++; var __fs=document.getElementById("flyScore"); if(__fs) __fs.textContent=String(flyScr); }
       });
       flyDraw();
       if (flyRun) flyRAF=requestAnimationFrame(flyLoop);
@@ -2090,6 +2095,13 @@
       if (mt) mt.textContent = localStorage.getItem("pg_pend")||0;
       const cap = document.getElementById("tgoldCap");
       if (cap) cap.textContent = "Hoy farmeo "+tgoldLeft()+"/"+TGOLD_DAY_CAP+" TGOLD";
+      const fr = document.getElementById("flyRec");
+      if (fr) {
+        const mine = Number(localStorage.getItem("pg_flyBest")||0);
+        const glob = Number(localStorage.getItem("pg_flyTop")||0);
+        const who = (localStorage.getItem("pg_flyTopName")||"").replace(/^@/,"");
+        fr.textContent = "Vuelo · tu mejor "+mine+(glob?(" · récord "+glob+(who?" "+who:"")):"");
+      }
       const en = document.getElementById("homeEn");
       if (en) en.textContent = getEnergy() + "/" + MAX_EN;
       const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
