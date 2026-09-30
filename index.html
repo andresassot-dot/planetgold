@@ -186,7 +186,7 @@
     #mercado.on { display: flex; }
     .offer { display:flex; gap:10px; align-items:center; background:#161a26; border:1px solid #3a4258; border-radius:12px; padding:10px; margin:8px 0; }
     .offer img { width:48px; height:62px; object-fit:cover; border-radius:6px; border:1px solid #d4af37; }
-        #duel { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 12px 10px 108px; overflow: auto; }
+        #duel { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 4px 8px 92px; overflow: auto; }
     
     #vuelo {
       position: fixed; inset: 0; z-index: 19; background: #070b16;
@@ -210,10 +210,10 @@
     }
 
     #duel.on { display: flex; }
-    .b66 { display:grid; grid-template-columns:repeat(6,1fr); gap:2px; margin:2px 0 6px; padding:6px; padding-bottom:8px;
+    .b66 { display:grid; grid-template-columns:repeat(6,1fr); gap:2px; margin:2px 0 4px; padding:4px; padding-bottom:4px; flex:0 0 auto;
       background:#0b1020 url("cards/tablero-mundo.jpg") center / cover no-repeat;
       border-radius:12px; border:1px solid #d4af37; box-shadow:inset 0 0 24px rgba(0,0,0,.35); }
-    .cell { height:32px; background:rgba(8,12,22,.28); border:1px solid rgba(212,175,55,.45); border-radius:6px; overflow:hidden; position:relative; }
+    .cell { height:36px; background:rgba(8,12,22,.28); border:1px solid rgba(212,175,55,.45); border-radius:6px; overflow:hidden; position:relative; }
     .cell.mine { border-color:#3a4258; }
     .cell.blue { border:2px solid #3b9eff; box-shadow:0 0 8px rgba(59,158,255,.55); }
     .cell.red { border:2px solid #ff4d4d; box-shadow:0 0 8px rgba(255,77,77,.55); }
@@ -251,7 +251,7 @@
     .cell img { width:100%; height:100%; object-fit:cover; display:block; }
     .fxrow { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:2px 0; }
     .fx { height:18px; border:1px dashed #d4af37; border-radius:8px; background:#12141c; font-size:10px; color:#ffe08a; display:flex; align-items:center; justify-content:center; }
-    #duelHand { position:sticky; bottom:52px; z-index:5; background:#0b1020; padding:0 0 2px; }
+    #duelHand { position:relative; bottom:auto; z-index:5; background:#0b1020; padding:8px 0 4px; margin-top:4px; }
     #duelHand img { height:46px !important; width:34px; object-fit:cover; object-position:top; }
     #duelPickRow { display:flex; align-items:center; gap:8px; padding:0 8px 4px; }
     #fxMe { margin:0 8px 2px; }
@@ -486,24 +486,24 @@
     <button class="main" id="duelEndOk" style="max-width:240px;background:#2a3146;color:#ffe08a">SALIR</button>
   </div>
   <div id="duel">
-    <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:22px">Duelo 6×6</h1>
+    <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:18px">Duelo 6×6</h1>
     <p class="muted" style="text-align:center;margin:6px 0">Rojo = ataque · si ganas, la carta es tuya<br>1 carta · Vs jugador 60 s · Máquina 30 s</p>
-    <div id="rivalPick" style="display:flex;gap:8px;overflow:auto;padding:4px 10px 10px;min-height:40px"></div>
-    <button class="main" id="pvpBtn" style="margin:0 10px 8px;background:#1a4f9c;color:#d6e8ff">VS JUGADOR · 1 min</button>
+    <div id="rivalPick" style="display:flex;gap:6px;overflow:auto;padding:2px 8px 4px;min-height:32px"></div>
+    <button class="main" id="pvpBtn" style="margin:0 10px 4px;padding:8px;background:#1a4f9c;color:#d6e8ff">VS JUGADOR · 1 min</button>
     <p class="muted" id="pvpMsg" style="text-align:center;margin:0 10px 6px"></p>
     <div id="turnClock" style="margin:4px 10px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:36px;min-height:36px;position:relative;box-shadow:0 0 12px rgba(212,175,55,.35);flex-shrink:0">
       <i id="turnBar" style="display:block;height:36px;min-height:36px;width:100%;transform-origin:left center;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width 1s linear"></i>
       <b id="turnTxt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:0 1px 2px #000,0 0 8px #000">TU TURNO 30s</b>
     </div>
     <button type="button" id="rivalGo" style="margin:0 10px 6px;padding:4px;background:transparent;border:0;color:#8a93a8;font-size:11px;width:auto;display:block">pasar al rival ▸</button>
-    <div id="fxEn" class="fxrow"></div>
+    <div id="fxEn" class="fxrow" style="min-height:18px;margin:2px 0"></div>
     <div id="board66" class="b66" style="position:relative"></div>
     <div id="duelHand">
-    <div id="fxMe" class="fxrow"></div>
+    <div id="fxMe" class="fxrow" style="min-height:18px;margin:2px 0"></div>
     <p id="duelMsg" class="muted" style="text-align:center;margin:0 0 4px;font-size:12px">Rojo = ataque · si ganas, la carta pasa a tu color.</p>
     <div id="duelPickRow"><div id="duelPick"></div><div id="deckPile"><img src="cards/mazo.jpg" alt="mazo" /><span id="deckN">0</span></div></div>
-    <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px"></div>
-    <button class="main" id="duelStart" style="margin-top:4px;padding:8px;font-size:13px">NUEVO DUELO</button>
+    <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:2px"></div>
+    <button class="main" id="duelStart" style="margin-top:2px;padding:7px;font-size:12px">NUEVO DUELO</button>
 </div>
     </div>
     <button class="main" id="duelNext" style="display:none">PASAR TURNO</button>
