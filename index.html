@@ -343,7 +343,10 @@
     }
     .chestLid.shake { animation: chestShake .7s ease-in-out, chestGlow 1.1s ease-in-out; }
     .chestSlot.pop { animation: pop .45s ease; }
-  </style>
+  
+    .backTop { position:sticky; top:0; z-index:70; display:block; width:auto; margin:0 0 8px; padding:8px 12px; background:#2a3146; color:#ffe08a; border:1px solid #d4af37; border-radius:10px; font-weight:800; }
+
+    </style>
 </head>
 <body>
   <div id="splash">
@@ -494,6 +497,7 @@
     <button class="main" id="duelEndOk" style="max-width:240px;background:#2a3146;color:#ffe08a">SALIR</button>
   </div>
   <div id="duel">
+    <button type="button" class="backTop" id="duelExitTop" onclick="window.goPick&&window.goPick();return false;">← SALIR</button>
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:18px">Duelo 6×6</h1>
     <p class="muted" style="text-align:center;margin:6px 0">Rojo = ataque · si ganas, la carta es tuya<br>1 carta · Vs jugador 60 s · Máquina 30 s</p>
     <div id="rivalPick" style="display:flex;gap:6px;overflow:auto;padding:2px 8px 4px;min-height:32px"></div>
@@ -512,6 +516,7 @@
     <div id="duelPickRow"><div id="duelPick"></div><div id="deckPile"><img src="cards/mazo.jpg" alt="mazo" /><span id="deckN">0</span></div></div>
     <div id="fxPick" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:2px"></div>
     <button class="main" id="duelStart" style="margin-top:2px;padding:7px;font-size:12px">NUEVO DUELO</button>
+    <button type="button" class="main" id="duelExit" style="margin-top:6px;padding:8px;font-size:13px;background:#2a3146;color:#ffe08a" onclick="window.goPick&&window.goPick();return false;">SALIR DE LA PARTIDA</button>
 </div>
     </div>
     <button class="main" id="duelNext" style="display:none">PASAR TURNO</button>
@@ -532,9 +537,10 @@
     <h2 style="color:#ffe08a;font-size:16px;margin:14px 0 8px">Nido · 3 huevos = mascota</h2>
     <div id="nest"></div>
     <button class="main" id="goCofre" style="margin-top:10px;background:#2a2414;color:#ffe08a">ABRIR COFRE</button>
-    <button class="main" id="mineBack" style="margin-top:8px;background:#2a3146;color:#ffe08a">VOLVER</button>
+    <button type="button" class="main" id="mineBack" style="margin-top:8px;background:#2a3146;color:#ffe08a;position:relative;z-index:8" onclick="window.goPick&&window.goPick();return false;">VOLVER</button>
   </div>
   <div id="cofre">
+    <button type="button" class="backTop" id="cofreExitTop" onclick="window.goPick&&window.goPick();return false;">← VOLVER</button>
     <h1 style="color:#ffe08a;text-align:center;margin:0">Cofre</h1>
     <p class="muted" style="text-align:center;margin:6px 0 10px">Tu inventario · arma · mascota · reliquia</p>
     <div id="eqNow" class="heroBan" style="margin-bottom:10px"></div>
@@ -551,7 +557,7 @@
       <button class="main" id="dmUnlock" style="margin-top:8px;background:#4a3a12;color:#ffe08a">ENTRAR COMO DM</button>
       <button class="main" id="dmFill" style="margin-top:8px;background:#4a3a12;color:#ffe08a;display:none">DM · RELLENAR KIT</button>
     </div>
-    <button class="main" id="cofreBack" style="margin-top:8px;background:#2a3146;color:#ffe08a">VOLVER</button>
+    <button type="button" class="main" id="cofreBack" style="margin-top:8px;background:#2a3146;color:#ffe08a;position:relative;z-index:8" onclick="window.goPick&&window.goPick();return false;">VOLVER</button>
   </div>
   <div id="lootPop">
     <div class="box">
@@ -715,6 +721,21 @@
 
   
   <script>
+    window.goPick = function goPick(){
+      try { if (window.pvpStop) pvpStop(); } catch(e){}
+      try { if (window.bgmStop) bgmStop(); } catch(e){}
+      try { if (window.leaveDuel) {} } catch(e){}
+      try { duelBusy=false; } catch(e){}
+      var ids=["duel","cofre","mine","vuelo","packs","arena","mazo"];
+      ids.forEach(function(id){ var el=document.getElementById(id); if(el){ el.classList.remove("on"); el.style.display="none"; }});
+      var pick=document.getElementById("pick");
+      if (pick){ pick.classList.add("on"); pick.style.display="flex"; }
+      document.querySelectorAll("#nav button").forEach(function(b){
+        b.classList.toggle("on", b.getAttribute("data-tab")==="pick");
+      });
+    };
+    window.leaveDuel = window.goPick;
+
 
     function beep(type) {
       try {
@@ -2103,6 +2124,11 @@
       try{ if(homeBgm){ homeBgm.pause(); } }catch(e){}
     }
     function showTab(name) {
+      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(function(id){
+        var el=document.getElementById(id);
+        if (el) el.style.display = "";
+      });
+
       try { if (name==="home") homeBgmStart(); else homeBgmStop(); } catch(e) {}
       ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(id => {
         const el = document.getElementById(id);
@@ -3850,6 +3876,14 @@
       }
     };
     const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); duelEnemyTurn(); };
+    
+    window.leaveDuel = function leaveDuel(){
+      try { if (window.pvpStop) pvpStop(); } catch(e){}
+      try { if (window.bgmStop) bgmStop(); } catch(e){}
+      try { duelBusy=false; } catch(e){}
+      showTab("pick");
+    };
+    
     document.getElementById("duelStart").onclick = () => {
       startMachineDuel();
     };
