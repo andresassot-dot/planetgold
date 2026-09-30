@@ -493,8 +493,8 @@
     <img id="duelEndImg" alt="" style="width:160px;height:200px;object-fit:cover;object-position:top;border-radius:14px;border:3px solid #f3d077;box-shadow:0 10px 30px #000;margin:8px 0;background:#111" />
     <p id="duelEndName" style="color:#ffe08a;font-weight:800;margin:0 0 6px"></p>
     <p id="duelEndTxt" class="muted"></p>
-    <button type="button" class="main" id="duelEndAgain" style="max-width:240px;pointer-events:auto;position:relative;z-index:2" onclick="event.stopPropagation();window.duelPlayAgain&&window.duelPlayAgain();return false;">OTRA PARTIDA</button>
-    <button type="button" class="main" id="duelEndOk" style="max-width:240px;background:#2a3146;color:#ffe08a;pointer-events:auto;position:relative;z-index:2;margin-top:8px" onclick="event.stopPropagation();window.duelLeaveEnd&&window.duelLeaveEnd();return false;">SALIR</button>
+    <button type="button" class="main" id="duelEndAgain" style="max-width:240px;pointer-events:auto;position:relative;z-index:2" onclick="event.preventDefault();event.stopPropagation();(window.duelPlayAgain||function(){var b=document.getElementById('duelEnd');if(b)b.style.display='none';})();return false;" ontouchend="event.preventDefault();event.stopPropagation();(window.duelPlayAgain||function(){})();">OTRA PARTIDA</button>
+    <button type="button" class="main" id="duelEndOk" style="max-width:240px;background:#2a3146;color:#ffe08a;pointer-events:auto;position:relative;z-index:2;margin-top:8px" onclick="event.preventDefault();event.stopPropagation();(window.duelLeaveEnd||window.goPick||function(){var b=document.getElementById('duelEnd');if(b)b.style.display='none';})();return false;" ontouchend="event.preventDefault();event.stopPropagation();(window.duelLeaveEnd||window.goPick||function(){})();">SALIR</button>
   </div>
   <div id="duel">
     <button type="button" class="backTop" id="duelExitTop" onclick="window.goPick&&window.goPick();return false;">← SALIR</button>
@@ -724,8 +724,9 @@
     window.goPick = function goPick(){
       try { if (window.pvpStop) pvpStop(); } catch(e){}
       try { if (window.bgmStop) bgmStop(); } catch(e){}
-      try { if (window.leaveDuel) {} } catch(e){}
       try { duelBusy=false; } catch(e){}
+      var end=document.getElementById("duelEnd");
+      if (end) end.style.display="none";
       var ids=["duel","cofre","mine","vuelo","packs","arena","mazo"];
       ids.forEach(function(id){ var el=document.getElementById(id); if(el){ el.classList.remove("on"); el.style.display="none"; }});
       var pick=document.getElementById("pick");
@@ -735,6 +736,27 @@
       });
     };
     window.leaveDuel = window.goPick;
+    window.duelLeaveEnd = function(){
+      var box=document.getElementById("duelEnd");
+      if (box) box.style.display="none";
+      try { duelBusy=false; } catch(e){}
+      try { window._pvpRematch=false; } catch(e){}
+      try { if (window.pvpClose) pvpClose(); } catch(e){}
+      try { if (window.stopClock) stopClock(); } catch(e){}
+      try { if (window.bgmStop) bgmStop(); } catch(e){}
+      window.goPick();
+    };
+    window.duelPlayAgain = function(){
+      var box=document.getElementById("duelEnd");
+      if (box) box.style.display="none";
+      try { duelBusy=false; } catch(e){}
+      try { if (window.stopClock) stopClock(); } catch(e){}
+      if (window._pvpRematch && window.pvpSeek) {
+        window._pvpRematch=false;
+        try { pvpSeek(); return; } catch(e){}
+      }
+      if (window.startMachineDuel) window.startMachineDuel();
+    };
 
 
     function beep(type) {
