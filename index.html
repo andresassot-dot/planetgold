@@ -211,6 +211,22 @@
     }
 
     #duel.on { display: flex; }
+    #duel3 { position:fixed; inset:0; z-index:55; background:#0b1020; display:none; flex-direction:column; padding:8px 10px 88px; overflow:auto; }
+    #duel3.on { display:flex; }
+    .d3row { display:flex; justify-content:center; gap:8px; margin:6px 0; }
+    .d3card { width:72px; text-align:center; }
+    .d3card img { width:72px; height:96px; object-fit:cover; object-position:top; border-radius:10px; border:2px solid #8a93a8; background:#111; }
+    .d3card.on img { border-color:#ffe08a; box-shadow:0 0 12px rgba(255,224,138,.55); }
+    .d3card.dead { opacity:.35; filter:grayscale(.8); }
+    .d3card b { display:block; font-size:10px; color:#ffe08a; margin-top:2px; }
+    .d3card span { display:block; font-size:10px; color:#9aa4b8; }
+    .d3vs { display:flex; align-items:flex-end; justify-content:center; gap:12px; margin:8px 0; }
+    .d3vs .bigc { width:42%; max-width:160px; text-align:center; }
+    .d3vs .bigc img { width:100%; height:210px; object-fit:cover; object-position:top; border-radius:14px; border:3px solid #d4af37; background:#111; box-shadow:0 8px 24px #000; }
+    .d3vs .bigc.en img { border-color:#ff6b6b; }
+    .d3vs .bigc.me img { border-color:#5eb6ff; }
+    .d3acts { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:8px; }
+    .d3acts button { padding:10px 6px; font-size:12px; }
     .b66 { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; margin:2px 0 4px; padding:6px; padding-bottom:6px; flex:0 0 auto;
       background:
         linear-gradient(180deg, rgba(40,8,12,.28) 0 50%, rgba(8,18,40,.32) 50% 100%),
@@ -473,7 +489,8 @@
       <button data-deck="leyendas">Leyendas</button>
     </div>
     <div class="grid" id="grid"></div>
-    <button type="button" class="main" id="duelBtn" style="margin-top:8px;background:#1a4f9c;color:#d6e8ff;position:relative;z-index:6" onclick="try{showTab('duel');if(window.bgmStart)bgmStart('war');if(window.renderRivalPick)renderRivalPick();if(window.startMachineDuel)startMachineDuel();}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><path d="M5 19L15 5l2 2-3 9 5 3M19 19L9 5 7 7l3 9-5 3"/></svg>DUELO DE CARTAS</button>
+    <button type="button" class="main" id="duelBtn" style="margin-top:8px;background:#1a4f9c;color:#d6e8ff;position:relative;z-index:6" onclick="try{showTab('duel');if(window.bgmStart)bgmStart('war');if(window.renderRivalPick)renderRivalPick();if(window.startMachineDuel)startMachineDuel();}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><path d="M5 19L15 5l2 2-3 9 5 3M19 19L9 5 7 7l3 9-5 3"/></svg>DUELO 6×6</button>
+    <button type="button" class="main" id="duel3Btn" style="margin-top:8px;background:#5a2a8a;color:#f0e6ff;position:relative;z-index:6" onclick="try{showTab('duel3');if(window.bgmStart)bgmStart('war');if(window.startDuel3)startDuel3();}catch(e){console.log(e)}return false;">DUELO 3</button>
     <button type="button" class="main" id="cofreBtn" style="margin-top:8px;background:#7a2e12;color:#ffe0c2;position:relative;z-index:6" onclick="try{showTab('cofre');if(window.sfx)sfx('menu');if(window.renderCofre)renderCofre();}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v12M10 8V6h4v2"/></svg>COFRE</button>
     <button type="button" class="main" id="flyBtn" style="margin-top:8px;background:#c9a227;color:#1a1408;position:relative;z-index:6"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M8 8c0-3 8-3 8 0M6 13h12"/></svg>FARMEO DE TGOLD</button>
   </div>
@@ -531,6 +548,24 @@
     <button class="main" id="duelNext" style="display:none">PASAR TURNO</button>
   </div>
 
+  <div id="duel3">
+    <button type="button" class="backTop" onclick="event.preventDefault();window.goPick&&window.goPick();return false;">← SALIR</button>
+    <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:18px">Duelo 3</h1>
+    <p class="muted" style="text-align:center;margin:4px 0 6px">3 vs 3 · ataca o cambia · tira las 3 del rival</p>
+    <div class="d3row" id="d3EnBench"></div>
+    <div class="d3vs">
+      <div class="bigc en"><img id="d3EnImg" alt=""><b id="d3EnName">Rival</b><span id="d3EnHp"></span></div>
+      <div class="bigc me"><img id="d3MeImg" alt=""><b id="d3MeName">Tú</b><span id="d3MeHp"></span></div>
+    </div>
+    <p class="muted" id="d3Msg" style="text-align:center;min-height:32px">Elige ataque</p>
+    <div class="d3acts">
+      <button type="button" class="main" onclick="window.d3Atk&&window.d3Atk('corta')">⚔ Corta</button>
+      <button type="button" class="main" onclick="window.d3Atk&&window.d3Atk('media')">🗡 Media</button>
+      <button type="button" class="main" onclick="window.d3Atk&&window.d3Atk('larga')">🏹 Larga</button>
+    </div>
+    <div class="d3row" id="d3MeBench" style="margin-top:10px"></div>
+    <button type="button" class="main" style="margin-top:8px;background:#2a3146;color:#ffe08a" onclick="window.startDuel3&&window.startDuel3()">NUEVO DUELO 3</button>
+  </div>
 
   <div id="mine">
     <button type="button" class="backTop" id="mineExitTop" onclick="event.preventDefault();event.stopPropagation();(window.goPick||function(){var m=document.getElementById('mine');if(m){m.classList.remove('on');m.style.display='none';}var p=document.getElementById('pick');if(p){p.classList.add('on');p.style.display='flex';}})();return false;" ontouchend="event.preventDefault();event.stopPropagation();(window.goPick||function(){})();">← SALIR</button>
@@ -736,7 +771,7 @@
       try { duelBusy=false; } catch(e){}
       var end=document.getElementById("duelEnd");
       if (end) end.style.display="none";
-      var ids=["duel","cofre","mine","vuelo","packs","arena","mazo"];
+      var ids=["duel","duel3","cofre","mine","vuelo","packs","arena","mazo"];
       ids.forEach(function(id){ var el=document.getElementById(id); if(el){ el.classList.remove("on"); el.style.display="none"; }});
       var pick=document.getElementById("pick");
       if (pick){ pick.classList.add("on"); pick.style.display="flex"; }
@@ -749,6 +784,140 @@
       var p=document.getElementById("lootPop");
       if (p) { p.classList.remove("on"); p.style.display="none"; }
     };
+    var d3 = { me:[], en:[], mi:0, ei:0, turn:"me", busy:false };
+    function d3PickTeam(mine){
+      var pool = [];
+      try {
+        pool = (HEROES||[]).filter(function(h){
+          if (!h || h.holo || h.legend) return false;
+          if (mine) return (typeof dustOf==="function" ? dustOf(h.id) : 0) > 0 || (typeof rankOf==="function" ? rankOf(h.id) : 0) > 0;
+          return true;
+        });
+      } catch(e) { pool = []; }
+      if (pool.length < 3) pool = (HEROES||[]).filter(function(h){ return h && !h.holo && !h.legend; });
+      if (pool.length < 3) pool = HEROES || [];
+      var copy = pool.slice();
+      var out = [];
+      while (out.length < 3 && copy.length) {
+        var i = Math.floor(Math.random()*copy.length);
+        out.push({ id:copy[i].id, hp: copy[i].hp||6, max: copy[i].hp||6 });
+        copy.splice(i,1);
+      }
+      return out;
+    }
+    function d3Hero(u){ return (HEROES||[]).find(function(h){ return h.id===u.id; }) || {}; }
+    function d3Alive(side){ return d3[side].filter(function(u){ return u.hp>0; }).length; }
+    function d3Next(side, from){
+      for (var i=1;i<=3;i++){
+        var j = (from+i)%3;
+        if (d3[side][j] && d3[side][j].hp>0) return j;
+      }
+      return from;
+    }
+    function d3Paint(){
+      var me = d3.me[d3.mi] || d3.me[0];
+      var en = d3.en[d3.ei] || d3.en[0];
+      var mh = d3Hero(me), eh = d3Hero(en);
+      var a=document.getElementById("d3MeImg"), b=document.getElementById("d3EnImg");
+      if (a) a.src = mh.img||"";
+      if (b) b.src = eh.img||"";
+      var mn=document.getElementById("d3MeName"); if (mn) mn.textContent = mh.name||"Tú";
+      var enN=document.getElementById("d3EnName"); if (enN) enN.textContent = eh.name||"Rival";
+      var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = "❤ "+(me?me.hp:0)+"/"+(me?me.max:0);
+      var ehp=document.getElementById("d3EnHp"); if (ehp) ehp.textContent = "❤ "+(en?en.hp:0)+"/"+(en?en.max:0);
+      function row(id, side, active){
+        var el=document.getElementById(id); if(!el) return;
+        el.innerHTML = d3[side].map(function(u,i){
+          var h=d3Hero(u);
+          return '<div class="d3card '+(i===active?'on':'')+(u.hp<=0?' dead':'')+'" data-i="'+i+'"><img src="'+(h.img||'')+'"><b>'+(h.name||'')+'</b><span>❤ '+u.hp+'</span></div>';
+        }).join("");
+        if (side==="me") {
+          el.querySelectorAll(".d3card").forEach(function(c){
+            c.onclick = function(){ window.d3Switch && window.d3Switch(+c.getAttribute("data-i")); };
+          });
+        }
+      }
+      row("d3MeBench","me",d3.mi);
+      row("d3EnBench","en",d3.ei);
+    }
+    window.startDuel3 = function startDuel3(){
+      d3.me = d3PickTeam(true);
+      d3.en = d3PickTeam(false);
+      d3.mi = 0; d3.ei = 0; d3.turn = "me"; d3.busy = false;
+      var msg=document.getElementById("d3Msg");
+      if (msg) msg.textContent = "Tu turno. Ataca o toca una carta de abajo para cambiar.";
+      try { bgmStart("war"); } catch(e){}
+      d3Paint();
+    };
+    window.d3Switch = function d3Switch(i){
+      if (d3.busy || d3.turn!=="me") return;
+      if (!d3.me[i] || d3.me[i].hp<=0) return;
+      if (i===d3.mi) return;
+      d3.mi = i;
+      d3.turn = "en";
+      var msg=document.getElementById("d3Msg");
+      if (msg) msg.textContent = "Cambias a "+(d3Hero(d3.me[i]).name||"carta")+" · turno rival";
+      d3Paint();
+      setTimeout(d3Enemy, 700);
+    };
+    window.d3Atk = function d3Atk(kind){
+      if (d3.busy || d3.turn!=="me") return;
+      d3Hit("me","en", kind);
+    };
+    function d3Hit(from, to, kind){
+      d3.busy = true;
+      var a = d3[from][from==="me"?d3.mi:d3.ei];
+      var b = d3[to][to==="me"?d3.mi:d3.ei];
+      var ha = d3Hero(a), hb = d3Hero(b);
+      var st = ha.atk || {corta:3,media:3,larga:3};
+      var dmg = Math.max(1, Number(st[kind]||3));
+      b.hp = Math.max(0, b.hp - dmg);
+      try { sfx("hit"); } catch(e){}
+      var msg=document.getElementById("d3Msg");
+      if (msg) msg.textContent = (ha.name||"?")+" pega "+kind+" "+dmg+" a "+(hb.name||"?");
+      d3Paint();
+      setTimeout(function(){
+        if (b.hp<=0) {
+          try { sfx("fall"); } catch(e){}
+          if (d3Alive(to)<=0) return d3End(from==="me");
+          if (to==="en") d3.ei = d3Next("en", d3.ei);
+          else d3.mi = d3Next("me", d3.mi);
+          if (msg) msg.textContent = (hb.name||"Carta")+" cae.";
+          d3Paint();
+        }
+        d3.busy = false;
+        d3.turn = from==="me" ? "en" : "me";
+        if (d3.turn==="en") setTimeout(d3Enemy, 750);
+        else if (msg) msg.textContent = "Tu turno. Ataca o cambia.";
+      }, 450);
+    }
+    function d3Enemy(){
+      if (d3.busy) return;
+      var kinds=["corta","media","larga"];
+      var en = d3.en[d3.ei], me = d3.me[d3.mi];
+      if (!en || en.hp<=0) { d3.ei = d3Next("en", d3.ei); }
+      var h = d3Hero(en);
+      var st = h.atk || {corta:3,media:3,larga:3};
+      var kind = kinds[0];
+      kinds.forEach(function(k){ if ((st[k]||0)>(st[kind]||0)) kind=k; });
+      if (Math.random()<0.2) {
+        var alt = d3Next("en", d3.ei);
+        if (alt!==d3.ei) { d3.ei=alt; d3.turn="me"; d3Paint(); var msg=document.getElementById("d3Msg"); if(msg) msg.textContent="El rival cambia."; return; }
+      }
+      d3Hit("en","me", kind);
+    }
+    function d3End(win){
+      d3.busy = true;
+      try { bgmStop(); } catch(e){}
+      try { sfx(win?"gol":"fall"); } catch(e){}
+      var pts = Number(localStorage.getItem("pg_pts")||0) + (win?40:10);
+      localStorage.setItem("pg_pts", pts);
+      try { addXp(win?20:6); } catch(e){}
+      if (win) { try { grantTgold(0); } catch(e){} }
+      var msg=document.getElementById("d3Msg");
+      if (msg) msg.textContent = (win?"HAS GANADO":"HAS PERDIDO")+" · +"+(win?40:10)+" pts";
+      d3Paint();
+    }
     window.duelLeaveEnd = function(){
       var box=document.getElementById("duelEnd");
       if (box) box.style.display="none";
@@ -2233,13 +2402,13 @@
       try{ if(homeBgm){ homeBgm.pause(); } }catch(e){}
     }
     function showTab(name) {
-      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(function(id){
+      ["home","pick","wallet","arena","packs","mercado","duel","duel3","ads","mine","cofre","mazo","vuelo"].forEach(function(id){
         var el=document.getElementById(id);
         if (el) el.style.display = "";
       });
 
       try { if (name==="home") homeBgmStart(); else homeBgmStop(); } catch(e) {}
-      ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(id => {
+      ["home","pick","wallet","arena","packs","mercado","duel","duel3","ads","mine","cofre","mazo","vuelo"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
       });
