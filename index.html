@@ -211,18 +211,22 @@
     }
 
     #duel.on { display: flex; }
-    .b66 { display:grid; grid-template-columns:repeat(6,1fr); gap:2px; margin:2px 0 4px; padding:4px; padding-bottom:4px; flex:0 0 auto;
-      background:#0b1020 url("cards/tablero-mundo.jpg") center / cover no-repeat;
-      border-radius:12px; border:1px solid #d4af37; box-shadow:inset 0 0 24px rgba(0,0,0,.35); }
-    .cell { height:36px; background:rgba(8,12,22,.28); border:1px solid rgba(212,175,55,.45); border-radius:6px; overflow:hidden; position:relative; }
-    .cell.mine { border-color:#3a4258; }
-    .cell.blue { border:2px solid #3b9eff; box-shadow:0 0 8px rgba(59,158,255,.55); }
-    .cell.red { border:2px solid #ff4d4d; box-shadow:0 0 8px rgba(255,77,77,.55); }
+    .b66 { display:grid; grid-template-columns:repeat(6,1fr); gap:3px; margin:2px 0 4px; padding:6px; padding-bottom:6px; flex:0 0 auto;
+      background:
+        linear-gradient(180deg, rgba(40,8,12,.28) 0 50%, rgba(8,18,40,.32) 50% 100%),
+        #0b1020 url("cards/tablero-mundo.jpg") center / cover no-repeat;
+      border-radius:14px; border:2px solid #d4af37; box-shadow:inset 0 0 28px rgba(0,0,0,.45), 0 0 16px rgba(212,175,55,.25); }
+    .cell { height:36px; background:rgba(18,28,16,.42); border:1px solid rgba(212,175,55,.4); border-radius:7px; overflow:hidden; position:relative; box-shadow:inset 0 0 8px rgba(0,0,0,.35); }
+    .cell:nth-child(odd) { background:rgba(28,42,22,.38); }
+    .cell.mine { border-color:rgba(80,140,220,.45); background:rgba(12,22,40,.42); }
+    .cell.mine:nth-child(even) { background:rgba(16,32,56,.4); }
+    .cell.blue { border:2px solid #5eb6ff; box-shadow:0 0 10px rgba(59,158,255,.7), inset 0 0 0 1px rgba(255,255,255,.25); }
+    .cell.red { border:2px solid #ff6b6b; box-shadow:0 0 10px rgba(255,77,77,.7), inset 0 0 0 1px rgba(255,220,180,.2); }
     .cell.tgt { box-shadow: inset 0 0 0 2px #ffb000; }
-    .cell.place { box-shadow: inset 0 0 0 2px #3b9eff; background:#16324d; }
-    .cell.ghost { box-shadow: inset 0 0 0 3px #ffe08a; background:#2a2410; }
-    .cell.atkPrev { box-shadow: inset 0 0 0 3px #ff4d4d; background:#4a1414; }
-    .cell.atkPrev::after { content:""; position:absolute; inset:0; background:rgba(255,50,50,.38); pointer-events:none; }
+    .cell.place { box-shadow: inset 0 0 0 2px #7ec8ff; background:rgba(30,80,140,.55); }
+    .cell.ghost { box-shadow: inset 0 0 0 3px #ffe08a; background:rgba(60,48,12,.6); }
+    .cell.atkPrev { box-shadow: inset 0 0 0 3px #ff4d4d; background:#5a1616; }
+    .cell.atkPrev::after { content:""; position:absolute; inset:0; background:rgba(255,50,50,.42); pointer-events:none; }
     .cell.hit::after { content:''; position:absolute; inset:0; border:3px solid #ffe08a; box-shadow:inset 0 0 0 2px #fff; border-radius:6px; pointer-events:none; }
     .b66 { perspective: 700px; }
     .cell.fall, .cell.flip { animation: flipCard .55s ease; transform-style: preserve-3d; }
@@ -233,10 +237,10 @@
       100% { transform: rotateY(0deg); }
     }
     #beam { position:absolute; height:4px; background:linear-gradient(90deg,#fff,#ffe08a,#ff7a00); border-radius:4px; pointer-events:none; z-index:8; transform-origin:left center; box-shadow:0 0 10px #ffe08a; }
-    .cell .hp { position:absolute; right:3px; bottom:10px; font-size:10px; font-weight:800; color:#fff; text-shadow:0 1px 2px #000; }
-    .hpbar { position:absolute; left:3px; right:3px; bottom:2px; height:5px; background:#2a2a2a; border-radius:3px; overflow:hidden; }
-    .hpbar i { display:block; height:100%; background:#2ecc71; }
-    .hpbar.low i { background:#e74c3c; }
+    .cell .hp { position:absolute; right:2px; top:1px; font-size:9px; font-weight:900; color:#fff; text-shadow:0 1px 2px #000,0 0 4px #000; background:rgba(0,0,0,.45); padding:0 3px; border-radius:4px; z-index:4; }
+    .hpbar { position:absolute; left:2px; right:2px; bottom:2px; height:4px; background:#1a1a1a; border-radius:3px; overflow:hidden; z-index:4; border:1px solid rgba(0,0,0,.5); }
+    .hpbar i { display:block; height:100%; background:linear-gradient(90deg,#1e9b4a,#7dff8a); }
+    .hpbar.low i { background:linear-gradient(90deg,#8a1212,#ff5a5a); }
     .floater { position:absolute; left:50%; top:8px; transform:translateX(-50%); color:#ff4d4d; font-weight:900; font-size:14px; text-shadow:0 0 4px #000; animation: floatDmg .7s ease forwards; pointer-events:none; z-index:6; }
     @keyframes floatDmg { to { transform:translate(-50%,-16px); opacity:0; } }
     .cell { position:relative; }
@@ -249,7 +253,7 @@
     .g-O{left:1px;top:50%;margin-top:-5px} .g-E{right:1px;top:50%;margin-top:-5px}
     .g-NO{top:1px;left:1px} .g-NE{top:1px;right:1px} .g-SO{bottom:1px;left:1px} .g-SE{bottom:1px;right:1px}
     .synGlow { box-shadow:0 0 10px #7dffb3 !important; }
-    .cell img { width:100%; height:100%; object-fit:cover; display:block; }
+    .cell img { width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
     .fxrow { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin:2px 0; }
     .fx { height:18px; border:1px dashed #d4af37; border-radius:8px; background:#12141c; font-size:10px; color:#ffe08a; display:flex; align-items:center; justify-content:center; }
     #duelHand { position:relative; bottom:auto; z-index:5; background:#0b1020; padding:8px 0 4px; margin-top:4px; }
