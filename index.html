@@ -516,16 +516,16 @@
     <p class="muted" style="text-align:center;margin:6px 0 10px">La energía del duelo no se gasta aquí. Pico propio · toca la veta varias veces.</p>
     <div id="picoBar" class="muted" style="text-align:center;margin:0 0 8px">Pico 12/12</div>
 
-    <div id="liveMine" style="margin:8px 0 12px;padding:10px;border:1px solid #d4af37;border-radius:14px;background:#12181c;text-align:center">
-      <div style="display:flex;align-items:flex-end;justify-content:center;gap:8px;min-height:120px">
-        <img id="minerPic" alt="" style="width:72px;height:96px;object-fit:cover;object-position:top;border-radius:10px;border:2px solid #d4af37;background:#0b1020">
-        <div id="liveVein" style="width:88px;height:88px;border-radius:50%;border:3px solid #8a6a12;background:#2a2418;display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:inset 0 0 16px #000">🪨</div>
+    <div id="liveMine" style="margin:8px 0 12px;padding:8px;border:1px solid #d4af37;border-radius:14px;background:#0e1410">
+      <div style="text-align:center;color:#ffe08a;font-weight:800;margin:0 0 6px">BOSQUE 1</div>
+      <div id="mineGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;max-width:320px;margin:0 auto"></div>
+      <p class="muted" id="liveVeinTxt" style="text-align:center;margin:8px 0 6px">Toca una casilla al lado para moverte</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <button class="main" id="livePico" style="padding:8px;background:#2d6a4f;color:#e8ffe8">PICAR</button>
+        <button class="main" id="liveAtk" style="padding:8px;background:#6b2a2a;color:#ffd0d0">ATACAR</button>
+        <button class="main" id="liveBag" style="padding:8px;background:#2a3146;color:#ffe08a">BOLSA</button>
       </div>
-      <div class="xpwrap" style="margin:8px 12px 4px"><div class="xpbar"><i id="liveVeinBar"></i></div></div>
-      <div class="muted" id="liveVeinTxt">Toca la roca · Bosque</div>
-      <button class="main" id="livePico" style="margin-top:8px;background:#2d6a4f;color:#e8ffe8">PICAR</button>
     </div>
-
     <div class="orebag" id="oreBag"></div>
     <div id="mineBonus" class="muted" style="text-align:center;margin:0 0 10px"></div>
     <div id="veins" style="display:grid;gap:8px"></div>
@@ -1251,6 +1251,10 @@
       const lp=document.getElementById("livePico");
       if (lv) lv.onclick = swingLive;
       if (lp) lp.onclick = swingLive;
+      const la=document.getElementById("liveAtk");
+      if (la) la.onclick = atkLive;
+      const lb=document.getElementById("liveBag");
+      if (lb) lb.onclick = () => { const bag=document.getElementById("oreBag"); if(bag) bag.scrollIntoView({behavior:"smooth"}); };
       paintLiveMine();
       const forge = document.getElementById("forge");
       const w = wear();
@@ -1293,33 +1297,79 @@
         renderMine();
       }, 4000);
     }
-    function paintLiveMine(){
-      const v = VEINS[0] || {id:"madera",name:"Bosque",hits:2,ore:"madera"};
-      const hot = VEINS.find(x=>x.id===hotVein) || v;
-      const hits = veinHits[hot.id]||0;
-      const bar = document.getElementById("liveVeinBar");
-      if (bar) bar.style.width = Math.min(100, Math.round(100*hits/Math.max(1,hot.hits))) + "%";
-      const tx = document.getElementById("liveVeinTxt");
-      if (tx) tx.textContent = "Toca la roca · "+hot.name+" · "+hits+"/"+hot.hits;
-      const vein = document.getElementById("liveVein");
-      if (vein) {
-        const map={madera:"🪵",piedra:"🪨",oro:"🟡",platino:"⚪",niobio:"💎"};
-        vein.textContent = map[hot.ore]||"🪨";
-      }
-      const pic = document.getElementById("minerPic");
-      if (pic) {
-        const b = (typeof pickBest==="function") ? pickBest() : null;
-        pic.src = (b && b.img) ? b.img : "cards/capitan.jpg";
-      }
+    
+    const MINE_W=5, MINE_H=5;
+    let minePos={x:2,y:2};
+    let mineSlime={x:4,y:2,hp:3};
+    function mineTile(x,y){
+      if (x===1&&y===0) return {t:"tree", vein:"madera", ico:"🌳"};
+      if (x===3&&y===0) return {t:"gold", vein:"oro", ico:"🟡"};
+      if (x===0&&y===2) return {t:"tree", vein:"madera", ico:"🌲"};
+      if (x===1&&y===4) return {t:"cave", vein:"piedra", ico:"🕳️"};
+      if (x===4&&y===4) return {t:"plat", vein:"platino", ico:"⚪"};
+      return {t:"grass", ico:""};
     }
+    function paintLiveMine(){
+      const box=document.getElementById("mineGrid");
+      if (!box) return;
+      let html="";
+      for (let y=0;y<MINE_H;y++){
+        for (let x=0;x<MINE_W;x++){
+          const tile=mineTile(x,y);
+          const here=minePos.x===x&&minePos.y===y;
+          const slim=mineSlime.hp>0&&mineSlime.x===x&&mineSlime.y===y;
+          const near=Math.abs(minePos.x-x)+Math.abs(minePos.y-y)===1;
+          let bg="#1a3a22";
+          if (tile.t==="tree") bg="#16351c";
+          if (tile.t==="gold") bg="#3a3010";
+          if (tile.t==="cave"||tile.t==="plat") bg="#1a1f28";
+          html += `<div data-mx="${x}" data-my="${y}" style="height:46px;border-radius:6px;background:${bg};border:1px solid ${here?"#ffe08a":(near?"#4a6a4a":"#0b120e")};display:flex;align-items:center;justify-content:center;font-size:22px">${here?"🧙":(slim?"🟢":tile.ico)}</div>`;
+        }
+      }
+      box.innerHTML=html;
+      box.querySelectorAll("[data-mx]").forEach(el=>{
+        el.onclick=()=>{
+          const x=+el.getAttribute("data-mx"), y=+el.getAttribute("data-my");
+          if (Math.abs(minePos.x-x)+Math.abs(minePos.y-y)!==1) return;
+          if (mineSlime.hp>0 && mineSlime.x===x && mineSlime.y===y){ mineMsg("Ataca al slime"); return; }
+          minePos={x,y}; paintLiveMine();
+        };
+      });
+      const tile=mineTile(minePos.x,minePos.y);
+      const adjS=mineSlime.hp>0 && Math.abs(minePos.x-mineSlime.x)+Math.abs(minePos.y-mineSlime.y)===1;
+      const tx=document.getElementById("liveVeinTxt");
+      if (tx) tx.textContent = adjS ? "Slime cerca · ATACAR" : (tile.vein ? ("Encima de "+tile.t+" · PICAR") : "Toca casilla de al lado para moverte");
+    }
+    function mineMsg(s){ const el=document.getElementById("liveVeinTxt"); if(el) el.textContent=s; const m=document.getElementById("mineMsg"); if(m) m.textContent=s; }
     function swingLive(){
-      const hot = VEINS.find(x=>x.id===hotVein) || VEINS[0];
-      if (hot) doMine(hot.id);
-      const m = document.getElementById("minerPic");
-      if (m) { m.style.transform="rotate(-12deg) translateY(4px)"; setTimeout(()=>{m.style.transform="";},120); }
+      const tile=mineTile(minePos.x,minePos.y);
+      let vein=tile.vein;
+      if (!vein){
+        const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+        for (const [dx,dy] of dirs){
+          const tt=mineTile(minePos.x+dx,minePos.y+dy);
+          if (tt.vein){ vein=tt.vein; break; }
+        }
+      }
+      if (!vein){ mineMsg("Acércate a un árbol o veta"); return; }
+      hotVein=vein;
+      doMine(vein);
+      mineMsg("Picas · "+vein);
+      paintLiveMine();
+      try{ if (typeof renderMine==="function") renderMine(); }catch(e){}
+    }
+    function atkLive(){
+      if (mineSlime.hp<=0){ mineMsg("No hay slime"); return; }
+      if (Math.abs(minePos.x-mineSlime.x)+Math.abs(minePos.y-mineSlime.y)!==1){ mineMsg("Acércate al slime"); return; }
+      mineSlime.hp--;
+      if (mineSlime.hp<=0){
+        try{ addOre && addOre("piedra",1); }catch(e){}
+        mineMsg("Slime derrotado · +1 piedra");
+        mineSlime={x:3,y:1,hp:3};
+      } else mineMsg("Slime "+mineSlime.hp+"/3");
       paintLiveMine();
     }
-    function doMine(id){
+    function doMine(function doMine(id){
       const v = VEINS.find(x => x.id===id);
       const msg = document.getElementById("mineMsg");
       if (!v) return;
