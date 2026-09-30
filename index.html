@@ -2314,10 +2314,14 @@
     }
     
     const GUIDE = [
-      { t:"2 minutos", p:"Solo 3 cosas: abrir un sobre, jugar un duelo y recoger el premio. Toca SIGUIENTE.", point:"#guideNext", tab:"home" },
-      { t:"1 · Sobre", p:"En JUGAR entra a COFRE y pulsa ABRIR. Te salen 3 cartas. Ya tienes 5 de fútbol de regalo.", point:"#navPlay", tab:"pick" },
-      { t:"2 · Duelo", p:"DUELO DE CARTAS vs máquina. 1 carta por turno. Piedras = hacia dónde pega. Si pegas más que su vida, la carta es tuya.", point:"#navPlay", tab:"pick" },
-      { t:"3 · Premio", p:"Vuelve a INICIO y pulsa COGER PREMIO. Luego el juego es farmear, fusionar y PvP.", point:"#navHome", tab:"home" }
+      { t:"Bienvenido", p:"Toca el botón AMARILLO de abajo. Esa manita te va a señalar cada cosa.", point:"#guideNext", tab:null },
+      { t:"Inicio", p:"Esta pestaña es tu casa: puntos, TGOLD y nivel. La manita señala INICIO.", point:"#navHome", tab:"home" },
+      { t:"Jugar", p:"Aquí se juega. Toca JUGAR abajo (la manita). Hay Duelo de cartas y Farmeo TGOLD.", point:"#navPlay", tab:"pick" },
+      { t:"Duelo fácil", p:"En el duelo pones 1 carta por turno. Las piedras azules = hacia dónde pega. Si pegas más que su vida, la carta cambia a tu color.", point:"#navPlay", tab:"pick" },
+      { t:"Mina", p:"Aquí picas madera, piedra y oro. No gasta energía. La manita señala MINA.", point:"#navMine", tab:"mine" },
+      { t:"Mazo y sobres", p:"En MAZO ves tus cartas. 3 iguales = holográfica. Los sobres están en Jugar.", point:"#navMazo", tab:"mazo" },
+      { t:"Wallet", p:"Aquí pegas tu wallet Solana para cobrar TGOLD. La manita señala WALLET.", point:"#navWallet", tab:"wallet" },
+      { t:"Ya está", p:"Ahora: 1) Jugar  2) abre un sobre  3) Duelo vs máquina. Si te pierdes, CÓMO JUGAR en Inicio.", point:"#guideNext", tab:"home" }
     ];
     let guideI = 0;
     let guideBusy = false;
@@ -2381,7 +2385,7 @@
       if (el) { el.classList.remove("on"); el.style.display = "none"; }
       if (hand) hand.style.display = "none";
       guideClearGlow();
-      try { localStorage.setItem("pg_guide_v3","1"); } catch(e) {}
+      try { localStorage.setItem("pg_guide_v4","1"); } catch(e) {}
     }
     window.guideNext = function guideNext(){
       try {
@@ -2409,7 +2413,7 @@
       if (nbtn) { nbtn.onclick = function(){ guideNext(); return false; }; nbtn.ontouchstart = function(){ guideNext(); return false; }; }
       if (sbtn) { sbtn.onclick = function(){ closeGuide(); return false; }; }
       window.addEventListener("resize", function(){ if (document.getElementById("guide") && document.getElementById("guide").classList.contains("on")) guidePoint(); });
-      try { if (!localStorage.getItem("pg_guide_v3")) openGuide(true); } catch(e) { openGuide(true); }
+      try { if (!localStorage.getItem("pg_guide_v4")) openGuide(true); } catch(e) { openGuide(true); }
     }
 
     function todayKey(){
