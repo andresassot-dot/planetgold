@@ -360,8 +360,8 @@
       <p id="guideP"></p>
       <div id="guideDots"></div>
       <div id="guideBtns">
-        <button type="button" id="guideSkip">Saltar</button>
-        <button type="button" class="main" id="guideNext">TOCA AQUÍ →</button>
+        <button type="button" id="guideSkip" onclick="window.closeGuide&&window.closeGuide();return false;">Saltar</button>
+        <button type="button" class="main" id="guideNext" onclick="window.guideNext&&window.guideNext();return false;">SIGUIENTE →</button>
       </div>
     </div>
   </div>
@@ -2212,12 +2212,11 @@
       try { localStorage.setItem("pg_guide_v3","1"); } catch(e) {}
     }
     window.guideNext = function guideNext(){
-      if (guideBusy) return;
-      guideBusy = true;
       try {
-        if (guideI >= GUIDE.length-1) closeGuide();
-        else { guideI++; paintGuide(); }
-      } finally { setTimeout(function(){ guideBusy = false; }, 180); }
+        if (guideI >= GUIDE.length-1) { closeGuide(); return; }
+        guideI = guideI + 1;
+        paintGuide();
+      } catch(err) { console.log(err); alert("paso "+guideI); }
     }
     function bootGuide(){
       const root = document.getElementById("guide");
@@ -2230,9 +2229,13 @@
         if (t.id === "guideSkip") { e.preventDefault(); e.stopPropagation(); closeGuide(); }
       }
       if (root) {
-        root.addEventListener("pointerdown", onPtr, {passive:false});
-        root.addEventListener("click", onPtr, {passive:false});
+        root.onclick = onPtr;
+        root.ontouchstart = onPtr;
       }
+      var nbtn = document.getElementById("guideNext");
+      var sbtn = document.getElementById("guideSkip");
+      if (nbtn) { nbtn.onclick = function(){ guideNext(); return false; }; nbtn.ontouchstart = function(){ guideNext(); return false; }; }
+      if (sbtn) { sbtn.onclick = function(){ closeGuide(); return false; }; }
       window.addEventListener("resize", function(){ if (document.getElementById("guide") && document.getElementById("guide").classList.contains("on")) guidePoint(); });
       try { if (!localStorage.getItem("pg_guide_v3")) openGuide(true); } catch(e) { openGuide(true); }
     }
