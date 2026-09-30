@@ -1656,7 +1656,16 @@
       const st = (typeof statsOf==="function") ? statsOf(d.id) : {hp:d.hp||1};
       board[i] = { id:d.id, img:h.img||("cards/"+d.id+".jpg"), hp: d.hp||st.hp||1, who };
       parley = false;
-      try { resolvePlace(i); } catch(e){}
+      if (Array.isArray(d.after) && d.after.length) {
+        d.after.forEach(x => {
+          if (!x || x.i==null) return;
+          const hh = HEROES.find(z=>z.id===x.id) || {};
+          const w = (x.who === window.pvpRole) ? "me" : "en";
+          board[x.i] = { id:x.id, img:hh.img||("cards/"+x.id+".jpg"), hp:x.hp, who:w, flipAt: Date.now() };
+        });
+      } else {
+        try { resolvePlace(i); } catch(e){}
+      }
       try { renderBoard(); } catch(e){}
     }
     async function pvpSeek(){
@@ -3004,9 +3013,12 @@
         f.className = "floater"; f.textContent = hit.dmg + ">" + (board[to].hp||0);
         cell.appendChild(f);
       }
-      if (hit.dmg > (board[to].hp||0)) {
+      const oldHp = board[to].hp||0;
+      board[to].hp = Math.max(0, oldHp - (hit.dmg||0));
+      if (hit.dmg >= oldHp) {
         board[to].who = board[from].who;
         board[to].flipAt = Date.now();
+        board[to].hp = Math.max(1, oldHp);
         if (cell) {
           cell.classList.remove("blue","red","fall","flip");
           cell.classList.add(board[to].who==="me"?"blue":"red", "flip");
@@ -3238,7 +3250,8 @@
               ? (h.name + " en Parlamento (sin ataque).")
               : (h.name + (flips ? " voltea "+flips : " sin volteo") + " · "+countSide("me")+"–"+countSide("en"));
             renderBoard(); renderDuelPick();
-            setTimeout(() => { if (checkEnded()) return; if (window.pvpOn) { parley=false; turnN++; window.pvpLastDrop={ i:i, id:h.id, hp:(board[i]&&board[i].hp)||1, role:window.pvpRole, uid: String((myProfile().uid)||"") }; pvpPush(window.pvpRole==="a"?"b":"a"); placedTurn=true; const tx=document.getElementById("turnTxt"); if(tx) tx.textContent="TURNO RIVAL"; stopClock(); return; } duelEnemyTurn(); }, 700);
+            setTimeout(() => { if (checkEnded()) return; if (window.pvpOn) { parley=false; turnN++; window.pvpLastDrop={ i:i, id:h.id, hp:(board[i]&&board[i].hp)||1, role:window.pvpRole, uid: String((myProfile().uid)||""),
+              after: (board||[]).map((u,ix)=> u ? {i:ix,id:u.id,hp:u.hp,who:u.who==="me"?window.pvpRole:(window.pvpRole==="a"?"b":"a")} : null).filter(Boolean) }; pvpPush(window.pvpRole==="a"?"b":"a"); placedTurn=true; const tx=document.getElementById("turnTxt"); if(tx) tx.textContent="TURNO RIVAL"; stopClock(); return; } duelEnemyTurn(); }, 700);
             return;
           }
           if (false && targets[i] && board[i] && board[i].who==="en") {
