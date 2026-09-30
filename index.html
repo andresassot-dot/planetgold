@@ -126,7 +126,7 @@
     .act img { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; display: block; margin: 0 auto 6px; }
 
     input.wal { width: 100%; margin: 10px 0; padding: 12px; border-radius: 10px; border: 1px solid #3a4258; background: #12141c; color: #fff; }
-    #nav {
+    #nav { font-size:10px;
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
       display: flex; background: #0e1220; border-top: 1px solid #2a3146;
       padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
@@ -515,6 +515,17 @@
     <h1 style="color:#ffe08a;text-align:center;margin:0">Minería</h1>
     <p class="muted" style="text-align:center;margin:6px 0 10px">La energía del duelo no se gasta aquí. Pico propio · toca la veta varias veces.</p>
     <div id="picoBar" class="muted" style="text-align:center;margin:0 0 8px">Pico 12/12</div>
+
+    <div id="liveMine" style="margin:8px 0 12px;padding:10px;border:1px solid #d4af37;border-radius:14px;background:#12181c;text-align:center">
+      <div style="display:flex;align-items:flex-end;justify-content:center;gap:8px;min-height:120px">
+        <img id="minerPic" alt="" style="width:72px;height:96px;object-fit:cover;object-position:top;border-radius:10px;border:2px solid #d4af37;background:#0b1020">
+        <div id="liveVein" style="width:88px;height:88px;border-radius:50%;border:3px solid #8a6a12;background:#2a2418;display:flex;align-items:center;justify-content:center;font-size:42px;box-shadow:inset 0 0 16px #000">🪨</div>
+      </div>
+      <div class="xpwrap" style="margin:8px 12px 4px"><div class="xpbar"><i id="liveVeinBar"></i></div></div>
+      <div class="muted" id="liveVeinTxt">Toca la roca · Bosque</div>
+      <button class="main" id="livePico" style="margin-top:8px;background:#2d6a4f;color:#e8ffe8">PICAR</button>
+    </div>
+
     <div class="orebag" id="oreBag"></div>
     <div id="mineBonus" class="muted" style="text-align:center;margin:0 0 10px"></div>
     <div id="veins" style="display:grid;gap:8px"></div>
@@ -697,6 +708,7 @@
   <nav id="nav">
     <button data-tab="home" class="on"><svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>Inicio</button>
     <button data-tab="pick"><svg viewBox="0 0 24 24"><path d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v2H6v-2H3v-2h3V9h2v2h3v2zm4.5 2A1.5 1.5 0 1 1 17 13.5 1.5 1.5 0 0 1 15.5 15zm4-3A1.5 1.5 0 1 1 21 10.5 1.5 1.5 0 0 1 19.5 12z"/></svg>Jugar</button>
+    <button data-tab="mine"><svg viewBox="0 0 24 24"><path d="M3 20l8-8M14 4l6 6M14 4l-4 4 6 6 4-4-6-6zM4 14l6 6"/></svg>Mina</button>
     <button data-tab="mazo"><svg viewBox="0 0 24 24"><path d="M7 4h10l2 3H5l2-3zm-2 5h14v11H5V9zm3 2v7h2v-7H8zm6 0v7h2v-7h-2z"/></svg>Mazo</button>
     <button data-tab="ads"><svg viewBox="0 0 24 24"><path d="M4 9H2v6h2l5 3V6L4 9zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.7c.92-.82 1.5-2.02 1.5-3.35zM14 5.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>Ads</button>
     <button data-tab="mercado"><svg viewBox="0 0 24 24"><path d="M5 9.2h3.2V19H5V9.2zm5.4-4.2H14V19h-3.6V5zm5.4 8H22V19h-3.6v-6z"/></svg>Mercado</button>
@@ -1234,7 +1246,12 @@
       document.getElementById("veins").innerHTML = VEINS.map(v =>
         `<div class="vein" style="${hotVein===v.id?'border-color:#ffe08a;box-shadow:0 0 12px rgba(255,200,60,.45)':''}"><div style="width:40px;text-align:center">${orePic(v.ore,36)}</div><div style="flex:1"><b>${v.name}${hotVein===v.id?' · CALIENTE':''}</b><small>Golpes ${(veinHits[v.id]||0)}/${v.hits} · pico ${v.cost} · no gasta energía de duelo</small><div style="height:6px;background:#1a1f2c;border-radius:4px;margin-top:4px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,100*(veinHits[v.id]||0)/v.hits)}%;background:#d4af37"></i></div></div><button class="pico" data-vein="${v.id}">PICAR</button></div>`
       ).join("");
-      document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => doMine(el.getAttribute("data-vein")));
+      document.querySelectorAll("[data-vein]").forEach(el => el.onclick = () => { doMine(el.getAttribute("data-vein")); paintLiveMine(); });
+      const lv=document.getElementById("liveVein");
+      const lp=document.getElementById("livePico");
+      if (lv) lv.onclick = swingLive;
+      if (lp) lp.onclick = swingLive;
+      paintLiveMine();
       const forge = document.getElementById("forge");
       const w = wear();
       forge.innerHTML = GEAR.map(g => {
@@ -1275,6 +1292,32 @@
         if (Math.random()<0.18) hotVein = VEINS[Math.floor(Math.random()*VEINS.length)].id;
         renderMine();
       }, 4000);
+    }
+    function paintLiveMine(){
+      const v = VEINS[0] || {id:"madera",name:"Bosque",hits:2,ore:"madera"};
+      const hot = VEINS.find(x=>x.id===hotVein) || v;
+      const hits = veinHits[hot.id]||0;
+      const bar = document.getElementById("liveVeinBar");
+      if (bar) bar.style.width = Math.min(100, Math.round(100*hits/Math.max(1,hot.hits))) + "%";
+      const tx = document.getElementById("liveVeinTxt");
+      if (tx) tx.textContent = "Toca la roca · "+hot.name+" · "+hits+"/"+hot.hits;
+      const vein = document.getElementById("liveVein");
+      if (vein) {
+        const map={madera:"🪵",piedra:"🪨",oro:"🟡",platino:"⚪",niobio:"💎"};
+        vein.textContent = map[hot.ore]||"🪨";
+      }
+      const pic = document.getElementById("minerPic");
+      if (pic) {
+        const b = (typeof pickBest==="function") ? pickBest() : null;
+        pic.src = (b && b.img) ? b.img : "cards/capitan.jpg";
+      }
+    }
+    function swingLive(){
+      const hot = VEINS.find(x=>x.id===hotVein) || VEINS[0];
+      if (hot) doMine(hot.id);
+      const m = document.getElementById("minerPic");
+      if (m) { m.style.transform="rotate(-12deg) translateY(4px)"; setTimeout(()=>{m.style.transform="";},120); }
+      paintLiveMine();
     }
     function doMine(id){
       const v = VEINS.find(x => x.id===id);
@@ -1867,6 +1910,7 @@
       });
       if (name === "home") refreshHome();
       if (name === "pick") renderGrid();
+      if (name === "mine") { try { paintLiveMine(); } catch(e) {} }
       if (name === "mercado") { renderRank(); renderMarket(); try{ pushRank().then(()=>renderMarket()); }catch(e){} const n=document.getElementById("buyMsg"); if(n && localStorage.getItem("pg_saleNote")) n.textContent=localStorage.getItem("pg_saleNote"); }
       if (name === "ads") renderAds();
       if (name === "mazo") renderMazo();
