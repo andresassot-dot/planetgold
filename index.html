@@ -230,17 +230,17 @@
     .d3back { width:40px; height:54px; border-radius:5px; border:2px solid #5ad0ff; background:repeating-linear-gradient(135deg,#1a3a6a 0 6px,#0d2244 6px 12px); display:block; margin:0 auto 2px; box-shadow:0 6px 0 #0a1a30; }
     .d3vs { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; justify-content:center; width:100%; }
     .d3vs .bigc { text-align:center; }
-    .d3vs .bigc.en { width:42%; max-width:120px; }
-    .d3vs .bigc.me { width:48%; max-width:138px; }
-    .d3vs .bigc img { width:100%; object-fit:cover; object-position:top; border-radius:8px; background:#111; box-shadow:0 6px 14px #000; }
-    .d3vs .bigc.en img { height:96px; border:2px solid #ff8aa0; }
-    .d3vs .bigc.me img { height:122px; border:2px solid #6ec8ff; }
+    .d3vs .bigc.en { width:38%; max-width:118px; }
+    .d3vs .bigc.me { width:46%; max-width:148px; }
+    .d3vs .bigc img { width:100%; object-fit:contain; object-position:center; border-radius:8px; background:#111; box-shadow:0 6px 14px #000; }
+    .d3vs .bigc.en img { height:108px; border:2px solid #ff8aa0; }
+    .d3vs .bigc.me img { height:148px; border:2px solid #6ec8ff; }
     .d3hand { display:flex; justify-content:center; gap:4px; margin-top:6px; min-height:96px; overflow-x:auto; }
     .d3card { width:54px; text-align:center; }
     .d3top .d3card img { width:54px; height:72px; }
-    .d3card img { width:54px; height:72px; object-fit:cover; object-position:top; border-radius:7px; border:2px solid #8a93a8; background:#111; }
-    .d3hand .d3card { width:70px; }
-    .d3hand .d3card img { width:70px; height:96px; border-color:#ffe08a; }
+    .d3card img { width:54px; height:76px; object-fit:contain; object-position:center; border-radius:7px; border:2px solid #8a93a8; background:#111; }
+    .d3hand .d3card { width:72px; }
+    .d3hand .d3card img { width:72px; height:102px; border-color:#ffe08a; }
     .d3card.on img { border-color:#ffe08a; box-shadow:0 0 10px rgba(255,224,138,.55); }
     .d3card.dead { opacity:.35; filter:grayscale(.8); }
     .d3card b { display:block; font-size:9px; color:#ffe08a; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -581,8 +581,8 @@
         <div class="d3top" id="d3EnBench" style="flex:1"></div>
       </div>
       <div class="d3vs">
-        <div class="bigc en" id="d3EnBox"><img id="d3EnImg" alt=""><b id="d3EnName">Rival</b><span id="d3EnHp"></span></div>
-        <div class="bigc me" id="d3MeBox"><img id="d3MeImg" alt="" onclick="window.d3Atk&&window.d3Atk(window.d3Kind||'corta')"><b id="d3MeName">Tú</b><span id="d3MeHp"></span></div>
+        <div class="bigc en" id="d3EnBox"><img id="d3EnImg" alt=""><b id="d3EnName">Rival</b><span id="d3EnHp" style="color:#ffe08a;font-size:12px;font-weight:800"></span></div>
+        <div class="bigc me" id="d3MeBox"><img id="d3MeImg" alt="" onclick="window.d3Atk&&window.d3Atk(window.d3Kind||'corta')"><b id="d3MeName">Tú</b><span id="d3MeHp" style="color:#ffe08a;font-size:13px;font-weight:800"></span></div>
       </div>
       <div class="d3bot" id="d3MeBench" title="Banquillo: toca para salir"></div>
     </div>
@@ -857,8 +857,11 @@
       if (b) b.src = eh.img||"";
       var mn=document.getElementById("d3MeName"); if (mn) mn.textContent = mh.name||"Tú";
       var enN=document.getElementById("d3EnName"); if (enN) enN.textContent = eh.name||"Rival";
-      var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = "❤ "+(me?me.hp:0)+"/"+(me?me.max:0);
-      var ehp=document.getElementById("d3EnHp"); if (ehp) ehp.textContent = "❤ "+(en?en.hp:0)+"/"+(en?en.max:0);
+      function atkLine(h){ var s=h.atk||{}; return "⚔"+(s.corta||0)+" 🗡"+(s.media||0)+" 🏹"+(s.larga||0); }
+      var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = "❤ "+(me?me.hp:0)+"/"+(me?me.max:0)+"   "+atkLine(mh);
+      var ehp=document.getElementById("d3EnHp"); if (ehp) ehp.textContent = "❤ "+(en?en.hp:0)+"/"+(en?en.max:0)+"   "+atkLine(eh);
+      var ma=document.getElementById("d3MeAtk"); if (ma) ma.textContent = "";
+      var ea=document.getElementById("d3EnAtk"); if (ea) ea.textContent = "";
       var md=document.getElementById("d3MeDeckN"); if (md) md.textContent = d3.deck.length;
       var ed=document.getElementById("d3EnDeckN"); if (ed) ed.textContent = d3.enDeck;
       function bench(id, arr, active, mine){
@@ -879,7 +882,8 @@
       if (hand){
         hand.innerHTML = (d3.hand||[]).map(function(u,i){
           var h=d3Hero(u);
-          return '<div class="d3card" data-h="'+i+'"><img src="'+(h.img||'')+'"><b>'+(h.name||'')+'</b><span>mano</span></div>';
+          var s=h.atk||{};
+          return '<div class="d3card" data-h="'+i+'"><img src="'+(h.img||'')+'"><b>'+(h.name||'')+'</b><span>⚔'+(s.corta||0)+' 🗡'+(s.media||0)+' 🏹'+(s.larga||0)+'</span></div>';
         }).join("");
         hand.querySelectorAll(".d3card").forEach(function(c){
           c.onclick=function(){ window.d3PlayHand&&window.d3PlayHand(+c.getAttribute("data-h")); };
