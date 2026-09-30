@@ -1374,9 +1374,9 @@
       bgmStop();
       if (mode === "bonus") {
         try {
-          duelBgm = new Audio("sfx/start.mp3");
+          duelBgm = new Audio("sfx/bonus.mp3");
           duelBgm.loop = true;
-          duelBgm.volume = 0.22;
+          duelBgm.volume = 0.32;
           duelBgm.currentTime = 0;
           duelBgm.play().catch(function(){});
           bgmOn = true;
@@ -3139,7 +3139,7 @@
       else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
-      if (name === "bonus") { try { crPaintBags(); crPaint(); sfx("menu"); } catch(e){} }
+      if (name === "bonus") { try { crPaintBags(); crPaint(); bgmStart("bonus"); sfx("menu"); } catch(e){} }
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walPend").textContent = p;
