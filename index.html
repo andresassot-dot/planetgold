@@ -103,8 +103,12 @@
     #crGrid { display:grid; grid-template-columns:repeat(6,1fr); gap:4px; margin:8px 0; touch-action:none; }
     #crGrid .t { aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; color:#fff; border:2px solid transparent; user-select:none; }
     #crGrid .t.on { border-color:#ffe08a; transform:scale(1.06); }
-    #crGrid .t.boom { animation:crBoom .35s ease; }
-    @keyframes crBoom { 50%{transform:scale(1.25);filter:brightness(1.6)} }
+    #crGrid .t.bomb { border:2px solid #fff; box-shadow:0 0 14px #a855f7,0 0 6px #fff; border-radius:50%; font-size:11px; animation:crPulse .8s ease infinite; }
+    #crGrid .t.stripe { outline:2px dashed #ffe08a; box-shadow:inset 0 0 10px rgba(255,224,138,.5); }
+    #crGrid .t.boom { animation:crBoom .4s ease; }
+    @keyframes crPulse { 50%{transform:scale(1.08);box-shadow:0 0 22px #c084fc} }
+    @keyframes crBoom { 0%{transform:scale(1)} 40%{transform:scale(1.35);filter:brightness(2)} 100%{transform:scale(.2);opacity:0} }
+    #crLog { min-height:28px; margin:6px 0 0; padding:6px 8px; background:#140808; border:1px solid #7a1f1f; border-radius:8px; color:#ff6b6b; font-size:12px; font-weight:700; text-align:center; }
     .crBag { display:flex; gap:6px; justify-content:center; margin-top:8px; }
     .crBag i { flex:1; background:#161a26; border:1px solid #3a4258; border-radius:10px; padding:6px 2px; text-align:center; font-size:10px; color:#9aa0b4; }
     .crBag i.on { border-color:#d4af37; color:#ffe08a; background:#1a1408; }
@@ -797,6 +801,7 @@
     <div id="crGrid"></div>
     <button type="button" class="main" id="crPlay">JUGAR NIVEL</button>
     <div class="crBag" id="crBags"></div>
+    <div id="crLog">Arrastra 3 iguales. SOL lila suma a 8/8.</div>
   </div>
 
   <div id="arena">
@@ -2908,6 +2913,15 @@
       var any=false;
       for (var i=0;i<f.mark.length;i++) if (f.mark[i]) { any=true; cr.g[i]._kill=1; if (cr.g[i].s) crClearSpecials(i); }
       if (!any) return false;
+      var names=[];
+      f.rows.concat(f.cols).forEach(function(m){
+        var nm=(CR_T[m.t]||{}).l||"?";
+        if (m.len>=5) names.push("BOMBA "+nm);
+        else if (m.len>=4) names.push("RAYA "+nm+" x"+m.len);
+        else names.push(nm+" x"+m.len);
+      });
+      crSay(names.join(" · ") || "Grupo!");
+      try { sfx("hit"); } catch(e){}
       var makeAt = cr.sel!=null ? cr.sel : f.mark.findIndex(function(v){return v>=4;});
       f.rows.forEach(function(m){
         if (m.len>=4){
@@ -2946,8 +2960,9 @@
       if (!cr.g.length) crFillNoMatch();
       box.innerHTML = cr.g.map(function(cell,i){
         var meta=CR_T[cell.t]||CR_T[0];
-        var extra = cell.s==="bomb"?" ★":(cell.s==="h"?" ↔":(cell.s==="v"?" ↕":""));
-        return '<div class="t" data-i="'+i+'" style="background:'+meta.bg+'">'+meta.l+extra+'</div>';
+        var cls = "t"+(cell.s==="bomb"?" bomb":(cell.s==="h"||cell.s==="v"?" stripe":""));
+        var extra = cell.s==="bomb"?" ★BOMBA":(cell.s==="h"?" ↔RAYA":(cell.s==="v"?" ↕RAYA":""));
+        return '<div class="'+cls+'" data-i="'+i+'" style="background:'+meta.bg+'">'+meta.l+extra+'</div>';
       }).join("");
       box.querySelectorAll(".t").forEach(function(el){
         if (cr.sel===+el.getAttribute("data-i")) el.classList.add("on");
@@ -2966,9 +2981,15 @@
         return "<i class='"+cls+"'>"+n+"<br>"+prize+"</i>";
       }).join("");
     }
+    function crSay(t){
+      var a=document.getElementById("crLog");
+      var b=document.getElementById("crMsg");
+      if (a) a.textContent=t;
+      if (b) b.textContent=t;
+    }
     function crWinCheck(){
       if (cr.got>=cr.need && !cr.over){
-        cr.over=true;
+        cr.over=true; cr.busy=false;
         var st=Number(localStorage.getItem("pg_crStreak")||0)+1;
         localStorage.setItem("pg_crStreak", String(st));
         var lv=Number(localStorage.getItem("pg_crLv")||1)+1;
@@ -2979,18 +3000,17 @@
         if (st===3) localStorage.setItem("pg_freePack","1");
         if (st===5) { try{ grantTgold(1); }catch(e){} }
         if (st>=7) { try{ grantTgold(2); }catch(e){} localStorage.setItem("pg_crStreak","0"); }
-        var msg=document.getElementById("crMsg");
-        if (msg) msg.textContent="¡Nivel pasado! +25 pts · racha "+st;
+        crSay("¡Nivel pasado! +25 pts · racha "+st+" · siguiente en 1s");
         crPaintBags();
         try { refreshHome(); } catch(e){}
         try { sfx("gol"); } catch(e){}
+        setTimeout(function(){ try{ crStart(); crSay("Nuevo nivel. Arrastra 3 iguales."); }catch(e){} }, 1100);
         return true;
       }
       if (cr.moves<=0 && cr.got<cr.need && !cr.over){
-        cr.over=true;
+        cr.over=true; cr.busy=false;
         localStorage.setItem("pg_crStreak","0");
-        var msg=document.getElementById("crMsg");
-        if (msg) msg.textContent="Se acabaron los movimientos. Racha a 0.";
+        crSay("0 movimientos. Racha a 0. Pulsa JUGAR NIVEL.");
         crPaintBags();
         try { sfx("fall"); } catch(e){}
       }
@@ -3034,7 +3054,8 @@
       box.addEventListener("pointercancel", function(){ drag.i=-1; });
     }
     window.crTap = function crTap(i){
-      if (cr.busy || cr.over) return;
+      if (cr.over) { crStart(); return; }
+      if (cr.busy) cr.busy=false;
       if (cr.sel==null) { cr.sel=i; crPaint(); return; }
       if (cr.sel===i) { cr.sel=null; crPaint(); return; }
       var a=cr.sel, b=i;
@@ -3046,7 +3067,7 @@
       if (!f.mark.some(Boolean) && !spec){
         tmp=cr.g[a]; cr.g[a]=cr.g[b]; cr.g[b]=tmp;
         cr.sel=null; crPaint();
-        var msg=document.getElementById("crMsg"); if(msg) msg.textContent="No hay grupo.";
+        crSay("No hay 3 iguales. Prueba otra ficha.");
         return;
       }
       if (spec){
