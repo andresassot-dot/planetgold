@@ -100,7 +100,7 @@
       overflow: auto;
     }
     #home.on, #wallet.on, #pick.on, #bonus.on { display: flex; }
-    #crGrid { display:grid; grid-template-columns:repeat(6,1fr); gap:4px; margin:8px 0; }
+    #crGrid { display:grid; grid-template-columns:repeat(6,1fr); gap:4px; margin:8px 0; touch-action:none; }
     #crGrid .t { aspect-ratio:1; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; color:#fff; border:2px solid transparent; user-select:none; }
     #crGrid .t.on { border-color:#ffe08a; transform:scale(1.06); }
     #crGrid .t.boom { animation:crBoom .35s ease; }
@@ -785,14 +785,14 @@
 
   <div id="bonus">
     <h1 style="color:#ffe08a;text-align:center;margin:0">BONUS</h1>
-    <p class="muted" style="text-align:center;margin:4px 0 8px">Junta <b style="color:#c084fc">8 SOL</b> · estilo Candy</p>
+    <p class="muted" style="text-align:center;margin:4px 0 8px">Arrastra una ficha lila <b style="color:#c084fc">SOL</b> hacia otras 2 SOL<br>para hacer un grupo de 3. Llena la barra 8/8.</p>
     <div class="heroBan" style="padding:10px;text-align:center">
       <div id="crHud" style="display:flex;justify-content:space-between;font-weight:800;color:#ffe08a">
         <span>SOL <b id="crGot">0</b>/8</span>
         <span>MOV <b id="crMov">18</b></span>
         <span>Nv <b id="crLv">1</b></span>
       </div>
-      <p id="crMsg" class="muted" style="margin:6px 0 0">Toca dos fichas vecinas</p>
+      <p id="crMsg" class="muted" style="margin:6px 0 0">Arrastra SOL hacia SOL. 4 seguidas = raya. 5 = bomba.</p>
     </div>
     <div id="crGrid"></div>
     <button type="button" class="main" id="crPlay">JUGAR NIVEL</button>
@@ -2949,9 +2949,9 @@
         return '<div class="t" data-i="'+i+'" style="background:'+meta.bg+'">'+meta.l+extra+'</div>';
       }).join("");
       box.querySelectorAll(".t").forEach(function(el){
-        el.onclick=function(){ crTap(+el.getAttribute("data-i")); };
         if (cr.sel===+el.getAttribute("data-i")) el.classList.add("on");
       });
+      crBindDrag();
       var g=document.getElementById("crGot"); if(g) g.textContent=Math.min(cr.need,cr.got);
       var m=document.getElementById("crMov"); if(m) m.textContent=cr.moves;
       var lv=document.getElementById("crLv"); if(lv) lv.textContent=Number(localStorage.getItem("pg_crLv")||1);
@@ -3003,6 +3003,35 @@
       crWinCheck();
       cr.busy=false;
     }
+    function crBindDrag(){
+      var box=document.getElementById("crGrid");
+      if (!box || box._crDrag) return;
+      box._crDrag = 1;
+      var drag = {i:-1,x:0,y:0};
+      box.addEventListener("pointerdown", function(e){
+        var t = e.target && e.target.closest ? e.target.closest(".t") : null;
+        if (!t) return;
+        drag.i = +t.getAttribute("data-i"); drag.x = e.clientX; drag.y = e.clientY;
+        try { box.setPointerCapture(e.pointerId); } catch(err){}
+        e.preventDefault();
+      }, {passive:false});
+      function finish(e){
+        if (drag.i<0) return;
+        var i = drag.i; var dx = e.clientX-drag.x; var dy = e.clientY-drag.y;
+        drag.i = -1;
+        if (Math.abs(dx)<16 && Math.abs(dy)<16) { crTap(i); return; }
+        var j = i;
+        if (Math.abs(dx) > Math.abs(dy)) j = i + (dx>0?1:-1);
+        else j = i + (dy>0?cr.n:-cr.n);
+        if (j<0 || j>=cr.n*cr.n) return;
+        var r=Math.floor(i/cr.n), c=i%cr.n, r2=Math.floor(j/cr.n), c2=j%cr.n;
+        if (Math.abs(r-r2)+Math.abs(c-c2)!==1) return;
+        cr.sel = i;
+        crTap(j);
+      }
+      box.addEventListener("pointerup", finish);
+      box.addEventListener("pointercancel", function(){ drag.i=-1; });
+    }
     window.crTap = function crTap(i){
       if (cr.busy || cr.over) return;
       if (cr.sel==null) { cr.sel=i; crPaint(); return; }
@@ -3031,7 +3060,7 @@
     window.crStart = function crStart(){
       cr.moves=18; cr.got=0; cr.need=8; cr.sel=null; cr.busy=false; cr.over=false;
       crFillNoMatch();
-      var msg=document.getElementById("crMsg"); if(msg) msg.textContent="Junta 8 SOL. 4=raya · 5=bomba Solana";
+      var msg=document.getElementById("crMsg"); if(msg) msg.textContent="Arrastra las fichas SOL (lila). Grupo de 3 desaparece.";
       crPaint(); crPaintBags();
     };
     document.addEventListener("click", function(e){
