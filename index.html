@@ -2045,7 +2045,7 @@
       try{
         if (homeBgm && !homeBgm.paused) return;
         homeBgm = homeBgm || new Audio("sfx/home.mp3");
-        homeBgm.loop = true; homeBgm.volume = 0.22;
+        homeBgm.loop = true; homeBgm.volume = 0.08;
         homeBgm.play().catch(()=>{});
       }catch(e){}
     }
