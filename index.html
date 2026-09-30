@@ -214,7 +214,7 @@
     #duel3 { position:fixed; inset:0; z-index:55; background:#12081a; display:none; flex-direction:column; padding:4px 4px 86px; overflow:auto; }
     #duel3.on { display:flex; }
     .d3wrap { display:flex; align-items:stretch; gap:4px; }
-    .d3table { flex:1; width:100%; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px 8px; min-height:330px; margin-bottom:6px; overflow:hidden; display:flex; flex-direction:column; align-items:center; }
+    .d3table { flex:1; width:100%; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px 36px; min-height:330px; margin-bottom:6px; overflow:visible; display:flex; flex-direction:column; align-items:center; }
     .d3handRow { display:flex; align-items:flex-end; gap:6px; margin-top:2px; position:relative; z-index:3; background:#12081a; padding-top:4px; }
     .d3handRow .d3hand { flex:1; margin-top:0; }
     @keyframes d3flyUp { 0%{transform:translateY(0) scale(1)} 45%{transform:translateY(-78px) scale(1.08)} 70%{transform:translateY(-70px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
@@ -239,8 +239,8 @@
     .d3card { width:54px; text-align:center; }
     .d3top .d3card img { width:54px; height:72px; }
     .d3card img { width:54px; height:76px; object-fit:contain; object-position:center; border-radius:7px; border:2px solid #8a93a8; background:#111; }
-    .d3hand .d3card { width:72px; }
-    .d3hand .d3card img { width:72px; height:102px; border-color:#ffe08a; }
+    .d3hand .d3card { width:62px; }
+    .d3hand .d3card img { width:62px; height:88px; border-color:#ffe08a; }
     .d3card.on img { border-color:#ffe08a; box-shadow:0 0 10px rgba(255,224,138,.55); }
     .d3card.dead { opacity:.35; filter:grayscale(.8); }
     .d3card b { display:block; font-size:9px; color:#ffe08a; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -893,15 +893,15 @@
     window.startDuel3 = function startDuel3(){
       var mine = d3Pool(true).map(d3Unit);
       var foe = d3Pool(false).map(d3Unit);
-      d3.me = mine.slice(0,1);
-      d3.hand = mine.slice(1,5);
+      d3.me = [];
+      d3.hand = mine.slice(0,5);
       d3.deck = mine.slice(5);
       d3.en = foe.slice(0,3);
       d3.enHand = 4;
       d3.enDeck = Math.max(0, foe.length-3);
-      d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false; d3.needPick=false;
+      d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false; d3.needPick=true;
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent = "Toca una de abajo para elegir la próxima. Toca la grande para atacar.";
+      if (msg) msg.textContent = "Elige la primera carta de abajo. Hasta que caiga no puedes cambiar.";
       try { bgmStart("war"); } catch(e){}
       d3Paint();
       d3StartClock();
@@ -935,22 +935,18 @@
       var u = d3.hand[i]; if (!u || u.hp<=0) return;
       var cur = d3.me[d3.mi];
       if (d3.needPick || !cur || cur.hp<=0) {
-        d3.me[d3.mi] = u;
+        if (!d3.me.length) d3.me = [u];
+        else d3.me[d3.mi] = u;
         d3.hand.splice(i,1);
         d3.needPick=false;
-        d3.acted=true;
+        d3.acted=false;
         var msg=document.getElementById("d3Msg");
-        if (msg) msg.textContent="Sale "+(d3Hero(u).name||"carta")+" · toca para atacar o ACABAR TURNO";
+        if (msg) msg.textContent="En juego: "+(d3Hero(u).name||"carta")+" · toca la grande para atacar. No cambias hasta que caiga.";
         d3Paint();
         return;
       }
-      if (d3.acted) return;
-      d3.hand[i] = cur;
-      d3.me[d3.mi] = u;
-      d3.acted=true;
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent="Próxima: "+(d3Hero(u).name||"carta")+" · ACABAR TURNO";
-      d3Paint();
+      if (msg) msg.textContent="No puedes cambiar hasta que caiga tu carta.";
     };
     window.d3Switch = function d3Switch(i){
       if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
@@ -966,6 +962,7 @@
     window.d3Atk = function d3Atk(kind){
       if (kind) window.d3Kind = kind;
       if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
+      if (!d3.me[d3.mi] || d3.me[d3.mi].hp<=0) return;
       d3Hit("me","en", window.d3Kind||kind||"corta");
     };
     window.d3EndTurn = function d3EndTurn(){
