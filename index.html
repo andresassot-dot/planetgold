@@ -1469,14 +1469,8 @@
       mineTimer=setInterval(()=>{
         if (!document.getElementById("mine") || !document.getElementById("mine").classList.contains("on")) { stopMineLoop(); return; }
         getPico();
-        if (Math.random()<0.22) {
-          const v = VEINS[Math.floor(Math.random()*VEINS.length)];
-          addOre(v.ore, 1);
-          const msg=document.getElementById("mineMsg");
-          if (msg) msg.textContent = "La veta gotea +1 "+v.ore;
-        }
-        if (Math.random()<0.18) hotVein = VEINS[Math.floor(Math.random()*VEINS.length)].id;
-        renderMine();
+        const pb = document.getElementById("picoBar");
+        if (pb) pb.textContent = "Pico "+getPico()+"/"+MAX_PICO+" · se recarga solo (no es la energía del duelo)";
       }, 4000);
     }
     
