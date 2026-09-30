@@ -398,6 +398,11 @@
       <button class="main" id="dailyBtn" type="button" onclick="claimDailyNow()" style="margin-top:8px;padding:8px;font-size:13px;background:#2e8b57;color:#f4fff8">BONUS DEL DÍA</button>
       <button class="main" id="swapBtn" style="margin-top:8px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
       <button class="main" id="guideBtn" type="button" onclick="openGuide(true)" style="margin-top:8px;padding:8px;font-size:13px;background:#2a4a7a;color:#d6e6ff">CÓMO JUGAR</button>
+      <div id="firstLoop" style="margin-top:10px;padding:10px;border:1px solid #d4af37;border-radius:12px;background:#14110a">
+        <b style="color:#ffe08a">Tu primera partida · 2 min</b>
+        <div id="firstLoopSteps" class="muted" style="margin-top:6px;line-height:1.55"></div>
+        <button type="button" class="main" id="firstLoopBtn" style="margin-top:8px;padding:8px;font-size:13px" onclick="window.firstLoopGo&&window.firstLoopGo()">EMPEZAR</button>
+      </div>
       <div class="muted" style="margin-top:8px;display:flex;align-items:center;gap:6px"><svg class="bolt" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="#ffe08a" d="M13 2L4 14h7l-2 8 11-14h-7l2-6z"/></svg> Energía: <b id="homeEn">5/5</b> · se recarga sola</div>
     </div>
     <div class="heroBan" id="ticker" style="margin-top:10px">
@@ -925,7 +930,68 @@
         if (dustOf(id)<=0 && rankOf(id)<=0) localStorage.setItem("pg_du_"+id, "1");
       });
       localStorage.setItem("pg_starter","1");
+      if (!localStorage.getItem("pg_freePack")) localStorage.setItem("pg_freePack","1");
     }
+    function mission(){
+      return {
+        pack: localStorage.getItem("pg_m_pack")==="1",
+        duel: localStorage.getItem("pg_m_duel")==="1",
+        done: localStorage.getItem("pg_m_done")==="1"
+      };
+    }
+    function markMission(k){
+      if (k==="pack") localStorage.setItem("pg_m_pack","1");
+      if (k==="duel") localStorage.setItem("pg_m_duel","1");
+      try { renderMission(); } catch(e){}
+    }
+    function renderMission(){
+      const box = document.getElementById("firstLoop");
+      const steps = document.getElementById("firstLoopSteps");
+      const btn = document.getElementById("firstLoopBtn");
+      if (!box || !steps || !btn) return;
+      const m = mission();
+      if (m.done) { box.style.display="none"; return; }
+      box.style.display="block";
+      const ok = function(yes){ return yes ? "✓" : "○"; };
+      steps.innerHTML =
+        ok(m.pack)+" 1. Abrir un sobre<br>"+
+        ok(m.duel)+" 2. Jugar un duelo vs máquina<br>"+
+        ok(m.pack && m.duel)+" 3. Coger el premio";
+      if (m.pack && m.duel) {
+        btn.textContent = "COGER PREMIO";
+        btn.style.background = "#2e8b57";
+        btn.style.color = "#f4fff8";
+      } else if (!m.pack) {
+        btn.textContent = "ABRIR SOBRE";
+        btn.style.background = "";
+        btn.style.color = "";
+      } else {
+        btn.textContent = "JUGAR DUELO";
+        btn.style.background = "#1a4f9c";
+        btn.style.color = "#d6e8ff";
+      }
+    }
+    window.firstLoopGo = function firstLoopGo(){
+      const m = mission();
+      if (m.pack && m.duel && !m.done) {
+        localStorage.setItem("pg_m_done","1");
+        localStorage.setItem("pg_pts", Number(localStorage.getItem("pg_pts")||0)+100);
+        try { grantTgold(1); } catch(e){ localStorage.setItem("pg_pend", Number(localStorage.getItem("pg_pend")||0)+1); }
+        try { addXp(40); } catch(e){}
+        try { sfx("gol"); } catch(e){}
+        alert("Premio: +100 pts · +1 TGOLD · +40 XP");
+        renderMission();
+        refreshHome();
+        return;
+      }
+      if (!m.pack) {
+        showTab("packs");
+        return;
+      }
+      showTab("duel");
+      try { bgmStart("war"); } catch(e){}
+      try { startMachineDuel(); } catch(e){}
+    };
     function rankOf(id) { return Number(localStorage.getItem("pg_rk_"+id)||0); }
     function dustOf(id) { return Number(localStorage.getItem("pg_du_"+id)||0); }
     function fuseLabel(h){
@@ -2254,14 +2320,10 @@
     }
     
     const GUIDE = [
-      { t:"Bienvenido", p:"Toca el botón AMARILLO de abajo. Esa manita te va a señalar cada cosa.", point:"#guideNext", tab:null },
-      { t:"Inicio", p:"Esta pestaña es tu casa: puntos, TGOLD y nivel. La manita señala INICIO.", point:"#navHome", tab:"home" },
-      { t:"Jugar", p:"Aquí se juega. Toca JUGAR abajo (la manita). Hay Duelo de cartas y Farmeo TGOLD.", point:"#navPlay", tab:"pick" },
-      { t:"Duelo fácil", p:"En el duelo pones 1 carta por turno. Las piedras azules = hacia dónde pega. Si pegas más que la vida rival, la carta cambia a tu color.", point:"#navPlay", tab:"pick" },
-      { t:"Mina", p:"Aquí picas madera, piedra y oro. No gasta energía. La manita señala MINA.", point:"#navMine", tab:"mine" },
-      { t:"Mazo y sobres", p:"En MAZO ves tus cartas. 3 iguales = holográfica. Los sobres están en Jugar.", point:"#navMazo", tab:"mazo" },
-      { t:"Wallet", p:"Aquí pegas tu wallet Solana para cobrar TGOLD. La manita señala WALLET.", point:"#navWallet", tab:"wallet" },
-      { t:"Ya está", p:"Ahora: 1) Jugar  2) abre un sobre  3) Duelo vs máquina. Si te pierdes, CÓMO JUGAR en Inicio.", point:"#guideNext", tab:"home" }
+      { t:"2 minutos", p:"Solo 3 cosas: abrir un sobre, jugar un duelo y recoger el premio. Toca SIGUIENTE.", point:"#guideNext", tab:"home" },
+      { t:"1 · Sobre", p:"En JUGAR entra a COFRE y pulsa ABRIR. Te salen 3 cartas. Ya tienes 5 de fútbol de regalo.", point:"#navPlay", tab:"pick" },
+      { t:"2 · Duelo", p:"DUELO DE CARTAS vs máquina. 1 carta por turno. Piedras = hacia dónde pega. Si pegas más que su vida, la carta es tuya.", point:"#navPlay", tab:"pick" },
+      { t:"3 · Premio", p:"Vuelve a INICIO y pulsa COGER PREMIO. Luego el juego es farmear, fusionar y PvP.", point:"#navHome", tab:"home" }
     ];
     let guideI = 0;
     let guideBusy = false;
@@ -2487,6 +2549,7 @@
       const sp=document.getElementById("salePop"); if(sp) sp.textContent=localStorage.getItem("pg_saleNote")||"";
 
       try { grantStarter(); } catch(e) {}
+      try { renderMission(); } catch(e) {}
       try { pingRank(); } catch(e) {}
 
       document.getElementById("homePts").textContent = (localStorage.getItem("pg_pts")||0) + " pts";
@@ -2692,6 +2755,7 @@
           if (el) el.onclick = () => { try { openZoom(h); document.getElementById("zoom").style.display="flex"; } catch(e) {} };
         });
         msg.textContent = kinds[2]==="holo" ? "¡HOLO! +1 tgold" : ("3 cartas · la última fue "+kinds[2]);
+        try { markMission("pack"); } catch(e){}
         refreshHome();
       }
       showSlot(0);
@@ -3481,6 +3545,7 @@
       addXp(win ? 40 : 10);
       localStorage.setItem("pg_pts", pts + addPts);
       if (addPend) grantTgold(addPend);
+      try { markMission("duel"); } catch(e) {}
       try { refreshHome(); } catch(e) {}
       try { stopClock(); } catch(e) {}
       const box = document.getElementById("duelEnd");
