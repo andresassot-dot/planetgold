@@ -850,7 +850,12 @@
       return out;
     }
     function d3Hero(u){ return (u && (HEROES||[]).find(function(h){ return h.id===u.id; })) || {}; }
-    function d3Alive(side){ return d3[side].filter(function(u){ return u.hp>0; }).length; }
+    function d3Alive(side){
+      var n = (d3[side]||[]).filter(function(u){ return u && u.hp>0; }).length;
+      if (side==="me") n += (d3.hand||[]).filter(function(u){ return u && u.hp>0; }).length;
+      if (side==="en" && window.pvpOn && window.pvpGame==="d3") n += Math.max(0, Number(d3.foeLeft||0));
+      return n;
+    }
     function d3Next(side, from){
       for (var i=1;i<=3;i++){
         var j = (from+i)%3;
@@ -1116,8 +1121,9 @@
           try { sfx("fall"); } catch(e){}
           if (to==="en") {
             if (d3Alive("en")<=0) return d3End(true);
-            d3.ei = d3Next("en", d3.ei);
-            if (msg) msg.textContent = (hb.name||"Carta")+" cae.";
+            d3.en = [];
+            d3.ei = 0;
+            if (msg) msg.textContent = (hb.name||"Carta")+" cae. Esperando la siguiente del rival…";
           } else {
             d3.me = [];
             d3.needPick = true;
@@ -2624,7 +2630,7 @@
           (j.pvp.moves || []).forEach(d => {
             if (!d || d.n <= (window.pvpSeen||0)) return;
             window.pvpSeen = d.n;
-            if (window.pvpGame==="d3" || d.d3 || d.i>=30) { try { d3ApplyNet(d); } catch(e){} }
+            if (window.pvpGame==="d3") { try { d3ApplyNet(d); } catch(e){} }
             else applyNetDrop(d);
           });
         }
@@ -2707,14 +2713,13 @@
       if (own && d.type==="atk") return;
       if (d.type==="deck" && Array.isArray(d.cards)) {
         d3.foeBag = d.cards.map(function(id){ return (HEROES||[]).find(function(h){return h.id===id;})||{id:id,hp:6}; }).filter(Boolean);
-        if (d3.phase==="fight" && !(d3.en||[]).length) {
-          d3.en = d3.foeBag.map(d3Unit);
-          d3Paint();
-        }
+        d3.foeLeft = Math.max(0, d.cards.length);
       }
       if (d.type==="play" && d.id) {
         var h = (HEROES||[]).find(function(x){return x.id===d.id;}) || {id:d.id,hp:d.hp||6};
         var u = d3Unit(h); u.hp = d.hp||u.hp; u.max = d.max||u.max;
+        if (typeof d3.foeLeft!=="number") d3.foeLeft = 4;
+        else d3.foeLeft = Math.max(0, d3.foeLeft-1);
         d3.en = [u]; d3.ei = 0;
         d3.turn = "me";
         d3.acted = false;
@@ -2739,6 +2744,7 @@
     var d3PvpBtn = document.getElementById("d3PvpBtn");
     if (d3PvpBtn) d3PvpBtn.onclick = function(){
       window.pvpGame = "d3";
+      d3.foeLeft = 4;
       try { selectedCard=null; previewIdx=null; } catch(e){}
       showTab("duel3");
       d3PvpMsg("Buscando jugador…");
