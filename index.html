@@ -1159,7 +1159,7 @@
       tap: "sfx/click_001.ogg", menu: "sfx/switch_001.ogg", open: "sfx/maximize_004.ogg",
       close: "sfx/minimize_002.ogg", place: "sfx/card-place.ogg", ray: "sfx/glass_004.ogg",
       hit: "sfx/card-miss.ogg", fall: "sfx/card-flip.ogg", gol: "sfx/win-fanfare.ogg",
-      save: "sfx/bong_001.ogg", pack: "sfx/confirmation_002.ogg", intro: "sfx/intro.ogg",
+      save: "sfx/bong_001.ogg", pack: "sfx/confirmation_002.ogg", intro: "sfx/start.mp3",
       flap: "sfx/flap.mp3", coin: "sfx/coin.mp3", crash: "sfx/crash.mp3", flybg: "sfx/fly-bg.mp3"
     };
     function sfx(type) {
@@ -1172,16 +1172,19 @@
     function playIntro() {
       beep("intro");
       try {
-        introAud = new Audio("sfx/intro.ogg");
-        introAud.volume = 0.4; introAud.loop = true;
+        introAud = new Audio("sfx/start.mp3");
+        introAud.volume = 0.85; introAud.loop = true;
         introAud.play().catch(()=>{});
       } catch(e) {}
     }
+    try { playIntro(); } catch(e){}
+    document.addEventListener("pointerdown", function pgStartMusic(){
+      try { if (introAud && introAud.paused) introAud.play().catch(function(){}); } catch(e){}
+    }, {once:true, passive:true});
     setTimeout(() => {
       const s = document.getElementById("splash");
       if (!s) return;
       sfx("pack");
-      if (introAud) { introAud.pause(); }
       s.classList.add("hide");
       setTimeout(() => s.remove(), 500);
     }, 2200);
@@ -2571,8 +2574,8 @@
     function homeBgmStart(){
       try{
         if (homeBgm && !homeBgm.paused) return;
-        homeBgm = homeBgm || new Audio("sfx/home.mp3");
-        homeBgm.loop = true; homeBgm.volume = 0.16;
+        homeBgm = homeBgm || new Audio("sfx/start.mp3");
+        homeBgm.loop = true; homeBgm.volume = 0.55;
         homeBgm.play().catch(()=>{});
       }catch(e){}
     }
