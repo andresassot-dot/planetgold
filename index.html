@@ -524,6 +524,7 @@
 
 
   <div id="mine">
+    <button type="button" class="backTop" id="mineExitTop" onclick="event.preventDefault();event.stopPropagation();(window.goPick||function(){var m=document.getElementById('mine');if(m){m.classList.remove('on');m.style.display='none';}var p=document.getElementById('pick');if(p){p.classList.add('on');p.style.display='flex';}})();return false;" ontouchend="event.preventDefault();event.stopPropagation();(window.goPick||function(){})();">← SALIR</button>
     <h1 style="color:#ffe08a;text-align:center;margin:0">Minería</h1>
     <p class="muted" style="text-align:center;margin:6px 0 10px">Pica la veta · sin bosque. El pico no gasta energía de duelo.</p>
     <div id="picoBar" class="muted" style="text-align:center;margin:0 0 8px">Pico 12/12</div>
@@ -537,7 +538,6 @@
     <h2 style="color:#ffe08a;font-size:16px;margin:14px 0 8px">Nido · 3 huevos = mascota</h2>
     <div id="nest"></div>
     <button class="main" id="goCofre" style="margin-top:10px;background:#2a2414;color:#ffe08a">ABRIR COFRE</button>
-    <button type="button" class="main" id="mineBack" style="margin-top:8px;background:#2a3146;color:#ffe08a;position:relative;z-index:8" onclick="window.goPick&&window.goPick();return false;">VOLVER</button>
   </div>
   <div id="cofre">
     <button type="button" class="backTop" id="cofreExitTop" onclick="window.goPick&&window.goPick();return false;">← VOLVER</button>
@@ -3891,7 +3891,8 @@
     })();
     document.getElementById("cofreBack").onclick = () => showTab("pick");
     document.getElementById("lootOk").onclick = function(){ window.closeLoot && window.closeLoot(); };
-    document.getElementById("mineBack").onclick = () => showTab("pick");
+    var mineBackBtn = document.getElementById("mineBack") || document.getElementById("mineExitTop");
+    if (mineBackBtn) mineBackBtn.onclick = function(){ window.goPick && window.goPick(); };
     document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); startMachineDuel(); };
     window.duelLeaveEnd = function duelLeaveEnd(){
       const box=document.getElementById("duelEnd");
