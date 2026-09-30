@@ -2842,12 +2842,17 @@
       try{
         if (homeBgm && !homeBgm.paused) return;
         homeBgm = homeBgm || new Audio("sfx/start.mp3");
-        homeBgm.loop = true; homeBgm.volume = 0.55;
+        homeBgm.loop = true; homeBgm.volume = 0.28;
         homeBgm.play().catch(()=>{});
       }catch(e){}
     }
     document.addEventListener("pointerdown", function pgHomeTap(){
-      try { if (document.getElementById("home") && document.getElementById("home").classList.contains("on")) homeBgmStart(); } catch(e) {}
+      try {
+        var games = {duel:1,duel3:1,vuelo:1,arena:1,bonus:1};
+        var onGame = false;
+        Object.keys(games).forEach(function(id){ var el=document.getElementById(id); if(el&&el.classList.contains("on")) onGame=true; });
+        if (!onGame) homeBgmStart();
+      } catch(e) {}
     }, {passive:true});
     function homeBgmStop(){
       try{ if(homeBgm){ homeBgm.pause(); } }catch(e){}
@@ -3106,7 +3111,11 @@
         if (el) el.style.display = "";
       });
 
-      try { if (name==="home") homeBgmStart(); else homeBgmStop(); } catch(e) {}
+      var games = { duel:1, duel3:1, vuelo:1, arena:1, bonus:1 };
+      try {
+        if (games[name]) homeBgmStop();
+        else { try{ bgmStop(); }catch(e){} homeBgmStart(); }
+      } catch(e) {}
       ["home","pick","wallet","bonus","arena","packs","mercado","duel","duel3","ads","mine","cofre","mazo","vuelo"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
@@ -3130,8 +3139,7 @@
       else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
-      if (name === "bonus") { try { crPaintBags(); crPaint(); bgmStart("bonus"); sfx("menu"); } catch(e){} }
-      else if (name !== "duel" && name !== "duel3" && name !== "home") { try { bgmStop(); } catch(e){} }
+      if (name === "bonus") { try { crPaintBags(); crPaint(); sfx("menu"); } catch(e){} }
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walPend").textContent = p;
