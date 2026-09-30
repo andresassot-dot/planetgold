@@ -266,7 +266,7 @@
     #packs.on { display: flex; }
     #mine, #cofre { position: fixed; inset: 0; z-index: 55; background: #0b1020; display: none; flex-direction: column; padding: 14px 12px 88px; overflow: auto; }
     #mine.on, #cofre.on { display: flex; }
-    #lootPop { display:none; position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.78); align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px; }
+    #lootPop { display:none; position:fixed; inset:0; z-index:200060; background:rgba(0,0,0,.78); align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px; pointer-events:auto; }
     #lootPop.on { display:flex; }
     #lootPop .box { background:#161a26; border:3px solid #d4af37; border-radius:16px; padding:18px 16px; width:min(86vw,320px); }
     .vein { border:1px solid #3a4258; border-radius:12px; padding:10px; background:#141824; display:flex; align-items:center; gap:10px; }
@@ -564,7 +564,7 @@
       <div class="muted">Has ganado</div>
       <div class="big" id="lootName" style="margin:8px 0">—</div>
       <p class="muted" id="lootNote"></p>
-      <button class="main" id="lootOk">GUARDAR EN EL COFRE</button>
+      <button type="button" class="main" id="lootOk" onclick="event.preventDefault();event.stopPropagation();(window.closeLoot||function(){var p=document.getElementById('lootPop');if(p)p.classList.remove('on');})();return false;" ontouchend="event.preventDefault();event.stopPropagation();(window.closeLoot||function(){var p=document.getElementById('lootPop');if(p)p.classList.remove('on');})();">GUARDAR EN EL COFRE</button>
     </div>
   </div>
   <div id="packs">
@@ -736,6 +736,10 @@
       });
     };
     window.leaveDuel = window.goPick;
+    window.closeLoot = function closeLoot(){
+      var p=document.getElementById("lootPop");
+      if (p) { p.classList.remove("on"); p.style.display="none"; }
+    };
     window.duelLeaveEnd = function(){
       var box=document.getElementById("duelEnd");
       if (box) box.style.display="none";
@@ -1605,6 +1609,8 @@
       document.getElementById("lootName").textContent = name;
       document.getElementById("lootNote").textContent = note || "";
       p.classList.add("on");
+      p.style.display = "flex";
+      p.style.zIndex = "200060";
     }
     window.renderCofre = function renderCofre(){
       const box = document.getElementById("dmBox");
@@ -3884,7 +3890,7 @@
       };
     })();
     document.getElementById("cofreBack").onclick = () => showTab("pick");
-    document.getElementById("lootOk").onclick = () => { document.getElementById("lootPop").classList.remove("on"); showTab("cofre"); };
+    document.getElementById("lootOk").onclick = function(){ window.closeLoot && window.closeLoot(); };
     document.getElementById("mineBack").onclick = () => showTab("pick");
     document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); startMachineDuel(); };
     window.duelLeaveEnd = function duelLeaveEnd(){
