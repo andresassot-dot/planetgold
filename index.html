@@ -49,7 +49,8 @@
     .mazoGrid span { display:block; font-size:10px; color:#9aa4b8; padding:0 4px 6px; }
     #pick {
       position: fixed; inset: 0; z-index: 19; background: #0b1020;
-      display: none; flex-direction: column; padding: 16px 12px 20px;
+      display: none; flex-direction: column; padding: 16px 12px 100px;
+      overflow: auto;
     }
     #pick h1 { margin: 0 0 6px; font-size: 22px; color: #ffe08a; text-align: center; }
     #pick p { margin: 0 0 12px; text-align: center; color: #bbb; font-size: 13px; }
@@ -186,7 +187,7 @@
     #mercado.on { display: flex; }
     .offer { display:flex; gap:10px; align-items:center; background:#161a26; border:1px solid #3a4258; border-radius:12px; padding:10px; margin:8px 0; }
     .offer img { width:48px; height:62px; object-fit:cover; border-radius:6px; border:1px solid #d4af37; }
-        #duel { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 4px 8px 92px; overflow: auto; }
+        #duel { position: fixed; inset: 0; z-index: 55; background: #0b1020; display: none; flex-direction: column; padding: 4px 8px 92px; overflow: auto; }
     
     #vuelo {
       position: fixed; inset: 0; z-index: 19; background: #070b16;
@@ -263,7 +264,7 @@
     #deckPile span { position:absolute; left:0; right:0; bottom:0; background:rgba(0,0,0,.55); color:#ffe08a; font-size:9px; font-weight:800; text-align:center; padding:2px 0; }
     #packs { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 16px 14px 88px; overflow: auto; }
     #packs.on { display: flex; }
-    #mine, #cofre { position: fixed; inset: 0; z-index: 18; background: #0b1020; display: none; flex-direction: column; padding: 14px 12px 88px; overflow: auto; }
+    #mine, #cofre { position: fixed; inset: 0; z-index: 55; background: #0b1020; display: none; flex-direction: column; padding: 14px 12px 88px; overflow: auto; }
     #mine.on, #cofre.on { display: flex; }
     #lootPop { display:none; position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.78); align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px; }
     #lootPop.on { display:flex; }
@@ -291,8 +292,8 @@
 
 
 
-    #guide { display:none; position:fixed; inset:0; z-index:99999; background:rgba(6,8,16,.55); align-items:flex-start; justify-content:center; padding:56px 12px 96px; pointer-events:auto; }
-    #guide.on { display:flex !important; }
+    #guide { display:none; position:fixed; inset:0; z-index:99999; background:rgba(6,8,16,.55); align-items:flex-start; justify-content:center; padding:56px 12px 96px; pointer-events:none; }
+    #guide.on { display:flex !important; pointer-events:auto; }
     #guideHand { position:fixed; z-index:100000; font-size:42px; pointer-events:none; display:none; filter:drop-shadow(0 2px 4px #000); animation:handBob .7s ease-in-out infinite; }
     @keyframes handBob { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(10px) } }
     #nav button.guideGlow { outline:3px solid #ffe08a; outline-offset:-2px; background:#2a2208; color:#ffe08a; border-radius:10px; }
@@ -460,9 +461,9 @@
       <button data-deck="leyendas">Leyendas</button>
     </div>
     <div class="grid" id="grid"></div>
-    <button class="main" id="duelBtn" style="margin-top:8px;background:#1a4f9c;color:#d6e8ff"><svg viewBox="0 0 24 24"><path d="M5 19L15 5l2 2-3 9 5 3M19 19L9 5 7 7l3 9-5 3"/></svg>DUELO DE CARTAS</button>
-    <button class="main" id="cofreBtn" style="margin-top:8px;background:#7a2e12;color:#ffe0c2"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v12M10 8V6h4v2"/></svg>COFRE</button>
-    <button class="main" id="flyBtn" style="margin-top:8px;background:#c9a227;color:#1a1408"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M8 8c0-3 8-3 8 0M6 13h12"/></svg>FARMEO DE TGOLD</button>
+    <button type="button" class="main" id="duelBtn" style="margin-top:8px;background:#1a4f9c;color:#d6e8ff;position:relative;z-index:6" onclick="try{showTab('duel');if(window.bgmStart)bgmStart('war');if(window.renderRivalPick)renderRivalPick();if(window.startMachineDuel)startMachineDuel();}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><path d="M5 19L15 5l2 2-3 9 5 3M19 19L9 5 7 7l3 9-5 3"/></svg>DUELO DE CARTAS</button>
+    <button type="button" class="main" id="cofreBtn" style="margin-top:8px;background:#7a2e12;color:#ffe0c2;position:relative;z-index:6" onclick="try{showTab('cofre');if(window.sfx)sfx('menu');if(window.renderCofre)renderCofre();}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v12M10 8V6h4v2"/></svg>COFRE</button>
+    <button type="button" class="main" id="flyBtn" style="margin-top:8px;background:#c9a227;color:#1a1408;position:relative;z-index:6"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M8 8c0-3 8-3 8 0M6 13h12"/></svg>FARMEO DE TGOLD</button>
   </div>
 
   
@@ -1555,7 +1556,7 @@
       document.getElementById("lootNote").textContent = note || "";
       p.classList.add("on");
     }
-    function renderCofre(){
+    window.renderCofre = function renderCofre(){
       const box = document.getElementById("dmBox");
       const fill = document.getElementById("dmFill");
       if (isDm()) {
@@ -3194,9 +3195,9 @@
       extra = extra || "";
       return `<img src="${src}" ${extra} onerror="(function(i){var s=i.getAttribute('data-try')||'0';var n=+s+1;i.setAttribute('data-try',n);var base=i.src.split('/').pop();var map={'gaia.jpg':['mago-tierra.JPG','mago-tierra.jpg'],'viuda-carmesi.jpg':['mago-fuego.jpg','mago-fuego.JPG'],'atenas.jpg':['mago-agua.jpg'],'zephyra.jpg':['mago-aire.jpg'],'solaria.jpg':['mago-luz.jpg'],'mago-tierra.JPG':['gaia.jpg','mago-tierra.jpg']};var list=map[base]||[];if(base.indexOf('-legend.')>=0){list.push(base.replace('-legend.','-holo.'));list.push(base.replace('-legend.','_holo.'));list.push(base.replace('-legend.','.'));} if(base.indexOf('-holo.')>=0)list.push(base.replace('-holo.','.'));if(base.indexOf('.JPG')>=0)list.push(base.replace('.JPG','.jpg'));else list.push(base.replace('.jpg','.JPG'));if(n<=list.length){i.src='cards/'+list[n-1];}else{i.onerror=null;}})(this)" />`;
     }
-    HEROES.filter(h => deckFilter==="holo" ? !!h.holo : (deckFilter==="all" || h.deck===deckFilter || (deckFilter==="mascotas" && (h.deck==="mascotas"||h.deck==="monturas")))).forEach(h => {
+    HEROES.filter(h => deckFilter==="holo" ? (!!h.holo && !h.legend) : deckFilter==="leyendas" ? !!h.legend : (deckFilter==="all" || h.deck===deckFilter || (deckFilter==="mascotas" && (h.deck==="mascotas"||h.deck==="monturas")))).forEach(h => {
         const el = document.createElement("div");
-        el.className = "card" + (h.id === hero.id ? " on" : "") + (h.holo ? " holoCard" : "");
+        el.className = "card" + (h.id === (hero&&hero.id) ? " on" : "") + (h.holo ? " holoCard" : "");
         const rk = h.holo ? "Holo" : (RANKS[rankOf(h.id)] || "Bronce");
         const du = dustOf(h.id);
         const lock = h.holo && du<=0 && rankOf(h.id)<=0;
@@ -3525,7 +3526,7 @@
       }
     }
     let duelRival = { name:"Maquina", deck:[] };
-    function renderRivalPick(){
+    window.renderRivalPick = function renderRivalPick(){
       const box = document.getElementById("rivalPick");
       if (!box) return;
       let boardR = [];
@@ -3548,7 +3549,7 @@
     }
     
     function coinFirst(){ return Math.random() < 0.5; }
-    function startMachineDuel(){
+    window.startMachineDuel = function startMachineDuel(){
       window.pvpOn=false; pvpStop();
       board=Array(36).fill(null);
       dealHand();
