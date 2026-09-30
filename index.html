@@ -590,7 +590,8 @@
       </div>
       <div class="d3bot" id="d3MeBench" title="Banquillo: toca para salir"></div>
     </div>
-    <p class="muted" id="d3Msg" style="text-align:center;min-height:28px;margin:6px 0 4px">Tu mano</p>
+    <p class="muted" id="d3Msg" style="text-align:center;min-height:28px;margin:6px 0 4px">Elige 5 cartas de tu mazo · 60 s</p>
+    <button type="button" class="main" id="d3Ready" style="display:none;margin:0 10px 6px;background:#1a4f9c;color:#fff" onclick="window.d3ConfirmPick&&window.d3ConfirmPick()">LISTO · EMPEZAR</button>
     <div class="d3handRow">
       <div class="d3hand" id="d3Hand"></div>
       <div class="d3pile">TU MAZO<div class="d3back"></div><span id="d3MeDeckN">0</span></div>
@@ -824,20 +825,19 @@
     };
     var d3 = { me:[], en:[], hand:[], deck:[], enHand:0, enDeck:0, mi:0, ei:0, turn:"me", busy:false, acted:false, over:false };
     function d3Unit(h){ return { id:h.id, hp:h.hp||6, max:h.hp||6 }; }
+    function d3Owned(){
+      try { if (typeof grantStarter==="function") grantStarter(); } catch(e){}
+      var list=[];
+      try { list = ownedCards(); } catch(e){ list=[]; }
+      if (!list.length) list = (HEROES||[]).filter(function(h){ return ["capitan","diez","samba","pibe","rayo"].indexOf(h.id)>=0; });
+      return list;
+    }
     function d3Pool(mine){
-      var pool=[];
-      try {
-        pool=(HEROES||[]).filter(function(h){
-          if(!h || h.holo || h.legend) return false;
-          if(mine) return (typeof dustOf==="function"?dustOf(h.id):0)>0 || (typeof rankOf==="function"?rankOf(h.id):0)>0;
-          return true;
-        });
-      } catch(e){ pool=[]; }
-      if(pool.length<10) pool=(HEROES||[]).filter(function(h){ return h && !h.holo && !h.legend; });
-      if(pool.length<3) pool=HEROES||[];
+      var pool = mine ? d3Owned() : (HEROES||[]).filter(function(h){ return h && !h.legend; });
+      if (!pool.length) pool = HEROES||[];
       var copy=pool.slice();
       var out=[];
-      while(out.length<10 && copy.length){
+      while(out.length<(mine?Math.min(5,copy.length):8) && copy.length){
         var i=Math.floor(Math.random()*copy.length);
         out.push(copy[i]); copy.splice(i,1);
       }
@@ -896,21 +896,90 @@
       }
     }
     window.startDuel3 = function startDuel3(){
-      var mine = d3Pool(true).map(d3Unit);
+      d3.phase = "pick";
+      d3.pick = [];
+      d3.owned = d3Owned();
+      d3.me = []; d3.hand = []; d3.deck = [];
+      d3.en = []; d3.enHand = 0; d3.enDeck = 0;
+      d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false; d3.needPick=true;
+      window._d3Active = true;
+      var ready=document.getElementById("d3Ready");
+      if (ready) ready.style.display="block";
+      var msg=document.getElementById("d3Msg");
+      if (msg) msg.textContent = "60 s para elegir 5 cartas de TU mazo.";
+      try { bgmStart("war"); } catch(e){}
+      d3PaintPick();
+      d3StartPickClock();
+    };
+    function d3PaintPick(){
+      var hand=document.getElementById("d3Hand");
+      if (!hand) return;
+      var ids = d3.pick||[];
+      hand.innerHTML = (d3.owned||[]).map(function(h){
+        var on = ids.indexOf(h.id)>=0 ? " on" : "";
+        var st=h.atk||{};
+        return '<div class="d3card'+on+'" data-id="'+h.id+'"><img src="'+(h.img||'')+'"><b>'+(h.name||'')+'</b><span>⚔'+(st.corta||0)+' 🗡'+(st.media||0)+' 🏹'+(st.larga||0)+'</span></div>';
+      }).join("");
+      hand.querySelectorAll(".d3card").forEach(function(c){
+        c.onclick=function(){ window.d3TogglePick&&window.d3TogglePick(c.getAttribute("data-id")); };
+      });
+      var msg=document.getElementById("d3Msg");
+      if (msg) msg.textContent = "Elegidas "+ids.length+"/5 · toca para meter o quitar.";
+      var md=document.getElementById("d3MeDeckN"); if (md) md.textContent = (d3.owned||[]).length;
+    }
+    window.d3TogglePick = function d3TogglePick(id){
+      if (d3.phase!=="pick" || d3.over) return;
+      d3.pick = d3.pick || [];
+      var i = d3.pick.indexOf(id);
+      if (i>=0) d3.pick.splice(i,1);
+      else {
+        if (d3.pick.length>=5) { var msg=document.getElementById("d3Msg"); if(msg) msg.textContent="Máximo 5. Quita una o pulsa LISTO."; return; }
+        d3.pick.push(id);
+      }
+      d3PaintPick();
+    };
+    window.d3ConfirmPick = function d3ConfirmPick(){
+      if (d3.phase!=="pick") return;
+      d3StopClock();
+      var bag = (d3.pick||[]).map(function(id){ return (HEROES||[]).find(function(h){return h.id===id;}); }).filter(Boolean);
+      var extra = (d3.owned||[]).filter(function(h){ return d3.pick.indexOf(h.id)<0; });
+      while (bag.length<5 && extra.length){
+        var i=Math.floor(Math.random()*extra.length);
+        bag.push(extra[i]); extra.splice(i,1);
+      }
+      if (!bag.length) bag = d3Owned().slice(0,5);
       var foe = d3Pool(false).map(d3Unit);
+      d3.phase = "fight";
       d3.me = [];
-      d3.hand = mine.slice(0,5);
-      d3.deck = mine.slice(5);
+      d3.hand = bag.map(d3Unit);
+      d3.deck = extra.map(d3Unit);
       d3.en = foe.slice(0,3);
       d3.enHand = 4;
       d3.enDeck = Math.max(0, foe.length-3);
-      d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false; d3.needPick=true;
+      d3.needPick = true;
+      var ready=document.getElementById("d3Ready");
+      if (ready) ready.style.display="none";
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent = "Elige la primera carta de abajo. Hasta que caiga no puedes cambiar.";
-      window._d3Active = true;
-      try { bgmStart("war"); } catch(e){}
+      if (msg) msg.textContent = "Toca una de abajo para salir la primera. Hasta que caiga no cambias.";
       d3Paint();
       d3StartClock();
+    };
+    function d3StartPickClock(){
+      d3StopClock();
+      d3.sec = 60;
+      function paint(){
+        var bar=document.getElementById("d3Bar");
+        var txt=document.getElementById("d3Txt");
+        if (bar) bar.style.width = Math.max(0, d3.sec/60*100) + "%";
+        if (txt) txt.textContent = "ELIGE MAZO "+d3.sec+"s";
+      }
+      paint();
+      d3ClockT = setInterval(function(){
+        if (d3.phase!=="pick") { d3StopClock(); return; }
+        d3.sec -= 1;
+        paint();
+        if (d3.sec <= 0) window.d3ConfirmPick();
+      }, 1000);
     };
     var d3ClockT = null;
     function d3StopClock(){ if (d3ClockT) { clearInterval(d3ClockT); d3ClockT=null; } }
@@ -937,6 +1006,7 @@
       }, 1000);
     }
     window.d3PlayHand = function d3PlayHand(i){
+      if (d3.phase==="pick") return;
       if (d3.over || d3.busy || d3.turn!=="me") return;
       var u = d3.hand[i]; if (!u || u.hp<=0) return;
       var cur = d3.me[d3.mi];
@@ -966,6 +1036,7 @@
     };
     window.d3Kind = "corta";
     window.d3Atk = function d3Atk(kind){
+      if (d3.phase==="pick") return;
       if (kind) window.d3Kind = kind;
       if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
       if (!d3.me[d3.mi] || d3.me[d3.mi].hp<=0) return;
