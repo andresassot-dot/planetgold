@@ -1994,6 +1994,18 @@
       const into = xp % 150;
       return { xp, lv, into, need:150 };
     }
+    function paintHomeXp(){
+      const L = levelOf();
+      const lv = document.getElementById("homeLv");
+      const xp = document.getElementById("homeXp");
+      const bar = document.getElementById("homeXpBar");
+      if (lv) lv.textContent = L.lv;
+      if (xp) xp.textContent = L.into + "/" + L.need + " XP";
+      if (bar) {
+        const pct = Math.max(4, Math.min(100, Math.round((L.into/L.need)*100)));
+        bar.style.width = (L.into<=0 ? 4 : pct) + "%";
+      }
+    }
     function nearHolo(){
       const rows=[];
       HEROES.forEach(h=>{
@@ -2104,6 +2116,7 @@
       }
       const en = document.getElementById("homeEn");
       if (en) en.textContent = getEnergy() + "/" + MAX_EN;
+      try { paintHomeXp(); } catch(e) {}
       const u = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || {};
       const ava = document.getElementById("meAva");
       const who = document.getElementById("meWho");
