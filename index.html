@@ -1624,31 +1624,39 @@
       window.pvpOn=false; window.pvpMatch=null; window.pvpRole=null;
       if (window.pvpPollT) { clearInterval(window.pvpPollT); window.pvpPollT=null; }
     }
-    function pvpFlip(i){ return 35 - i; }
     function pvpHash(arr){
-      return (arr||[]).map(u => u ? (u.id+"."+u.who+"."+u.hp) : ".").join("|");
+      return (arr||[]).map(u => u ? (u.id+"."+u.who+"."+(u.hp||0)) : ".").join("|");
     }
     function boardToNet(){
       const role = window.pvpRole || "a";
-      const out = Array(36).fill(null);
-      (board||[]).forEach((u,i) => {
-        if (!u) return;
-        const si = role==="b" ? pvpFlip(i) : i;
-        out[si] = { id:u.id, hp:u.hp, who: u.who==="me" ? role : (role==="a"?"b":"a") };
-      });
-      return out;
+      return (board||[]).map(u => u ? {id:u.id, hp:u.hp, who: u.who==="me" ? role : (role==="a"?"b":"a")} : null);
     }
     function boardFromNet(arr){
-      if (!Array.isArray(arr) || arr.length!==36) return;
+      if (!Array.isArray(arr) || arr.length!==36) return false;
+      const filled = arr.filter(Boolean).length;
+      const mine = (board||[]).filter(Boolean).length;
+      if (filled===0 && mine>0) return false;
       const role = window.pvpRole || "a";
-      const next = Array(36).fill(null);
-      arr.forEach((u,si) => {
-        if (!u) return;
-        const i = role==="b" ? pvpFlip(si) : si;
+      board = arr.map(u => {
+        if (!u || !u.id) return null;
         const h = HEROES.find(x=>x.id===u.id) || {};
-        next[i] = { id:u.id, img:h.img, hp:u.hp, who: u.who===role ? "me" : "en" };
+        return { id:u.id, img:h.img||("cards/"+u.id+".jpg"), hp:u.hp, who: u.who===role ? "me" : "en" };
       });
-      board = next;
+      return true;
+    }
+    function applyNetDrop(d){
+      if (!d || d.i==null || !d.id) return;
+      const i = Number(d.i);
+      if (i<0 || i>35) return;
+      if (board[i] && board[i].id===d.id) return;
+      const who = (d.role === window.pvpRole) ? "me" : "en";
+      if (who==="me" && board[i] && board[i].who==="me") return;
+      const h = HEROES.find(x=>x.id===d.id) || {};
+      const st = (typeof statsOf==="function") ? statsOf(d.id) : {hp:d.hp||1};
+      board[i] = { id:d.id, img:h.img||("cards/"+d.id+".jpg"), hp: d.hp||st.hp||1, who };
+      parley = false;
+      try { resolvePlace(i); } catch(e){}
+      try { renderBoard(); } catch(e){}
     }
     async function pvpSeek(){
       window.pvpOn = true;
@@ -1668,7 +1676,7 @@
       return keys.includes(nickKey(pl.id)) || keys.includes(nickKey(pl.name));
     }
     function pvpJoin(m, role){
-      window.pvpOn=true; window.pvpMatch=m;
+      window.pvpOn=true; window.pvpMatch=m; window.pvpSeen=0;
       if (pvpIsMe(m.a)) window.pvpRole = "a";
       else if (pvpIsMe(m.b)) window.pvpRole = "b";
       else window.pvpRole = role || "b";
@@ -1676,7 +1684,7 @@
       duelRival = { name: other.name || "Rival", deck: [], photo: other.photo||"" };
       pvpMsg("Vs "+(other.name||"rival")+" · turno 60 s");
       parley = false;
-      boardFromNet(m.board||Array(36).fill(null));
+      if (m.board && m.board.filter(Boolean).length) boardFromNet(m.board);
       renderBoard(); renderDuelPick();
       const mine = (m.turn===window.pvpRole);
       if (mine) startMyClock();
@@ -1705,13 +1713,12 @@
         }
         const mine = j.pvp.turn === window.pvpRole;
         const picking = !!(selectedCard || previewIdx!=null);
-        if (!window.pvpLock && !picking && Array.isArray(j.pvp.board)) {
-          const incoming = j.pvp.board;
-          const local = boardToNet();
-          if (pvpHash(incoming) !== pvpHash(local)) {
-            boardFromNet(incoming);
-            renderBoard();
-          }
+        if (!picking) {
+          (j.pvp.moves || []).forEach(d => {
+            if (!d || d.n <= (window.pvpSeen||0)) return;
+            window.pvpSeen = d.n;
+            applyNetDrop(d);
+          });
         }
         if (!mine) {
           window.pvpLock = false;
@@ -1729,8 +1736,9 @@
       if (!window.pvpOn || !window.pvpMatch) return;
       try {
         window.pvpLock = true;
+        const drop = window.pvpLastDrop || null;
         await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), {
-          pvpMove:true, matchId: window.pvpMatch.id, board: boardToNet(),
+          pvpMove:true, matchId: window.pvpMatch.id, drop,
           nextTurn: next, turnN: turnN, winner: null
         })) });
       } catch(e){}
@@ -3201,7 +3209,7 @@
               ? (h.name + " en Parlamento (sin ataque).")
               : (h.name + (flips ? " voltea "+flips : " sin volteo") + " · "+countSide("me")+"–"+countSide("en"));
             renderBoard(); renderDuelPick();
-            setTimeout(() => { if (checkEnded()) return; if (window.pvpOn) { parley=false; turnN++; pvpPush(window.pvpRole==="a"?"b":"a"); placedTurn=true; const tx=document.getElementById("turnTxt"); if(tx) tx.textContent="TURNO RIVAL"; stopClock(); return; } duelEnemyTurn(); }, 700);
+            setTimeout(() => { if (checkEnded()) return; if (window.pvpOn) { parley=false; turnN++; window.pvpLastDrop={ i:i, id:h.id, hp:(board[i]&&board[i].hp)||1, role:window.pvpRole }; pvpPush(window.pvpRole==="a"?"b":"a"); placedTurn=true; const tx=document.getElementById("turnTxt"); if(tx) tx.textContent="TURNO RIVAL"; stopClock(); return; } duelEnemyTurn(); }, 700);
             return;
           }
           if (false && targets[i] && board[i] && board[i].who==="en") {
