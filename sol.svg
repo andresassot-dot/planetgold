@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 140">
+  <defs>
+    <linearGradient id="sol" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c084fc"/>
+      <stop offset=".45" stop-color="#9945FF"/>
+      <stop offset="1" stop-color="#14F195"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff6c8"/>
+      <stop offset="1" stop-color="#e0b84a"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <!-- left wings -->
+  <path d="M58 58 C18 18 8 48 28 62 C12 58 22 88 48 72 Z" fill="url(#wing)" stroke="#8a6a12" stroke-width="1.5"/>
+  <path d="M56 72 C16 78 14 108 42 96 C22 102 40 118 54 88 Z" fill="#e8c15a" stroke="#8a6a12" stroke-width="1.2"/>
+  <!-- right wings -->
+  <path d="M102 56 C142 16 152 46 132 62 C148 56 138 86 112 70 Z" fill="url(#wing)" stroke="#8a6a12" stroke-width="1.5"/>
+  <path d="M104 72 C144 76 148 108 118 96 C138 102 122 118 106 88 Z" fill="#e8c15a" stroke="#8a6a12" stroke-width="1.2"/>
+  <!-- coin -->
+  <circle cx="80" cy="72" r="38" fill="#1a1028" filter="url(#glow)"/>
+  <circle cx="80" cy="72" r="34" fill="url(#sol)"/>
+  <circle cx="80" cy="72" r="34" fill="none" stroke="#fff6c8" stroke-width="2" opacity=".55"/>
+  <path d="M62 58h38l-9 11H53z" fill="#fff"/>
+  <path d="M58 70h34l-8 10H50z" fill="#fff" opacity=".92"/>
+  <path d="M54 82h32l-8 10H46z" fill="#fff" opacity=".85"/>
+</svg>
