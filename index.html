@@ -858,8 +858,8 @@
       var mn=document.getElementById("d3MeName"); if (mn) mn.textContent = mh.name||"Tú";
       var enN=document.getElementById("d3EnName"); if (enN) enN.textContent = eh.name||"Rival";
       function atkLine(h){ var s=h.atk||{}; return "⚔"+(s.corta||0)+" 🗡"+(s.media||0)+" 🏹"+(s.larga||0); }
-      var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = "❤ "+(me?me.hp:0)+"/"+(me?me.max:0)+"   "+atkLine(mh);
-      var ehp=document.getElementById("d3EnHp"); if (ehp) ehp.textContent = "❤ "+(en?en.hp:0)+"/"+(en?en.max:0)+"   "+atkLine(eh);
+      var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = "❤ "+(me?me.hp:0)+"/"+(me?me.max:0);
+      var ehp=document.getElementById("d3EnHp"); if (ehp) ehp.textContent = "❤ "+(en?en.hp:0)+"/"+(en?en.max:0);
       var ma=document.getElementById("d3MeAtk"); if (ma) ma.textContent = "";
       var ea=document.getElementById("d3EnAtk"); if (ea) ea.textContent = "";
       var md=document.getElementById("d3MeDeckN"); if (md) md.textContent = d3.deck.length;
@@ -1018,12 +1018,17 @@
             d3.hand.push(d3.deck.shift());
             d3Paint();
           }
-          if (msg) msg.textContent = "Tu turno. 1 acción y ACABAR TURNO.";
-        } else if (msg) msg.textContent = "Has atacado. Pulsa ACABAR TURNO.";
+          if (msg) msg.textContent = "Tu turno. Toca tu carta o elige otra abajo.";
+        } else {
+          if (msg) msg.textContent = "Has atacado. Turno rival...";
+          d3.turn="en";
+          setTimeout(d3Enemy, 400);
+        }
       }, 620);
     }
     function d3Enemy(){
-      if (d3.over || d3.busy) return;
+      if (d3.over) return;
+      if (d3.busy) { setTimeout(d3Enemy, 200); return; }
       var kinds=["corta","media","larga"];
       if (!d3.en[d3.ei] || d3.en[d3.ei].hp<=0) d3.ei = d3Next("en", d3.ei);
       var h = d3Hero(d3.en[d3.ei]);
@@ -1032,12 +1037,7 @@
       kinds.forEach(function(k){ if ((st[k]||0)>(st[kind]||0)) kind=k; });
       if (Math.random()<0.18) {
         var alt = d3Next("en", d3.ei);
-        if (alt!==d3.ei) {
-          d3.ei=alt; d3.turn="me"; d3.acted=false; d3Paint();
-          var msg=document.getElementById("d3Msg");
-          if(msg) msg.textContent="El rival cambia. Tu turno.";
-          return;
-        }
+        if (alt!==d3.ei) d3.ei=alt;
       }
       d3Hit("en","me", kind);
     }
