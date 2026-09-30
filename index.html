@@ -291,16 +291,17 @@
 
 
 
-    #guide { display:none; position:fixed; inset:0; z-index:9999; background:rgba(6,8,16,.82); align-items:center; justify-content:center; padding:16px; }
-    #guide.on { display:flex; }
-    #guideBox { width:min(92vw,380px); background:#121622; border:2px solid #d4af37; border-radius:16px; padding:16px 16px 14px; text-align:center; }
-    #guideBox h2 { margin:0 0 8px; color:#ffe08a; font-size:20px; }
-    #guideBox p { margin:0 0 14px; color:#d5dceb; font-size:14px; line-height:1.45; }
-    #guideDots { display:flex; gap:6px; justify-content:center; margin:0 0 12px; }
-    #guideDots i { width:7px; height:7px; border-radius:50%; background:#3a4258; display:inline-block; }
+    #guide { display:none; position:fixed; inset:0; z-index:99999; background:rgba(6,8,16,.88); align-items:flex-end; justify-content:center; padding:12px 12px 78px; pointer-events:auto; }
+    #guide.on { display:flex !important; }
+    #guideBox { width:min(94vw,400px); max-height:78vh; overflow:auto; background:#121622; border:2px solid #d4af37; border-radius:16px; padding:16px 16px 14px; text-align:left; }
+    #guideBox h2 { margin:0 0 8px; color:#ffe08a; font-size:18px; text-align:center; }
+    #guideBox p { margin:0 0 10px; color:#d5dceb; font-size:15px; line-height:1.5; }
+    #guideBox b { color:#ffe08a; }
+    #guideDots { display:flex; gap:6px; justify-content:center; margin:0 0 12px; flex-wrap:wrap; }
+    #guideDots i { width:8px; height:8px; border-radius:50%; background:#3a4258; display:inline-block; }
     #guideDots i.on { background:#d4af37; }
     #guideBtns { display:flex; gap:8px; }
-    #guideBtns button { flex:1; }
+    #guideBtns button { flex:1; min-height:44px; font-size:15px; pointer-events:auto; }
 
     .xpwrap { margin-top:10px; }
     .xpbar { height:8px; background:#1a2030; border-radius:8px; overflow:hidden; border:1px solid #3a4258; }
@@ -2132,35 +2133,53 @@
     }
     
     const GUIDE = [
-      { t:"⚡ Energía", p:"Se gasta en duelo y farmeo TGOLD. Se recarga sola. En Ads ganas +1." },
-      { t:"🃏 Duelo", p:"Rojo = ataque. Si tu golpe gana, la carta pasa a tu color. Máquina o VS jugador." },
-      { t:"👜 Wallet", p:"Los TGOLD del juego se cobran a tu Solana. Tope 25 al día de farmeo." }
+      { t:"1 / 8  Bienvenido", p:"Esto es PLANET GOLD. Abajo hay 5 pestañas. Toca Siguiente y te digo qué hace cada una, en orden." },
+      { t:"2 / 8  Inicio", p:"Aquí ves tu perfil, puntos, TGOLD y tu mejor carta. El botón FREE abre anuncios: si entras al enlace ganas +1 energía." },
+      { t:"3 / 8  Jugar", p:"Hay 2 modos: DUELO DE CARTAS (tablero 6x6) y FARMEO TGOLD (el pajarito / vuelo). El duelo gasta energía. El vuelo da TGOLD si coges monedas." },
+      { t:"4 / 8  Cómo se gana el duelo", p:"Pones 1 carta por turno en TU mitad. Las piedras azules dicen hacia dónde pega. Espada = casilla de al lado. Lanza = 2. Arco = 3. Si tu golpe es mayor que la vida rival, esa carta cambia a TU color. Quien tenga más cartas al final, gana." },
+      { t:"5 / 8  Mina", p:"Pica vetas (madera, piedra, oro…). Con eso forjas armas y huevos. 5 de un nivel + mineral = el siguiente. No gasta energía." },
+      { t:"6 / 8  Cartas y sobres", p:"En Jugar abre SOBRES para conseguir cartas. 3 iguales = holográfica. Las holográficas pegan más. En Mercado puedes vender o comprar." },
+      { t:"7 / 8  Wallet", p:"Ahí pegas tu wallet de Solana para COBRAR TGOLD. Mínimo de cobro: 10 $. Arriba ves cuántos TGOLD tienes en el juego." },
+      { t:"8 / 8  Empieza por aquí", p:"1) Toca Jugar. 2) Abre un sobre. 3) Dale a Duelo vs máquina. Si te pierdes, el botón GUÍA del Inicio abre esto otra vez." }
     ];
     let guideI = 0;
     window.paintGuide = function paintGuide(){
-      const g = GUIDE[guideI];
-      document.getElementById("guideT").textContent = g.t;
-      document.getElementById("guideP").textContent = g.p;
-      document.getElementById("guideDots").innerHTML = GUIDE.map((_,i)=>"<i class='"+(i===guideI?"on":"")+"'></i>").join("");
-      document.getElementById("guideNext").textContent = guideI===GUIDE.length-1 ? "¡Jugar!" : "Siguiente";
+      try {
+        if (guideI < 0) guideI = 0;
+        if (guideI >= GUIDE.length) guideI = GUIDE.length-1;
+        const g = GUIDE[guideI];
+        const T = document.getElementById("guideT");
+        const P = document.getElementById("guideP");
+        const D = document.getElementById("guideDots");
+        const N = document.getElementById("guideNext");
+        if (T) T.textContent = g.t;
+        if (P) P.innerHTML = g.p;
+        if (D) D.innerHTML = GUIDE.map((_,i)=>"<i class='"+(i===guideI?"on":"")+"'></i>").join("");
+        if (N) N.textContent = guideI===GUIDE.length-1 ? "¡Entendido!" : "Siguiente";
+      } catch(e) { console.log("guide paint", e); }
     }
     window.openGuide = function openGuide(reset){
       if (reset) guideI = 0;
-      document.getElementById("guide").classList.add("on");
+      const el = document.getElementById("guide");
+      if (!el) return;
+      el.classList.add("on");
+      el.style.display = "flex";
       paintGuide();
     }
     window.closeGuide = function closeGuide(){
-      document.getElementById("guide").classList.remove("on");
-      localStorage.setItem("pg_guide_ok","1");
+      const el = document.getElementById("guide");
+      if (el) { el.classList.remove("on"); el.style.display = "none"; }
+      try { localStorage.setItem("pg_guide_v2","1"); } catch(e) {}
     }
     function bootGuide(){
       const btn = document.getElementById("guideBtn");
-      if (btn) btn.onclick = () => openGuide(true);
+      if (btn) btn.onclick = function(e){ e.preventDefault(); openGuide(true); };
       const n = document.getElementById("guideNext");
       const s = document.getElementById("guideSkip");
-      if (n) n.onclick = () => { if (guideI>=GUIDE.length-1) closeGuide(); else { guideI++; paintGuide(); } };
-      if (s) s.onclick = closeGuide;
-      if (!localStorage.getItem("pg_guide_ok")) openGuide(true);
+      function next(e){ if (e) e.preventDefault(); if (guideI>=GUIDE.length-1) closeGuide(); else { guideI++; paintGuide(); } }
+      if (n) { n.onclick = next; n.ontouchend = function(e){ e.preventDefault(); next(e); }; }
+      if (s) { s.onclick = function(e){ e.preventDefault(); closeGuide(); }; s.ontouchend = function(e){ e.preventDefault(); closeGuide(); }; }
+      try { if (!localStorage.getItem("pg_guide_v2")) openGuide(true); } catch(e) { openGuide(true); }
     }
 
     
