@@ -515,7 +515,7 @@
       <button data-deck="leyendas">Leyendas</button>
     </div>
     <div class="grid" id="grid"></div>
-    <button type="button" class="main" id="duelBtn" style="margin-top:8px;background:#1a4f9c;color:#d6e8ff;position:relative;z-index:6" onclick="try{showTab('duel');if(window.bgmStart)bgmStart('war');if(window.renderRivalPick)renderRivalPick();if(window.startMachineDuel)startMachineDuel();}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><path d="M5 19L15 5l2 2-3 9 5 3M19 19L9 5 7 7l3 9-5 3"/></svg>DUELO 6×6</button>
+    <button type="button" class="main" id="duelBtn" style="margin-top:8px;background:#1a4f9c;color:#d6e8ff;position:relative;z-index:6" onclick="try{showTab('duel');if(window.bgmStart)bgmStart('war');if(window.renderRivalPick)renderRivalPick();if(window.startMachineDuel)startMachineDuel();setTimeout(function(){window.openDuelGuide&&window.openDuelGuide('66',false);},400);}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><path d="M5 19L15 5l2 2-3 9 5 3M19 19L9 5 7 7l3 9-5 3"/></svg>DUELO 6×6</button>
     <button type="button" class="main" id="duel3Btn" style="margin-top:8px;background:#5a2a8a;color:#f0e6ff;position:relative;z-index:6" onclick="try{showTab('duel3');if(window.bgmStart)bgmStart('war');if(window.startDuel3)startDuel3();}catch(e){console.log(e)}return false;">DUELO 3</button>
     <button type="button" class="main" id="cofreBtn" style="margin-top:8px;background:#7a2e12;color:#ffe0c2;position:relative;z-index:6" onclick="try{showTab('cofre');if(window.sfx)sfx('menu');if(window.renderCofre)renderCofre();}catch(e){console.log(e)}return false;"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M3 12h18M12 8v12M10 8V6h4v2"/></svg>COFRE</button>
     <button type="button" class="main" id="flyBtn" style="margin-top:8px;background:#c9a227;color:#1a1408;position:relative;z-index:6"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="6"/><path d="M8 8c0-3 8-3 8 0M6 13h12"/></svg>FARMEO DE TGOLD</button>
@@ -551,6 +551,7 @@
   <div id="duel">
     <button type="button" class="backTop" id="duelExitTop" onclick="window.goPick&&window.goPick();return false;">← SALIR</button>
     <h1 style="color:#ffe08a;text-align:center;margin:0;font-size:18px">Duelo 6×6</h1>
+    <button type="button" class="main" onclick="window.openDuelGuide&&window.openDuelGuide('66',true);return false;" style="margin:4px 10px 0;padding:6px;font-size:12px;background:#2a4a7a;color:#d6e6ff">GUÍA DUELO 6×6</button>
     <p class="muted" style="text-align:center;margin:6px 0">Rojo = ataque · si ganas, la carta es tuya<br>1 carta · Vs jugador 60 s · Máquina 30 s</p>
     <div id="rivalPick" style="display:flex;gap:6px;overflow:auto;padding:2px 8px 4px;min-height:32px"></div>
     <button class="main" id="pvpBtn" style="margin:0 10px 4px;padding:8px;background:#1a4f9c;color:#d6e8ff">VS JUGADOR · 1 min</button>
@@ -577,6 +578,7 @@
   <div id="duel3">
     <button type="button" class="backTop" onclick="event.preventDefault();window.goPick&&window.goPick();return false;">← SALIR</button>
     <p class="muted" style="text-align:center;margin:0 0 4px;font-size:11px">Mano solo tuya · partida 60 s</p>
+    <button type="button" class="main" onclick="window.openDuelGuide&&window.openDuelGuide('3',true);return false;" style="margin:0 10px 4px;padding:6px;font-size:12px;background:#2a4a7a;color:#d6e6ff">GUÍA DUELO 3</button>
     <div id="d3Clock" style="margin:0 8px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:32px;position:relative">
       <i id="d3Bar" style="display:block;height:32px;width:100%;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width .4s linear"></i>
       <b id="d3Txt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;text-shadow:0 1px 2px #000">60s</b>
@@ -912,6 +914,7 @@
       try { bgmStart("war"); } catch(e){}
       d3PaintPick();
       d3StartPickClock();
+      setTimeout(function(){ try { window.openDuelGuide && window.openDuelGuide("3", false); } catch(e){} }, 400);
     };
     function d3PaintPick(){
       var hand=document.getElementById("d3Hand");
@@ -2750,6 +2753,20 @@
       const wu = document.getElementById("walUsd"); if (wu) wu.textContent = "≈ $" + (pend*lastPx()).toFixed(6);
     }
     
+    const GUIDE_DUEL66 = [
+      { t:"Duelo 6×6", p:"Tablero de 36 casillas. Eliges 1 carta de tu mazo y la pones. No hace falta memorizar nada: la guía te dice el golpe.", point:"#guideNext" },
+      { t:"Tu mano", p:"Abajo están TUS cartas. Toca una para verla grande. Luego tócala en una casilla vacía de tu lado.", point:"#duelPick" },
+      { t:"Ataque", p:"Las piedras del marco = hacia dónde pega. Espada = 1 casilla, lanza = 2, arco = 3. Si pegas más que su ❤, la carta pasa a tu color.", point:"#board66" },
+      { t:"Turno", p:"Una carta por turno. Tienes barra de tiempo. Gana quien tenga más cartas al final. ¡A jugar!", point:"#guideNext" }
+    ];
+    const GUIDE_DUEL3 = [
+      { t:"Duelo 3", p:"Primero eliges 5 cartas de TU mazo. Tienes 60 segundos. La elegida se pone en MARCO ROJO.", point:"#d3Hand" },
+      { t:"LISTO", p:"Cuando tengas 5 (o las que quieras), toca LISTO · EMPEZAR. Si se acaba el tiempo, el juego completa tu mazo.", point:"#d3Ready" },
+      { t:"Salir al tapete", p:"Toca una de abajo: esa es tu carta en juego. No puedes cambiar hasta que su ❤ llegue a 0.", point:"#d3Hand" },
+      { t:"Atacar", p:"Toca tu carta grande o ⚔🗡🏹. Ella vuela y pega. Luego el rival pega. Si mueres, eliges la siguiente.", point:"#d3MeBox" },
+      { t:"Premio", p:"Ganas: +50 pts y +1 TGOLD. Pierdes: +12 pts. OTRA PARTIDA o SALIR. ¡A por ello!", point:"#guideNext" }
+    ];
+    let GUIDE_PACK = null;
     const GUIDE = [
       { t:"Bienvenido", p:"Toca el botón AMARILLO de abajo. Esa manita te va a señalar cada cosa.", point:"#guideNext", tab:null },
       { t:"Inicio", p:"Esta pestaña es tu casa: puntos, TGOLD y nivel. La manita señala INICIO.", point:"#navHome", tab:"home" },
@@ -2767,7 +2784,7 @@
     }
     function guidePoint(){
       const hand = document.getElementById("guideHand");
-      const g = GUIDE[guideI];
+      const g = (GUIDE_PACK || GUIDE)[guideI];
       guideClearGlow();
       if (!hand) return;
       const sel = g && g.point;
@@ -2789,18 +2806,19 @@
     window.paintGuide = function paintGuide(){
       try {
         if (guideI < 0) guideI = 0;
-        if (guideI >= GUIDE.length) guideI = GUIDE.length-1;
-        const g = GUIDE[guideI];
+        var PACK = GUIDE_PACK || GUIDE;
+        if (guideI >= PACK.length) guideI = PACK.length-1;
+        const g = PACK[guideI];
         const T = document.getElementById("guideT");
         const P = document.getElementById("guideP");
         const D = document.getElementById("guideDots");
         const N = document.getElementById("guideNext");
         const S = document.getElementById("guideStepN");
-        if (S) S.textContent = (guideI+1) + " / " + GUIDE.length;
+        if (S) S.textContent = (guideI+1) + " / " + PACK.length;
         if (T) T.textContent = g.t;
         if (P) P.textContent = g.p;
-        if (D) D.innerHTML = GUIDE.map((_,i)=>"<i class='"+(i===guideI?"on":"")+"'></i>").join("");
-        if (N) N.textContent = guideI===GUIDE.length-1 ? "¡ENTENDIDO!" : "SIGUIENTE  →";
+        if (D) D.innerHTML = PACK.map((_,i)=>"<i class='"+(i===guideI?"on":"")+"'></i>").join("");
+        if (N) N.textContent = guideI===PACK.length-1 ? "¡ENTENDIDO!" : "SIGUIENTE  →";
         if (g.tab && typeof showTab === "function") {
           try { showTab(g.tab); } catch(e) {}
         }
@@ -2809,8 +2827,19 @@
       } catch(e) { console.log("guide paint", e); }
     }
     window.openGuide = function openGuide(reset){
-      if (reset) guideI = 0;
+      if (reset) { guideI = 0; GUIDE_PACK = null; }
       const el = document.getElementById("guide");
+      if (!el) return;
+      el.classList.add("on");
+      el.style.display = "flex";
+      paintGuide();
+    }
+    window.openDuelGuide = function openDuelGuide(kind, force){
+      var key = kind==="3" ? "pg_g_d3" : "pg_g_d66";
+      if (!force && localStorage.getItem(key)==="1") return;
+      GUIDE_PACK = kind==="3" ? GUIDE_DUEL3 : GUIDE_DUEL66;
+      guideI = 0;
+      var el = document.getElementById("guide");
       if (!el) return;
       el.classList.add("on");
       el.style.display = "flex";
@@ -2823,10 +2852,16 @@
       if (hand) hand.style.display = "none";
       guideClearGlow();
       try { localStorage.setItem("pg_guide_v4","1"); } catch(e) {}
+      try {
+        if (GUIDE_PACK === GUIDE_DUEL3) localStorage.setItem("pg_g_d3","1");
+        if (GUIDE_PACK === GUIDE_DUEL66) localStorage.setItem("pg_g_d66","1");
+      } catch(e) {}
+      GUIDE_PACK = null;
     }
     window.guideNext = function guideNext(){
       try {
-        if (guideI >= GUIDE.length-1) { closeGuide(); return; }
+        var PACK = GUIDE_PACK || GUIDE;
+        if (guideI >= PACK.length-1) { closeGuide(); return; }
         guideI = guideI + 1;
         paintGuide();
       } catch(err) { console.log(err); alert("paso "+guideI); }
@@ -4403,7 +4438,7 @@
     document.getElementById("lootOk").onclick = function(){ window.closeLoot && window.closeLoot(); };
     var mineBackBtn = document.getElementById("mineBack") || document.getElementById("mineExitTop");
     if (mineBackBtn) mineBackBtn.onclick = function(){ window.goPick && window.goPick(); };
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); startMachineDuel(); };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); startMachineDuel(); setTimeout(function(){ try{ openDuelGuide("66", false); }catch(e){} }, 400); };
     window.duelLeaveEnd = function duelLeaveEnd(){
       const box=document.getElementById("duelEnd");
       if (box) box.style.display="none";
