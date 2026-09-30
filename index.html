@@ -785,7 +785,7 @@
 
   <div id="bonus">
     <h1 style="color:#ffe08a;text-align:center;margin:0">BONUS</h1>
-    <p class="muted" style="text-align:center;margin:4px 0 8px">Arrastra una ficha lila <b style="color:#c084fc">SOL</b> hacia otras 2 SOL<br>para hacer un grupo de 3. Llena la barra 8/8.</p>
+    <p class="muted" style="text-align:center;margin:4px 0 8px">Arrastra <b style="color:#c084fc">SOL</b> · también hay BNB · ETH · BTC · XRP · G</p>
     <div class="heroBan" style="padding:10px;text-align:center">
       <div id="crHud" style="display:flex;justify-content:space-between;font-weight:800;color:#ffe08a">
         <span>SOL <b id="crGot">0</b>/8</span>
@@ -2838,12 +2838,13 @@
     var CR_T = [
       {k:"sol", l:"SOL", bg:"linear-gradient(180deg,#7c3aed,#22c55e)"},
       {k:"bnb", l:"BNB", bg:"linear-gradient(180deg,#f59e0b,#b45309)"},
-      {k:"g", l:"G", bg:"linear-gradient(180deg,#fde68a,#b45309)"},
-      {k:"gem", l:"◆", bg:"linear-gradient(180deg,#38bdf8,#1d4ed8)"},
-      {k:"wd", l:"≡", bg:"linear-gradient(180deg,#a16207,#78350f)"}
+      {k:"g", l:"G", bg:"linear-gradient(180deg,#fde68a,#ca8a04)"},
+      {k:"eth", l:"ETH", bg:"linear-gradient(180deg,#818cf8,#1e3a8a)"},
+      {k:"btc", l:"BTC", bg:"linear-gradient(180deg,#fdba74,#c2410c)"},
+      {k:"xrp", l:"XRP", bg:"linear-gradient(180deg,#67e8f9,#0e7490)"}
     ];
     var cr = { n:6, g:[], moves:18, need:8, got:0, sel:null, busy:false, over:false };
-    function crNewCell(){ return { t: Math.floor(Math.random()*5), s:"" }; }
+    function crNewCell(){ return { t: Math.floor(Math.random()*CR_T.length), s:"" }; }
     function crAt(r,c){ return cr.g[r*cr.n+c]; }
     function crFillNoMatch(){
       cr.g = [];
