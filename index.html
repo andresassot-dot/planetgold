@@ -2049,10 +2049,14 @@
         homeBgm.play().catch(()=>{});
       }catch(e){}
     }
+    document.addEventListener("pointerdown", function pgHomeTap(){
+      try { if (document.getElementById("home") && document.getElementById("home").classList.contains("on")) homeBgmStart(); } catch(e) {}
+    }, {passive:true});
     function homeBgmStop(){
       try{ if(homeBgm){ homeBgm.pause(); } }catch(e){}
     }
     function showTab(name) {
+      try { if (name==="home") homeBgmStart(); else homeBgmStop(); } catch(e) {}
       ["home","pick","wallet","arena","packs","mercado","duel","ads","mine","cofre","mazo","vuelo"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("on", id === name);
