@@ -889,15 +889,15 @@
     window.startDuel3 = function startDuel3(){
       var mine = d3Pool(true).map(d3Unit);
       var foe = d3Pool(false).map(d3Unit);
-      d3.me = mine.slice(0,3);
-      d3.hand = mine.slice(3,7);
-      d3.deck = mine.slice(7);
+      d3.me = mine.slice(0,1);
+      d3.hand = mine.slice(1,5);
+      d3.deck = mine.slice(5);
       d3.en = foe.slice(0,3);
       d3.enHand = 4;
       d3.enDeck = Math.max(0, foe.length-3);
-      d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false;
+      d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false; d3.needPick=false;
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent = "Tu turno. Toca tu carta para atacar. 60 s.";
+      if (msg) msg.textContent = "Toca una de abajo para elegir la próxima. Toca la grande para atacar.";
       try { bgmStart("war"); } catch(e){}
       d3Paint();
       d3StartClock();
@@ -927,14 +927,25 @@
       }, 1000);
     }
     window.d3PlayHand = function d3PlayHand(i){
-      if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
-      var u = d3.hand[i]; if (!u) return;
-      if (d3.me.length>=3) { var msg=document.getElementById("d3Msg"); if(msg) msg.textContent="Banquillo lleno (2 + activa)."; return; }
-      d3.hand.splice(i,1);
-      d3.me.push(u);
+      if (d3.over || d3.busy || d3.turn!=="me") return;
+      var u = d3.hand[i]; if (!u || u.hp<=0) return;
+      var cur = d3.me[d3.mi];
+      if (d3.needPick || !cur || cur.hp<=0) {
+        d3.me[d3.mi] = u;
+        d3.hand.splice(i,1);
+        d3.needPick=false;
+        d3.acted=true;
+        var msg=document.getElementById("d3Msg");
+        if (msg) msg.textContent="Sale "+(d3Hero(u).name||"carta")+" · toca para atacar o ACABAR TURNO";
+        d3Paint();
+        return;
+      }
+      if (d3.acted) return;
+      d3.hand[i] = cur;
+      d3.me[d3.mi] = u;
       d3.acted=true;
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent="Sales "+(d3Hero(u).name||"carta")+" al banquillo. ACABAR TURNO.";
+      if (msg) msg.textContent="Próxima: "+(d3Hero(u).name||"carta")+" · ACABAR TURNO";
       d3Paint();
     };
     window.d3Switch = function d3Switch(i){
@@ -984,10 +995,16 @@
       setTimeout(function(){
         if (b.hp<=0) {
           try { sfx("fall"); } catch(e){}
-          if (d3Alive(to)<=0) return d3End(from==="me");
-          if (to==="en") d3.ei = d3Next("en", d3.ei);
-          else d3.mi = d3Next("me", d3.mi);
-          if (msg) msg.textContent = (hb.name||"Carta")+" cae.";
+          if (to==="en") {
+            if (d3Alive("en")<=0) return d3End(true);
+            d3.ei = d3Next("en", d3.ei);
+            if (msg) msg.textContent = (hb.name||"Carta")+" cae.";
+          } else {
+            var reserve = (d3.hand||[]).filter(function(u){ return u.hp>0; });
+            if (!reserve.length) return d3End(false);
+            d3.needPick = true;
+            if (msg) msg.textContent = (hb.name||"Carta")+" cae. Toca una de abajo para sacar la próxima.";
+          }
           d3Paint();
         }
         d3.busy = false;
