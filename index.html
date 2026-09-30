@@ -2912,23 +2912,29 @@
       cols.forEach(function(m){ for(var r=m.r0;r<=m.r1;r++) mark[r*cr.n+m.c]=Math.max(mark[r*cr.n+m.c], m.len>=5?5:m.len); });
       return { mark:mark, rows:rows, cols:cols };
     }
+    function crAt(r,c){ return cr.g[r*cr.n+c] || {t:-1,s:""}; }
     function crClearSpecials(idx){
       var cell = cr.g[idx]; if (!cell || !cell.s) return;
-      var r=Math.floor(idx/cr.n), c=idx%cr.n;
-      if (cell.s==="bomb"){
-        var t=cell.t;
-        for (var i=0;i<cr.g.length;i++) if (cr.g[i].t===t) cr.g[i]._kill=1;
-      } else if (cell.s==="h"){
-        for (var x=0;x<cr.n;x++) cr.g[r*cr.n+x]._kill=1;
-      } else if (cell.s==="v"){
-        for (var y=0;y<cr.n;y++) cr.g[y*cr.n+c]._kill=1;
-      }
+      var r=Math.floor(idx/cr.n), c=idx%cr.n, kind=cell.s, t=cell.t;
       cell.s="";
+      if (kind==="bomb"){
+        for (var i=0;i<cr.g.length;i++) if (cr.g[i] && cr.g[i].t===t) cr.g[i]._kill=1;
+      } else if (kind==="h"){
+        for (var x=0;x<cr.n;x++) if (cr.g[r*cr.n+x]) cr.g[r*cr.n+x]._kill=1;
+      } else if (kind==="v"){
+        for (var y=0;y<cr.n;y++) if (cr.g[y*cr.n+c]) cr.g[y*cr.n+c]._kill=1;
+      }
     }
     function crResolve(){
+      cr.g.forEach(function(c){ if(c){ delete c._kill; delete c._spec; }});
       var f = crFind();
       var any=false;
-      for (var i=0;i<f.mark.length;i++) if (f.mark[i]) { any=true; cr.g[i]._kill=1; if (cr.g[i].s) crClearSpecials(i); }
+      for (var i=0;i<f.mark.length;i++){
+        if (!f.mark[i] || !cr.g[i]) continue;
+        any=true;
+        cr.g[i]._kill=1;
+        if (cr.g[i].s && !cr.g[i]._new) crClearSpecials(i);
+      }
       if (!any) return false;
       var names=[];
       f.rows.concat(f.cols).forEach(function(m){
@@ -2938,29 +2944,29 @@
         else names.push(nm+" x"+m.len);
       });
       crSay(names.join(" · ") || "Grupo!");
-      try { sfx("hit"); } catch(e){}
-      var makeAt = cr.sel!=null ? cr.sel : f.mark.findIndex(function(v){return v>=4;});
+      try { sfx(names.join("").indexOf("BOMBA")>=0?"gol":"hit"); } catch(e){}
       f.rows.forEach(function(m){
         if (m.len>=4){
-          var ix = (cr.sel!=null && Math.floor(cr.sel/cr.n)===m.r) ? cr.sel : (m.r*cr.n+m.c0);
-          cr.g[ix]._spec = m.len>=5 ? "bomb" : "h";
-          cr.g[ix]._specT = m.t;
+          var ix = (cr.sel!=null && Math.floor(cr.sel/cr.n)===m.r && cr.sel>=m.r*cr.n+m.c0 && cr.sel<=m.r*cr.n+m.c1) ? cr.sel : (m.r*cr.n+Math.floor((m.c0+m.c1)/2));
+          if (cr.g[ix]) { cr.g[ix]._spec = m.len>=5 ? "bomb" : "h"; cr.g[ix]._specT = m.t; }
         }
         if (m.t===0) cr.got += m.len;
       });
       f.cols.forEach(function(m){
         if (m.len>=4){
-          var ix = (cr.sel!=null && cr.sel%cr.n===m.c) ? cr.sel : (m.r0*cr.n+m.c);
-          cr.g[ix]._spec = m.len>=5 ? "bomb" : "v";
-          cr.g[ix]._specT = m.t;
+          var ix = (cr.sel!=null && cr.sel%cr.n===m.c) ? cr.sel : (Math.floor((m.r0+m.r1)/2)*cr.n+m.c);
+          if (cr.g[ix]) { cr.g[ix]._spec = m.len>=5 ? "bomb" : "v"; cr.g[ix]._specT = m.t; }
         }
         if (m.t===0) cr.got += m.len;
       });
       for (var i=0;i<cr.g.length;i++){
+        if (!cr.g[i]) continue;
         if (cr.g[i]._spec){
-          cr.g[i] = { t: cr.g[i]._specT, s: cr.g[i]._spec };
+          cr.g[i] = { t: cr.g[i]._specT, s: cr.g[i]._spec, _new:1 };
         } else if (cr.g[i]._kill){
           cr.g[i] = null;
+        } else {
+          delete cr.g[i]._new;
         }
       }
       return true;
@@ -2972,10 +2978,25 @@
         for (var r=cr.n-1;r>=0;r--) cr.g[r*cr.n+c] = stack.shift() || crNewCell();
       }
     }
+    function crStep(){
+      try {
+        var did = crResolve();
+        if (did) crGravity();
+        cr.sel=null;
+        crPaint();
+        if (did && (cr._casc=(cr._casc||0)+1) < 5) {
+          setTimeout(crStep, 200);
+          return;
+        }
+      } catch(e) {}
+      cr._casc=0; cr.busy=false; cr.sel=null;
+      crWinCheck();
+    }
     function crPaint(){
       var box=document.getElementById("crGrid"); if (!box) return;
       if (!cr.g.length) crFillNoMatch();
       box.innerHTML = cr.g.map(function(cell,i){
+        if (!cell) cell = crNewCell();
         var meta=CR_T[cell.t]||CR_T[0];
         var cls = "t"+(cell.s==="bomb"?" bomb":(cell.s==="h"||cell.s==="v"?" stripe":""));
         var extra = cell.s==="bomb"?" ★BOMBA":(cell.s==="h"?" ↔RAYA":(cell.s==="v"?" ↕RAYA":""));
@@ -3033,14 +3054,6 @@
       }
       return false;
     }
-    function crStep(){
-      var loops=0;
-      while (crResolve() && loops++<8){ crGravity(); }
-      cr.sel=null;
-      crPaint();
-      crWinCheck();
-      cr.busy=false;
-    }
     function crBindDrag(){
       var box=document.getElementById("crGrid");
       if (!box || box._crDrag) return;
@@ -3080,20 +3093,20 @@
       if (Math.abs(ar-br)+Math.abs(ac-bc)!==1) { cr.sel=i; crPaint(); return; }
       var tmp=cr.g[a]; cr.g[a]=cr.g[b]; cr.g[b]=tmp;
       var f=crFind();
-      var spec = (cr.g[a].s || cr.g[b].s);
+      var spec = (cr.g[a]&&cr.g[a].s) || (cr.g[b]&&cr.g[b].s);
       if (!f.mark.some(Boolean) && !spec){
         tmp=cr.g[a]; cr.g[a]=cr.g[b]; cr.g[b]=tmp;
         cr.sel=null; crPaint();
         crSay("No hay 3 iguales. Prueba otra ficha.");
         return;
       }
-      if (spec){
-        if (cr.g[a].s) crClearSpecials(a);
-        if (cr.g[b].s) crClearSpecials(b);
-        for (var k=0;k<cr.g.length;k++) if (cr.g[k]._kill) { if (cr.g[k].t===0) cr.got++; cr.g[k]=null; }
+      if (spec && !f.mark.some(Boolean)){
+        if (cr.g[a]&&cr.g[a].s) crClearSpecials(a);
+        if (cr.g[b]&&cr.g[b].s) crClearSpecials(b);
+        for (var k=0;k<cr.g.length;k++) if (cr.g[k]&&cr.g[k]._kill) { if (cr.g[k].t===0) cr.got++; cr.g[k]=null; }
       }
       cr.moves--;
-      cr.busy=true;
+      cr.busy=true; cr._casc=0;
       setTimeout(crStep, 80);
     };
     window.crStart = function crStart(){
