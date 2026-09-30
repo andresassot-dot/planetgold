@@ -1695,6 +1695,25 @@
       }
       try { renderBoard(); } catch(e){}
     }
+    
+    async function pvpClose(why){
+      try {
+        await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { pvpLeave:true, matchId: window.pvpMatch && window.pvpMatch.id })) });
+      } catch(e){}
+      pvpStop();
+    }
+    function pvpPassOrEnd(){
+      window.pvpPasses = (window.pvpPasses||0)+1;
+      if (window.pvpPasses >= 2) {
+        pvpClose("afk");
+        endDuel(countSide("me")>=countSide("en"), "Rival ausente / tiempo");
+        return;
+      }
+      pvpMsg("Tiempo · pasa turno");
+      pvpPush(window.pvpRole==="a"?"b":"a");
+      const tx=document.getElementById("turnTxt");
+      if (tx) tx.textContent="TURNO RIVAL";
+    }
     async function pvpSeek(){
       window.pvpOn = true;
       window.pvpSeen = 0;
@@ -1717,7 +1736,7 @@
       return keys.includes(nickKey(pl.id)) || keys.includes(nickKey(pl.name));
     }
     function pvpJoin(m, role){
-      window.pvpOn=true; window.pvpMatch=m; window.pvpSeen=0; board=Array(36).fill(null);
+      window.pvpOn=true; window.pvpMatch=m; window.pvpSeen=0; window.pvpPasses=0; board=Array(36).fill(null);
       if (pvpIsMe(m.a)) window.pvpRole = "a";
       else if (pvpIsMe(m.b)) window.pvpRole = "b";
       else window.pvpRole = role || "b";
@@ -2846,7 +2865,7 @@
         turnSec--;
         const txt = document.getElementById("turnTxt");
         if (txt) txt.textContent = "TU TURNO  " + Math.max(0,turnSec) + "s";
-        if (turnSec<=0) { stopClock(); duelEnemyTurn(); }
+        if (turnSec<=0) { stopClock(); if (window.pvpOn) { pvpPassOrEnd(); } else { duelEnemyTurn(); } }
       }, 1000);
     }
     let selectedIdx = null;
@@ -2996,6 +3015,9 @@
     }
     function endDuel(win, why) {
       duelBusy = true;
+      const wasPvp = !!window.pvpOn;
+      window._pvpRematch = wasPvp;
+      if (wasPvp) { try { pvpClose(); } catch(e){} }
       try { bgmStop(); } catch(e) {}
       try { sfx(win ? "gol" : "hit"); } catch(e) {}
       const pts = Number(localStorage.getItem("pg_pts")||0);
@@ -3409,6 +3431,8 @@
     document.getElementById("duelEndOk").onclick = () => {
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false;
+      window._pvpRematch=false;
+      try { pvpClose(); } catch(e){}
       try { stopClock(); } catch(e) {}
       showTab("pick");
       renderGrid();
@@ -3416,8 +3440,15 @@
     const again=document.getElementById("duelEndAgain");
     if (again) again.onclick = () => {
       document.getElementById("duelEnd").style.display="none";
-      const db=document.getElementById("duelBtn");
-      if (db) db.click();
+      duelBusy=false;
+      if (window._pvpRematch) {
+        window._pvpRematch=false;
+        const pb=document.getElementById("pvpBtn");
+        if (pb) pb.click();
+        else pvpSeek();
+      } else {
+        startMachineDuel();
+      }
     };
     const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); duelEnemyTurn(); };
     document.getElementById("duelStart").onclick = () => {
