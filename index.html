@@ -214,7 +214,7 @@
     #duel3 { position:fixed; inset:0; z-index:55; background:radial-gradient(circle at 50% 28%, #6b3aa8 0%, #3a1860 50%, #160828 100%); display:none; flex-direction:column; padding:4px 4px 86px; overflow:auto; }
     #duel3.on { display:flex; }
     .d3wrap { display:flex; align-items:stretch; gap:4px; }
-    .d3table { flex:1; width:100%; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px 36px; min-height:330px; margin-bottom:6px; overflow:visible; display:flex; flex-direction:column; align-items:center; }
+    .d3table { flex:1; width:100%; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px 8px; min-height:280px; max-height:52vh; margin-bottom:4px; overflow:hidden; display:flex; flex-direction:column; align-items:center; }
     .d3handRow { display:flex; align-items:flex-end; gap:6px; margin-top:2px; position:relative; z-index:3; background:transparent; padding-top:4px; }
     .d3handRow .d3hand { flex:1; margin-top:0; }
     @keyframes d3flyUp { 0%{transform:translateY(0) scale(1)} 45%{transform:translateY(-78px) scale(1.08)} 70%{transform:translateY(-70px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
@@ -230,8 +230,8 @@
     .d3back { width:40px; height:54px; border-radius:5px; border:2px solid #5ad0ff; background:repeating-linear-gradient(135deg,#1a3a6a 0 6px,#0d2244 6px 12px); display:block; margin:0 auto 2px; box-shadow:0 6px 0 #0a1a30; }
     .d3vs { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; justify-content:center; width:100%; }
     .d3vs .bigc { text-align:center; }
-    .d3vs .bigc.en, .d3vs .bigc.me { width:48%; max-width:168px; position:relative; }
-    .d3vs .bigc img { width:100%; height:168px; object-fit:contain; object-position:center; border-radius:8px; background:#111; box-shadow:0 6px 14px #000; }
+    .d3vs .bigc.en, .d3vs .bigc.me { width:42%; max-width:132px; position:relative; }
+    .d3vs .bigc img { width:100%; height:118px; object-fit:contain; object-position:center; border-radius:8px; background:#111; box-shadow:0 6px 14px #000; }
     .d3vs .bigc.en img { border:2px solid #ff8aa0; }
     .d3vs .bigc.me img { border:2px solid #6ec8ff; }
     .d3hp { display:block; margin-top:4px; color:#ffe08a; font-size:14px; font-weight:800; text-shadow:0 1px 3px #000; }
@@ -849,16 +849,17 @@
       return from;
     }
     function d3Paint(){
-      var me = d3.me[d3.mi] || d3.me[0];
+      var me = (d3.me&&d3.me.length) ? (d3.me[d3.mi] || d3.me[0]) : null;
       var en = d3.en[d3.ei] || d3.en[0];
-      var mh = d3Hero(me), eh = d3Hero(en);
+      var mh = me ? d3Hero(me) : {};
+      var eh = d3Hero(en);
       var a=document.getElementById("d3MeImg"), b=document.getElementById("d3EnImg");
-      if (a) a.src = mh.img||"";
+      if (a) { a.src = mh.img||""; a.style.visibility = me ? "visible" : "hidden"; }
       if (b) b.src = eh.img||"";
-      var mn=document.getElementById("d3MeName"); if (mn) mn.textContent = mh.name||"Tú";
+      var mn=document.getElementById("d3MeName"); if (mn) mn.textContent = me ? (mh.name||"Tú") : "Elige carta";
       var enN=document.getElementById("d3EnName"); if (enN) enN.textContent = eh.name||"Rival";
       function atkLine(h){ var s=h.atk||{}; return "⚔"+(s.corta||0)+" 🗡"+(s.media||0)+" 🏹"+(s.larga||0); }
-      var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = "❤ "+(me?me.hp:0)+"/"+(me?me.max:0);
+      var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = me ? ("❤ "+me.hp+"/"+me.max) : "";
       var ehp=document.getElementById("d3EnHp"); if (ehp) ehp.textContent = "❤ "+(en?en.hp:0)+"/"+(en?en.max:0);
       var ma=document.getElementById("d3MeAtk"); if (ma) ma.textContent = "";
       var ea=document.getElementById("d3EnAtk"); if (ea) ea.textContent = "";
@@ -1005,21 +1006,22 @@
             d3.ei = d3Next("en", d3.ei);
             if (msg) msg.textContent = (hb.name||"Carta")+" cae.";
           } else {
+            d3.me = [];
+            d3.needPick = true;
             var reserve = (d3.hand||[]).filter(function(u){ return u.hp>0; });
             if (!reserve.length) return d3End(false);
-            d3.needPick = true;
-            if (msg) msg.textContent = (hb.name||"Carta")+" cae. Toca una de abajo para sacar la próxima.";
+            if (msg) msg.textContent = (hb.name||"Carta")+" KO. Elige la siguiente de abajo.";
           }
           d3Paint();
         }
         d3.busy = false;
+        if (d3.needPick) {
+          d3.turn="me"; d3.acted=false;
+          return;
+        }
         if (from==="en") {
           d3.turn="me"; d3.acted=false;
-          if (d3.hand.length<4 && d3.deck.length){
-            d3.hand.push(d3.deck.shift());
-            d3Paint();
-          }
-          if (msg) msg.textContent = "Tu turno. Toca tu carta o elige otra abajo.";
+          if (msg) msg.textContent = "Tu turno. Toca la grande para atacar.";
         } else {
           if (msg) msg.textContent = "Has atacado. Turno rival...";
           d3.turn="en";
