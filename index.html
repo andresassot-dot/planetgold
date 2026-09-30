@@ -569,9 +569,16 @@
 
   <div id="duel3">
     <button type="button" class="backTop" onclick="event.preventDefault();window.goPick&&window.goPick();return false;">← SALIR</button>
-    <p class="muted" style="text-align:center;margin:0 0 4px;font-size:11px">Mano solo tuya · 1 acción + ACABAR TURNO</p>
+    <p class="muted" style="text-align:center;margin:0 0 4px;font-size:11px">Mano solo tuya · partida 60 s</p>
+    <div id="d3Clock" style="margin:0 8px 6px;background:#0a0c14;border:2px solid #d4af37;border-radius:12px;overflow:hidden;height:32px;position:relative">
+      <i id="d3Bar" style="display:block;height:32px;width:100%;background:linear-gradient(90deg,#8a6a12,#d4af37,#ffe08a);transition:width .4s linear"></i>
+      <b id="d3Txt" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;text-shadow:0 1px 2px #000">60s</b>
+    </div>
     <div class="d3table">
-      <div class="d3top" id="d3EnBench"></div>
+      <div style="display:flex;align-items:flex-start;gap:6px;width:100%">
+        <div class="d3pile">RIVAL<div class="d3back"></div><span id="d3EnDeckN">0</span></div>
+        <div class="d3top" id="d3EnBench" style="flex:1"></div>
+      </div>
       <div class="d3vs">
         <div class="bigc en" id="d3EnBox"><img id="d3EnImg" alt=""><b id="d3EnName">Rival</b><span id="d3EnHp"></span></div>
         <div class="bigc me" id="d3MeBox"><img id="d3MeImg" alt="" onclick="window.d3Atk&&window.d3Atk(window.d3Kind||'corta')"><b id="d3MeName">Tú</b><span id="d3MeHp"></span></div>
@@ -580,7 +587,6 @@
     </div>
     <p class="muted" id="d3Msg" style="text-align:center;min-height:28px;margin:6px 0 4px">Tu mano</p>
     <div class="d3handRow">
-      <div class="d3pile">RIVAL<div class="d3back"></div><span id="d3EnDeckN">0</span></div>
       <div class="d3hand" id="d3Hand"></div>
       <div class="d3pile">TU MAZO<div class="d3back"></div><span id="d3MeDeckN">0</span></div>
     </div>
@@ -794,6 +800,7 @@
     window.goPick = function goPick(){
       try { if (window.pvpStop) pvpStop(); } catch(e){}
       try { if (window.bgmStop) bgmStop(); } catch(e){}
+      try { if (typeof d3StopClock==="function") d3StopClock(); } catch(e){}
       try { duelBusy=false; } catch(e){}
       var end=document.getElementById("duelEnd");
       if (end) end.style.display="none";
@@ -889,10 +896,35 @@
       d3.enDeck = Math.max(0, foe.length-3);
       d3.mi=0; d3.ei=0; d3.turn="me"; d3.busy=false; d3.acted=false; d3.over=false;
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent = "Tu turno. Ataca, cambia del banquillo o juega de la mano. Luego ACABAR TURNO.";
+      if (msg) msg.textContent = "Tu turno. Toca tu carta para atacar. 60 s.";
       try { bgmStart("war"); } catch(e){}
       d3Paint();
+      d3StartClock();
     };
+    var d3ClockT = null;
+    function d3StopClock(){ if (d3ClockT) { clearInterval(d3ClockT); d3ClockT=null; } }
+    function d3StartClock(){
+      d3StopClock();
+      d3.sec = 60;
+      function paint(){
+        var bar=document.getElementById("d3Bar");
+        var txt=document.getElementById("d3Txt");
+        if (bar) bar.style.width = Math.max(0, d3.sec/60*100) + "%";
+        if (txt) txt.textContent = (d3.turn==="me"?"TU TURNO ":"RIVAL ") + d3.sec + "s";
+      }
+      paint();
+      d3ClockT = setInterval(function(){
+        if (d3.over) { d3StopClock(); return; }
+        d3.sec -= 1;
+        paint();
+        if (d3.sec <= 0) {
+          d3StopClock();
+          var mh = d3.me.reduce(function(s,u){ return s+(u.hp>0?u.hp:0); },0);
+          var eh = d3.en.reduce(function(s,u){ return s+(u.hp>0?u.hp:0); },0);
+          d3End(mh>=eh);
+        }
+      }, 1000);
+    }
     window.d3PlayHand = function d3PlayHand(i){
       if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
       var u = d3.hand[i]; if (!u) return;
@@ -987,17 +1019,39 @@
       }
       d3Hit("en","me", kind);
     }
+    function d3Best(side){
+      var list = (d3[side]||[]).concat(d3.hand||[]);
+      var best=null, score=-1;
+      list.forEach(function(u){
+        var h=d3Hero(u); var st=h.atk||{};
+        var s=(h.hp||0)+(st.corta||0)+(st.media||0)+(st.larga||0);
+        if (s>score) { score=s; best=h; }
+      });
+      return best || {};
+    }
     function d3End(win){
-      d3.busy = true;
+      if (d3.over) return;
+      d3.over = true; d3.busy = true;
+      d3StopClock();
       try { bgmStop(); } catch(e){}
       try { sfx(win?"gol":"fall"); } catch(e){}
       var pts = Number(localStorage.getItem("pg_pts")||0) + (win?40:10);
       localStorage.setItem("pg_pts", pts);
       try { addXp(win?20:6); } catch(e){}
-      if (win) { try { grantTgold(0); } catch(e){} }
       var msg=document.getElementById("d3Msg");
       if (msg) msg.textContent = (win?"HAS GANADO":"HAS PERDIDO")+" · +"+(win?40:10)+" pts";
-      d3Paint();
+      var star = win ? d3Best("me") : d3Best("en");
+      var box=document.getElementById("duelEnd");
+      var tit=document.getElementById("duelEndTitle");
+      var img=document.getElementById("duelEndImg");
+      var nam=document.getElementById("duelEndName");
+      var txt=document.getElementById("duelEndTxt");
+      if (tit) tit.textContent = win ? "HAS GANADO" : "HAS PERDIDO";
+      if (img) img.src = star.img || "";
+      if (nam) nam.textContent = star.name || "";
+      if (txt) txt.textContent = win ? "Tu carta más fuerte" : "Carta más fuerte del rival";
+      if (box) { box.style.display="flex"; }
+      window.duelPlayAgain = function(){ box.style.display="none"; startDuel3(); };
     }
     window.duelLeaveEnd = function(){
       var box=document.getElementById("duelEnd");
