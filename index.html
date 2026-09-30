@@ -2951,12 +2951,17 @@
       const u = board[i]; if (!u) return {};
       const st = statsOf(u.id);
       const out = {};
-      Object.keys(rangeOf(i, u.who, u.id)).forEach(k => {
-        const t = Number(k);
-        if (!board[t] || board[t].who === u.who) return;
-        const hit = rangeOf(i, u.who, u.id)[t];
-        const raw = (st.atk[hit.kind]||0) + atkMod(u.who, i%6) + synBonus(u.who).extra;
-        out[t] = { dir:hit.dir, kind:hit.kind, dmg: Math.max(1, raw) };
+      const faces = (u.who==="me") ? ["me","en"] : [u.who];
+      faces.forEach(face => {
+        const rng = rangeOf(i, face, u.id);
+        Object.keys(rng).forEach(k => {
+          const t = Number(k);
+          if (!board[t] || board[t].who === u.who) return;
+          const hit = rng[t];
+          const raw = (st.atk[hit.kind]||0) + atkMod(u.who, i%6) + synBonus(u.who).extra;
+          const dmg = Math.max(1, raw);
+          if (!out[t] || out[t].dmg < dmg) out[t] = { dir:hit.dir, kind:hit.kind, dmg };
+        });
       });
       return out;
     }
@@ -3013,12 +3018,13 @@
         f.className = "floater"; f.textContent = hit.dmg + ">" + (board[to].hp||0);
         cell.appendChild(f);
       }
-      const oldHp = board[to].hp||0;
-      board[to].hp = Math.max(0, oldHp - (hit.dmg||0));
-      if (hit.dmg >= oldHp) {
+      const oldHp = Number(board[to].hp||0);
+      const dmg = Number(hit.dmg||1);
+      board[to].hp = Math.max(0, oldHp - dmg);
+      if (dmg >= oldHp || board[to].hp <= 0) {
         board[to].who = board[from].who;
         board[to].flipAt = Date.now();
-        board[to].hp = Math.max(1, oldHp);
+        board[to].hp = Math.max(1, (statsOf(board[to].id).hp||oldHp));
         if (cell) {
           cell.classList.remove("blue","red","fall","flip");
           cell.classList.add(board[to].who==="me"?"blue":"red", "flip");
@@ -3037,7 +3043,7 @@
       return rangeOf(i, "me", h.id);
     }
     function resolvePlace(from) {
-      if (parley) return 0;
+      if (parley && !window.pvpOn) return 0;
       const hits = targetsOf(from);
       let n = 0;
       Object.keys(hits).forEach(k => {
