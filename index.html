@@ -1661,6 +1661,10 @@
     }
     async function pvpSeek(){
       window.pvpOn = true;
+      window.pvpSeen = 0;
+      window.pvpMatch = null;
+      board = Array(36).fill(null);
+      try { renderBoard(); } catch(e){}
       pvpMsg("Buscando jugador…");
       try {
         const r = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(Object.assign({}, myProfile(), { pvpSeek:true })) });
@@ -1677,7 +1681,7 @@
       return keys.includes(nickKey(pl.id)) || keys.includes(nickKey(pl.name));
     }
     function pvpJoin(m, role){
-      window.pvpOn=true; window.pvpMatch=m; window.pvpSeen=0;
+      window.pvpOn=true; window.pvpMatch=m; window.pvpSeen=0; board=Array(36).fill(null);
       if (pvpIsMe(m.a)) window.pvpRole = "a";
       else if (pvpIsMe(m.b)) window.pvpRole = "b";
       else window.pvpRole = role || "b";
@@ -3094,6 +3098,29 @@
         };
       });
     }
+    
+    function coinFirst(){ return Math.random() < 0.5; }
+    function startMachineDuel(){
+      window.pvpOn=false; pvpStop();
+      board=Array(36).fill(null);
+      dealHand();
+      placedTurn=false;
+      selectedCard=null; selectedIdx=null; previewIdx=null; targets={};
+      falls={me:0,en:0}; turnN=1; parley=false;
+      fxMe=[]; fxEn=[]; selectedFx=null;
+      document.getElementById("duelEnd").style.display="none";
+      duelBusy=false;
+      renderFx(); renderBoard(); renderDuelPick();
+      try { renderFxPick(); } catch(e){}
+      const aiFirst = coinFirst();
+      if (aiFirst) {
+        document.getElementById("duelMsg").textContent = "Suerte: empieza la Máquina.";
+        setTimeout(() => { try { duelEnemyTurn(); } catch(e){} }, 400);
+      } else {
+        document.getElementById("duelMsg").textContent = "Suerte: empiezas tú · 30s, 1 carta.";
+        startMyClock();
+      }
+    }
     function spawnAI() {
       let pool = [];
       (duelRival.deck||[]).forEach(id => {
@@ -3330,7 +3357,7 @@
     document.getElementById("cofreBack").onclick = () => showTab("pick");
     document.getElementById("lootOk").onclick = () => { document.getElementById("lootPop").classList.remove("on"); showTab("cofre"); };
     document.getElementById("mineBack").onclick = () => showTab("pick");
-    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); document.getElementById("duelEnd").style.display="none"; duelBusy=false; board=Array(36).fill(null); dealHand(); placedTurn=false; spawnAI(); selectedCard=null; selectedIdx=null; targets={}; falls={me:0,en:0}; turnN=1; renderFx(); renderBoard(); renderDuelPick(); startMyClock(); document.getElementById("duelMsg").textContent="Vs "+(duelRival.name||"Maquina")+" · 30s: 1 carta y ataca."; };
+    document.getElementById("duelBtn").onclick = () => { showTab("duel"); try{bgmStart("war");}catch(e){} renderRivalPick(); startMachineDuel(); };
     document.getElementById("duelEndOk").onclick = () => {
       document.getElementById("duelEnd").style.display="none";
       duelBusy=false;
@@ -3346,12 +3373,7 @@
     };
     const rg=document.getElementById("rivalGo"); if(rg) rg.onclick=()=>{ stopClock(); duelEnemyTurn(); };
     document.getElementById("duelStart").onclick = () => {
-      document.getElementById("duelEnd").style.display="none"; duelBusy=false;
-      board = Array(36).fill(null); dealHand(); placedTurn=false; spawnAI();
-      selectedCard = null; selectedIdx=null; previewIdx=null; targets={}; falls = {me:0,en:0}; turnN = 1; parley = true;
-      fxMe=[]; fxEn=[]; selectedFx=null;
-      document.getElementById("duelMsg").textContent = "Tienes 30s: 1 carta y ataca.";
-      renderFx(); renderBoard(); renderDuelPick(); renderFxPick(); startMyClock();
+      startMachineDuel();
     };
     document.getElementById("duelNext").onclick = () => { turnN++; document.getElementById("duelMsg").textContent = "Turno " + turnN + "/12"; };
 
