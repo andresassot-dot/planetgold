@@ -214,8 +214,8 @@
     #duel3 { position:fixed; inset:0; z-index:55; background:#12081a; display:none; flex-direction:column; padding:4px 4px 86px; overflow:auto; }
     #duel3.on { display:flex; }
     .d3wrap { display:flex; align-items:stretch; gap:4px; }
-    .d3table { flex:1; width:100%; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px; min-height:360px; display:flex; flex-direction:column; align-items:center; }
-    .d3handRow { display:flex; align-items:flex-end; gap:6px; margin-top:6px; }
+    .d3table { flex:1; width:100%; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px 8px; min-height:330px; margin-bottom:6px; overflow:hidden; display:flex; flex-direction:column; align-items:center; }
+    .d3handRow { display:flex; align-items:flex-end; gap:6px; margin-top:2px; position:relative; z-index:3; background:#12081a; padding-top:4px; }
     .d3handRow .d3hand { flex:1; margin-top:0; }
     @keyframes d3flyUp { 0%{transform:translateY(0) scale(1)} 45%{transform:translateY(-78px) scale(1.08)} 70%{transform:translateY(-70px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
     @keyframes d3flyDown { 0%{transform:translateY(0) scale(1)} 45%{transform:translateY(78px) scale(1.08)} 70%{transform:translateY(70px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
@@ -224,7 +224,8 @@
     .d3vs .bigc.en.fly img { animation:d3flyDown .55s ease; z-index:8; position:relative; }
     .d3vs .bigc.hit img { animation:d3hit .35s ease; }
     .d3top { display:flex; justify-content:center; gap:6px; min-height:70px; width:100%; padding:4px; border:2px solid rgba(255,120,160,.45); border-radius:8px; background:rgba(40,10,40,.25); }
-    .d3bot { display:flex; justify-content:center; gap:6px; min-height:64px; width:92%; margin-top:4px; padding:4px; border:2px solid rgba(80,160,255,.4); border-radius:8px; background:rgba(10,20,50,.25); }
+    .d3bot { display:flex; justify-content:center; gap:6px; min-height:40px; width:100%; margin:2px 0 0; padding:0; border:0; background:transparent; }
+    .d3bot .d3card img { width:40px; height:54px; }
     .d3pile { width:46px; flex:0 0 46px; text-align:center; color:#ffe08a; font-size:10px; font-weight:800; display:flex; flex-direction:column; justify-content:space-between; padding:8px 0; }
     .d3back { width:40px; height:54px; border-radius:5px; border:2px solid #5ad0ff; background:repeating-linear-gradient(135deg,#1a3a6a 0 6px,#0d2244 6px 12px); display:block; margin:0 auto 2px; box-shadow:0 6px 0 #0a1a30; }
     .d3vs { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; justify-content:center; width:100%; }
@@ -583,7 +584,7 @@
         <div class="bigc en" id="d3EnBox"><img id="d3EnImg" alt=""><b id="d3EnName">Rival</b><span id="d3EnHp"></span></div>
         <div class="bigc me" id="d3MeBox"><img id="d3MeImg" alt="" onclick="window.d3Atk&&window.d3Atk(window.d3Kind||'corta')"><b id="d3MeName">Tú</b><span id="d3MeHp"></span></div>
       </div>
-      <div class="d3bot" id="d3MeBench"></div>
+      <div class="d3bot" id="d3MeBench" title="Banquillo: toca para salir"></div>
     </div>
     <p class="muted" id="d3Msg" style="text-align:center;min-height:28px;margin:6px 0 4px">Tu mano</p>
     <div class="d3handRow">
