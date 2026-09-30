@@ -214,7 +214,15 @@
     #duel3 { position:fixed; inset:0; z-index:55; background:#12081a; display:none; flex-direction:column; padding:4px 4px 86px; overflow:auto; }
     #duel3.on { display:flex; }
     .d3wrap { display:flex; align-items:stretch; gap:4px; }
-    .d3table { flex:1; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px; min-height:318px; display:flex; flex-direction:column; align-items:center; }
+    .d3table { flex:1; width:100%; background:radial-gradient(circle at 50% 40%, #6b3aa8 0%, #4a2378 45%, #2a1450 100%); border:2px solid rgba(255,180,220,.35); border-radius:12px; padding:6px 4px; min-height:360px; display:flex; flex-direction:column; align-items:center; }
+    .d3handRow { display:flex; align-items:flex-end; gap:6px; margin-top:6px; }
+    .d3handRow .d3hand { flex:1; margin-top:0; }
+    @keyframes d3flyUp { 0%{transform:translateY(0) scale(1)} 45%{transform:translateY(-78px) scale(1.08)} 70%{transform:translateY(-70px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
+    @keyframes d3flyDown { 0%{transform:translateY(0) scale(1)} 45%{transform:translateY(78px) scale(1.08)} 70%{transform:translateY(70px) scale(1.02)} 100%{transform:translateY(0) scale(1)} }
+    @keyframes d3hit { 0%,100%{filter:none} 40%{filter:brightness(1.6) saturate(1.4)} }
+    .d3vs .bigc.me.fly img { animation:d3flyUp .55s ease; z-index:8; position:relative; }
+    .d3vs .bigc.en.fly img { animation:d3flyDown .55s ease; z-index:8; position:relative; }
+    .d3vs .bigc.hit img { animation:d3hit .35s ease; }
     .d3top { display:flex; justify-content:center; gap:6px; min-height:70px; width:100%; padding:4px; border:2px solid rgba(255,120,160,.45); border-radius:8px; background:rgba(40,10,40,.25); }
     .d3bot { display:flex; justify-content:center; gap:6px; min-height:64px; width:92%; margin-top:4px; padding:4px; border:2px solid rgba(80,160,255,.4); border-radius:8px; background:rgba(10,20,50,.25); }
     .d3pile { width:46px; flex:0 0 46px; text-align:center; color:#ffe08a; font-size:10px; font-weight:800; display:flex; flex-direction:column; justify-content:space-between; padding:8px 0; }
@@ -562,20 +570,20 @@
   <div id="duel3">
     <button type="button" class="backTop" onclick="event.preventDefault();window.goPick&&window.goPick();return false;">← SALIR</button>
     <p class="muted" style="text-align:center;margin:0 0 4px;font-size:11px">Mano solo tuya · 1 acción + ACABAR TURNO</p>
-    <div class="d3wrap">
-      <div class="d3pile">MAZO RIVAL<div class="d3back"></div><span id="d3EnDeckN">0</span></div>
-      <div class="d3table">
-        <div class="d3top" id="d3EnBench"></div>
-        <div class="d3vs">
-          <div class="bigc en"><img id="d3EnImg" alt=""><b id="d3EnName">Rival</b><span id="d3EnHp"></span></div>
-          <div class="bigc me"><img id="d3MeImg" alt=""><b id="d3MeName">Tú</b><span id="d3MeHp"></span></div>
-        </div>
-        <div class="d3bot" id="d3MeBench"></div>
+    <div class="d3table">
+      <div class="d3top" id="d3EnBench"></div>
+      <div class="d3vs">
+        <div class="bigc en" id="d3EnBox"><img id="d3EnImg" alt=""><b id="d3EnName">Rival</b><span id="d3EnHp"></span></div>
+        <div class="bigc me" id="d3MeBox"><img id="d3MeImg" alt="" onclick="window.d3Atk&&window.d3Atk(window.d3Kind||'corta')"><b id="d3MeName">Tú</b><span id="d3MeHp"></span></div>
       </div>
-      <div class="d3pile">TU MAZO<div class="d3back"></div><span id="d3MeDeckN">0</span></div>
+      <div class="d3bot" id="d3MeBench"></div>
     </div>
     <p class="muted" id="d3Msg" style="text-align:center;min-height:28px;margin:6px 0 4px">Tu mano</p>
-    <div class="d3hand" id="d3Hand"></div>
+    <div class="d3handRow">
+      <div class="d3pile">RIVAL<div class="d3back"></div><span id="d3EnDeckN">0</span></div>
+      <div class="d3hand" id="d3Hand"></div>
+      <div class="d3pile">TU MAZO<div class="d3back"></div><span id="d3MeDeckN">0</span></div>
+    </div>
     <div class="d3acts">
       <button type="button" class="main" onclick="window.d3Atk&&window.d3Atk('corta')">⚔</button>
       <button type="button" class="main" onclick="window.d3Atk&&window.d3Atk('media')">🗡</button>
@@ -906,9 +914,11 @@
       if (msg) msg.textContent = "Activa: "+(d3Hero(d3.me[i]).name||"carta")+" · ACABAR TURNO";
       d3Paint();
     };
+    window.d3Kind = "corta";
     window.d3Atk = function d3Atk(kind){
+      if (kind) window.d3Kind = kind;
       if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
-      d3Hit("me","en", kind, false);
+      d3Hit("me","en", window.d3Kind||kind||"corta");
     };
     window.d3EndTurn = function d3EndTurn(){
       if (d3.over || d3.busy || d3.turn!=="me") return;
@@ -925,12 +935,19 @@
       var ha = d3Hero(a), hb = d3Hero(b);
       var st = ha.atk || {corta:3,media:3,larga:3};
       var dmg = Math.max(1, Number(st[kind]||3));
-      b.hp = Math.max(0, b.hp - dmg);
-      try { sfx("hit"); } catch(e){}
+      var atkBox = document.getElementById(from==="me"?"d3MeBox":"d3EnBox");
+      var hitBox = document.getElementById(to==="me"?"d3MeBox":"d3EnBox");
+      if (atkBox) { atkBox.classList.remove("fly"); void atkBox.offsetWidth; atkBox.classList.add("fly"); }
+      setTimeout(function(){ if (hitBox) { hitBox.classList.remove("hit"); void hitBox.offsetWidth; hitBox.classList.add("hit"); } try{sfx("hit");}catch(e){} }, 280);
       var msg=document.getElementById("d3Msg");
-      if (msg) msg.textContent = (ha.name||"?")+" pega "+kind+" "+dmg+" a "+(hb.name||"?");
+      if (msg) msg.textContent = (ha.name||"?")+" vuela y pega "+kind+" "+dmg;
       if (from==="me") d3.acted = true;
-      d3Paint();
+      setTimeout(function(){
+        b.hp = Math.max(0, b.hp - dmg);
+        if (atkBox) atkBox.classList.remove("fly");
+        if (hitBox) hitBox.classList.remove("hit");
+        d3Paint();
+      }, 560);
       setTimeout(function(){
         if (b.hp<=0) {
           try { sfx("fall"); } catch(e){}
@@ -949,7 +966,7 @@
           }
           if (msg) msg.textContent = "Tu turno. 1 acción y ACABAR TURNO.";
         } else if (msg) msg.textContent = "Has atacado. Pulsa ACABAR TURNO.";
-      }, 450);
+      }, 620);
     }
     function d3Enemy(){
       if (d3.over || d3.busy) return;
