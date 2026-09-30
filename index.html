@@ -519,7 +519,7 @@
     <div id="liveMine" style="margin:8px 0 12px;padding:12px;border:1px solid #d4af37;border-radius:14px;background:#0e1410;text-align:center">
       <div style="color:#ffe08a;font-weight:800;margin-bottom:6px">BOSQUE 1</div>
       <p class="muted" id="liveVeinTxt">Entra al bosque: camina, pica árboles y pelea al slime.</p>
-      <button class="main" id="livePico" style="margin-top:8px;background:#2d6a4f;color:#e8ffe8">ENTRAR AL BOSQUE</button>
+      <button class="main" id="livePico" type="button" onclick="openMinePlay()" style="margin-top:8px;background:#2d6a4f;color:#e8ffe8">JUGAR BOSQUE</button>
     </div>
     <div class="orebag" id="oreBag"></div>
     <div id="mineBonus" class="muted" style="text-align:center;margin:0 0 10px"></div>
@@ -701,21 +701,6 @@
     <div class="mazoGrid" id="mazoGrid"></div>
   </div>
   
-  <div id="minePlay" style="display:none;position:fixed;inset:0;z-index:40;background:#0b1610;flex-direction:column;padding:8px 10px 96px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <b style="color:#ffe08a">BOSQUE 1</b>
-      <span class="muted" id="minePlayPico">Pico 12/12</span>
-      <button type="button" id="minePlayX" style="background:#2a3146;color:#ffe08a;border:0;border-radius:8px;padding:6px 10px">SALIR</button>
-    </div>
-    <div id="mineStage" style="position:relative;flex:1;margin:8px 0;border:2px solid #d4af37;border-radius:12px;background:#16351c;overflow:hidden;min-height:280px"></div>
-    <p class="muted" id="minePlayMsg" style="text-align:center;margin:4px 0">Toca una casilla de al lado</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-      <button class="main" id="mpPicar" style="background:#2d6a4f;color:#e8ffe8">PICAR</button>
-      <button class="main" id="mpAtk" style="background:#6b2a2a;color:#ffd0d0">ATACAR</button>
-      <button class="main" id="mpSalir" style="background:#2a3146;color:#ffe08a">SALIR</button>
-    </div>
-  </div>
-
   <nav id="nav">
     <button data-tab="home" class="on"><svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>Inicio</button>
     <button data-tab="pick"><svg viewBox="0 0 24 24"><path d="M21 6H3a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM11 13H8v2H6v-2H3v-2h3V9h2v2h3v2zm4.5 2A1.5 1.5 0 1 1 17 13.5 1.5 1.5 0 0 1 15.5 15zm4-3A1.5 1.5 0 1 1 21 10.5 1.5 1.5 0 0 1 19.5 12z"/></svg>Jugar</button>
@@ -725,6 +710,22 @@
     <button data-tab="mercado"><svg viewBox="0 0 24 24"><path d="M5 9.2h3.2V19H5V9.2zm5.4-4.2H14V19h-3.6V5zm5.4 8H22V19h-3.6v-6z"/></svg>Mercado</button>
     <button data-tab="wallet"><svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-1.2 7.2a1.3 1.3 0 1 1 1.3-1.3 1.3 1.3 0 0 1-1.3 1.3zM4 4h15v2H4z"/></svg>Wallet</button>
   </nav>
+<div id="minePlay" style="display:none;position:fixed;left:0;top:0;right:0;bottom:0;width:100%;height:100%;z-index:200;background:#0b1610;flex-direction:column;padding:10px 10px 16px;box-sizing:border-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b style="color:#ffe08a">BOSQUE 1</b>
+      <span class="muted" id="minePlayPico">Pico 12/12</span>
+      <button type="button" id="minePlayX" style="background:#2a3146;color:#ffe08a;border:0;border-radius:8px;padding:6px 10px">SALIR</button>
+    </div>
+    <div id="mineStage" style="position:relative;flex:1;margin:8px 0;border:2px solid #d4af37;border-radius:12px;background:#16351c;overflow:hidden;min-height:58vh;height:58vh"></div>
+    <p class="muted" id="minePlayMsg" style="text-align:center;margin:4px 0">Toca una casilla de al lado</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      <button class="main" id="mpPicar" style="background:#2d6a4f;color:#e8ffe8">PICAR</button>
+      <button class="main" id="mpAtk" style="background:#6b2a2a;color:#ffd0d0">ATACAR</button>
+      <button class="main" id="mpSalir" style="background:#2a3146;color:#ffe08a">SALIR</button>
+    </div>
+  </div>
+
+  
   <script>
 
     function beep(type) {
@@ -1264,9 +1265,9 @@
         paintLiveMine();
       });
       const lv=document.getElementById("liveVein");
-      const lp=document.getElementById("livePico");
       if (lv) lv.onclick = swingLive;
-      if (lp) lp.onclick = swingLive;
+      const lp=document.getElementById("livePico");
+      if (lp) lp.onclick = () => openMinePlay();
       const la=document.getElementById("liveAtk");
       if (la) la.onclick = atkLive;
       const lb=document.getElementById("liveBag");
@@ -1328,14 +1329,22 @@
     
     function openMinePlay(){
       const box=document.getElementById("minePlay");
-      if (!box) return;
+      if (!box) { alert("Bosque no encontrado"); return; }
       box.style.display="flex";
-      paintStage();
+      box.style.zIndex="200";
+      const nav=document.getElementById("nav");
+      if (nav) nav.style.display="none";
+      requestAnimationFrame(()=>{ try{ paintStage(); }catch(e){ console.log(e); } });
     }
+    window.openMinePlay = openMinePlay;
+    window.closeMinePlay = closeMinePlay;
     function closeMinePlay(){
       const box=document.getElementById("minePlay");
       if (box) box.style.display="none";
+      const nav=document.getElementById("nav");
+      if (nav) nav.style.display="";
     }
+    window.closeMinePlay = closeMinePlay;
     function paintLiveMine(){
       const tx=document.getElementById("liveVeinTxt");
       if (tx) tx.textContent="Entra al bosque: camina, pica y pelea.";
