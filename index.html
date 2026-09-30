@@ -1763,7 +1763,15 @@
         const r = await fetch("/api/rank", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
         const j = await r.json();
         if (!window.pvpMatch && j.pvp && j.pvp.id) { pvpJoin(j.pvp, j.pvpRole); return; }
-        if (!j.pvp) { if (!j.pvpWait) pvpMsg("Buscando…"); return; }
+        if (!j.pvp) {
+          if (window.pvpMatch) { pvpMsg("Reconectando…"); return; }
+          if (!j.pvpWait) pvpMsg("Buscando…");
+          return;
+        }
+        if (window.pvpMatch && j.pvp.id && window.pvpMatch.id !== j.pvp.id && (board||[]).filter(Boolean).length>0) {
+          pvpMsg("Partida en curso");
+          return;
+        }
         if (window.pvpMatch && j.pvp.id && window.pvpMatch.id !== j.pvp.id) {
           window.pvpSeen = 0;
           window.pvpPasses = 0;
@@ -1903,12 +1911,9 @@
     }
     
     const GUIDE = [
-      { t:"Planet Gold", p:"Ganas puntos jugando y minando. Con 20.000 pts puedes cambiar a 10 TGOLD. La energía se usa en duelos y se recarga sola." },
-      { t:"Duelo 6×6", p:"Cada turno pones 1 carta. Primero toca la carta, luego una casilla: ves a dónde ataca. Toca otra vez para confirmar." },
-      { t:"Cómo ganar", p:"Si tu ataque es mayor que la vida del rival, la carta cambia de dueño. Gana quien tiene más cartas al final." },
-      { t:"Minería", p:"En Minería picas vetas (madera, oro, platino…). No gasta energía de duelo. Con esos materiales forjas espadas y reliquias." },
-      { t:"Sobres y mazo", p:"En Jugar abres sobres. 3 copias iguales = holográfica. En MAZO ves tu colección. Solo juegas con las cartas que tienes." },
-      { t:"Mercado y Ads", p:"En Ranking ves a otros jugadores. En Ads ganas +1 energía visitando anuncios. En Wallet cobras TGOLD a tu Solana." }
+      { t:"⚡ Energía", p:"Se gasta en duelo y farmeo TGOLD. Se recarga sola. En Ads ganas +1." },
+      { t:"🃏 Duelo", p:"Rojo = ataque. Si tu golpe gana, la carta pasa a tu color. Máquina o VS jugador." },
+      { t:"👜 Wallet", p:"Los TGOLD del juego se cobran a tu Solana. Tope 25 al día de farmeo." }
     ];
     let guideI = 0;
     window.paintGuide = function paintGuide(){
