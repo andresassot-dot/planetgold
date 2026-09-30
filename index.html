@@ -892,6 +892,13 @@
     }
     function rankOf(id) { return Number(localStorage.getItem("pg_rk_"+id)||0); }
     function dustOf(id) { return Number(localStorage.getItem("pg_du_"+id)||0); }
+    function fuseLabel(h){
+      const du = dustOf(h.id);
+      if (h.legend) return "Leyenda";
+      if (h.holo) return "Holo · " + du + "/3 → Leyenda";
+      if (h.fusesTo) return du + "/3 → Holo";
+      return (RANKS[rankOf(h.id)]||"Bronce") + " · " + du + "/3";
+    }
     function addDust(id) {
       const card = HEROES.find(x => x.id === id) || {};
       let r = rankOf(id), d = dustOf(id) + 1;
@@ -3187,7 +3194,7 @@
       const r = rankOf(h.id);
       document.getElementById("zoomImg").src = h.img;
       document.getElementById("zoomName").textContent = h.name;
-      document.getElementById("zoomRank").textContent = (RANKS[r]||"Bronce") + " · " + dustOf(h.id) + "/3 · " + h.role;
+      document.getElementById("zoomRank").textContent = fuseLabel(h) + " · " + (h.role||"");
       const gb = gearBonus();
       document.getElementById("zoomStats").innerHTML =
         "Vida <b>"+hp+"</b>"+(gb.hp?" <small>+"+gb.hp+" forja</small>":"")+"<br>Corta <b>"+st.corta+"</b>"+(gb.corta?" +"+gb.corta:"")+" · Media <b>"+st.media+"</b>"+(gb.media?" +"+gb.media:"")+" · Larga <b>"+(st.larga===11?"S":st.larga)+"</b>"+(gb.larga?" +"+gb.larga:"")+(h.pet?"<br>Mascota: "+h.pet:"");
@@ -3224,11 +3231,10 @@
     HEROES.filter(h => deckFilter==="holo" ? (!!h.holo && !h.legend) : deckFilter==="leyendas" ? !!h.legend : (deckFilter==="all" || h.deck===deckFilter || (deckFilter==="mascotas" && (h.deck==="mascotas"||h.deck==="monturas")))).forEach(h => {
         const el = document.createElement("div");
         el.className = "card" + (h.id === (hero&&hero.id) ? " on" : "") + (h.holo ? " holoCard" : "");
-        const rk = h.holo ? "Holo" : (RANKS[rankOf(h.id)] || "Bronce");
         const du = dustOf(h.id);
-        const lock = h.holo && du<=0 && rankOf(h.id)<=0;
+        const lock = (h.holo || h.legend) && du<=0 && rankOf(h.id)<=0;
         el.style.opacity = lock ? "0.72" : "1";
-        el.innerHTML = `<div class="art">${imgTag(h.img,'alt="'+h.name+'"')}</div><b>${h.name}</b><small>${lock ? "fusiona 3 copias" : (h.role + " · " + rk + " · " + du + "/3")}</small>`;
+        el.innerHTML = `<div class="art">${imgTag(h.img,'alt="'+h.name+'"')}</div><b>${h.name}</b><small>${lock ? (h.legend ? "fusiona 3 holos" : "fusiona 3 copias") : fuseLabel(h)}</small>`;
         el.onclick = () => { openZoom(h); };
         grid.appendChild(el);
       });
