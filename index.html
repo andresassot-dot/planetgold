@@ -672,7 +672,7 @@
   </div>
   <div id="packs">
     <h1 style="color:#ffe08a;text-align:center">Sobres</h1>
-    <p class="muted" style="text-align:center">2 cofres al día. 3 cartas: común, rara… la última puede ser holo.</p>
+    <p class="muted" style="text-align:center">2 cofres al día. 3 cartas normales. Muy de vez en cuando, la última es holo.</p>
     <div class="chestLid" id="packBox">COFRE GOLD<small>TGOLD</small></div>
     <div class="chestRow" id="chestRow">
       <div class="chestSlot" id="cs0">?</div>
@@ -3692,20 +3692,15 @@
       localStorage.setItem("pg_packDay", day);
       localStorage.setItem("pg_packN", String(used+1));
       function pull(kind){
-        let pool = HEROES.filter(x => x && x.img);
-        if (kind==="holo") pool = HEROES.filter(x => x.holo || x.evo || String(x.id).includes("holo"));
-        else if (kind==="ultra") pool = HEROES.filter(x => x.rare==="ultra" || x.rare==="S");
-        else if (kind==="rara") pool = HEROES.filter(x => x.rare==="rara" || x.rare==="ultra");
-        else pool = HEROES.filter(x => !x.holo && !x.evo);
-        if (!pool.length) pool = HEROES.filter(x => x && x.img);
+        const base = HEROES.filter(x => x && x.img && !x.mitica && x.rare!=="mitica" && !x.legend);
+        let pool = base;
+        if (kind==="holo") pool = base.filter(x => x.holo || String(x.id).includes("holo"));
+        else pool = base.filter(x => !x.holo && !x.evo && (x.rare==="normal" || !x.rare));
+        if (!pool.length) pool = base.filter(x => !x.holo && !x.evo);
+        if (!pool.length) pool = base;
         return pool[Math.floor(Math.random()*pool.length)] || HEROES[0];
       }
-      const r3 = Math.random();
-      const kinds = [
-        "comun",
-        Math.random()<0.45 ? "rara" : "comun",
-        r3<0.10 ? "holo" : (r3<0.40 ? "ultra" : (r3<0.75 ? "rara" : "comun"))
-      ];
+      const kinds = ["comun", "comun", Math.random()<0.08 ? "holo" : "comun"];
       [0,1,2].forEach(i=>{ const el=document.getElementById("cs"+i); if(el){ el.className="chestSlot"; el.textContent="..."; }});
       const got = kinds.map(pull);
       const notes = got.map(h => addDust(h.id));
