@@ -3603,19 +3603,7 @@
       }
       const pts = Number(localStorage.getItem("pg_pts")||0);
       if (rk) rk.textContent = pts >= 20000 ? "#1 local" : (pts >= 5000 ? "Top local" : "Novato");
-      const order = {Bronce:0, Plata:1, Oro:2, Platino:3};
-      const rare = {normal:0, rara:1, ultra:2};
-      const owned = HEROES.filter(h => dustOf(h.id)>0 || rankOf(h.id)>0 || !h.evo);
-      const best = owned.slice().sort((a,b)=>{
-        const ha = a.holo ? 1 : 0, hb = b.holo ? 1 : 0;
-        if (hb!==ha) return hb-ha;
-        const ra = order[RANKS[rankOf(a.id)]||"Bronce"]||0;
-        const rb = order[RANKS[rankOf(b.id)]||"Bronce"]||0;
-        if (rb!==ra) return rb-ra;
-        const da = dustOf(a.id), db = dustOf(b.id);
-        if (db!==da) return db-da;
-        return (rare[b.rare]||0)-(rare[a.rare]||0);
-      })[0] || HEROES[0];
+      const best = pickBest();
       const bi = document.getElementById("bestImg");
       const bn = document.getElementById("bestName");
       const bt = document.getElementById("bestNote");
@@ -3623,7 +3611,7 @@
       if (wrap) wrap.classList.toggle("holo", !!best.holo);
       if (bi) { bi.src = best.img; bi.onerror = function(){ this.onerror=null; this.src=best.img && best.img.indexOf("holo")>=0 ? "cards/samba.jpg" : (best.img||"").replace('.jpg','.JPG'); }; }
       if (bn) bn.textContent = best.name;
-      if (bt) bt.textContent = best.holo ? "Holográfica · fusión" : ((RANKS[rankOf(best.id)]||"Bronce") + " · " + dustOf(best.id) + "/3");
+      if (bt) bt.textContent = isMitica(best) ? "Mítica · tu mejor del mazo" : (best.legend ? "Leyenda · tu mejor del mazo" : (best.holo ? "Holo · tu mejor del mazo" : ((RANKS[rankOf(best.id)]||"Bronce") + " · " + dustOf(best.id) + "/3")));
       const gb = gearBonus();
       const w = wear();
       const gW = GEAR.find(x=>x.id===w.weapon);
@@ -3802,18 +3790,21 @@
       return localStorage.getItem("pg_name") || "Tú";
     }
     function pickBest(){
-      const order = {Bronce:0, Plata:1, Oro:2, Platino:3};
-      const rare = {normal:0, rara:1, ultra:2};
+      const rare = {normal:0, rara:1, ultra:2, epica:3, legendaria:4, mitica:6};
       const owned = HEROES.filter(h => dustOf(h.id)>0 || rankOf(h.id)>0);
-      const list = owned.length ? owned : HEROES.filter(h=>!h.evo);
-      return list.slice().sort((a,b)=>{
-        const ha = a.holo ? 1 : 0, hb = b.holo ? 1 : 0;
-        if (hb!==ha) return hb-ha;
-        const ra = order[RANKS[rankOf(a.id)]||"Bronce"]||0;
-        const rb = order[RANKS[rankOf(b.id)]||"Bronce"]||0;
-        if (rb!==ra) return rb-ra;
-        return (rare[b.rare]||0)-(rare[a.rare]||0);
-      })[0] || HEROES[0];
+      const list = owned.length ? owned : HEROES.filter(h => ["capitan","diez","samba","pibe","rayo"].indexOf(h.id)>=0);
+      function score(h){
+        const st = h.atk || {};
+        return (h.mitica || h.rare==="mitica" ? 100000 : 0)
+          + (h.legend ? 50000 : 0)
+          + (h.holo ? 20000 : 0)
+          + (rare[h.rare]||0)*1000
+          + (h.hp||0)*20
+          + (st.corta||0)*5 + (st.media||0)*5 + (st.larga||0)*5
+          + rankOf(h.id)*100
+          + dustOf(h.id);
+      }
+      return list.slice().sort((a,b)=>score(b)-score(a))[0] || HEROES[0];
     }
     function myProfile() {
       const u = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) || {};
