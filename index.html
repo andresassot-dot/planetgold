@@ -887,8 +887,20 @@
     function d3Alive(side){
       var n = (d3[side]||[]).filter(function(u){ return u && u.hp>0; }).length;
       if (side==="me") n += (d3.hand||[]).filter(function(u){ return u && u.hp>0; }).length;
-      if (side==="en" && window.pvpOn && window.pvpGame==="d3") n += Math.max(0, Number(d3.foeLeft||0));
+      if (side==="en") n += Math.max(0, Number(d3.enDeck||0)) + ((d3.enBag||[]).filter(function(u){ return u && u.hp>0; }).length);
       return n;
+    }
+    function d3BringNext(){
+      var alive = (d3.en||[]).findIndex(function(u){ return u && u.hp>0; });
+      if (alive>=0) { d3.ei = alive; return d3.en[alive]; }
+      var bag = d3.enBag || [];
+      var nxt = bag.shift();
+      d3.enBag = bag;
+      if (!nxt) return null;
+      d3.en = [nxt];
+      d3.ei = 0;
+      d3.enDeck = bag.length;
+      return nxt;
     }
     function d3Next(side, from){
       for (var i=1;i<=3;i++){
@@ -904,9 +916,12 @@
       var eh = d3Hero(en);
       var a=document.getElementById("d3MeImg"), b=document.getElementById("d3EnImg");
       if (a) { a.src = mh.img||""; a.style.visibility = me ? "visible" : "hidden"; }
-      if (b) b.src = eh.img||"";
+      if (b) {
+        if (en && eh.img) { b.src = eh.img; b.style.visibility = "visible"; }
+        else { b.removeAttribute("src"); b.style.visibility = "hidden"; }
+      }
       var mn=document.getElementById("d3MeName"); if (mn) mn.textContent = me ? (mh.name||"Tú") : "Elige carta";
-      var enN=document.getElementById("d3EnName"); if (enN) enN.textContent = eh.name||"Rival";
+      var enN=document.getElementById("d3EnName"); if (enN) enN.textContent = (en && eh.name) ? eh.name : (en ? "Rival" : "Esperando carta");
       function atkLine(h){ var s=h.atk||{}; return "⚔"+(s.corta||0)+" 🗡"+(s.media||0)+" 🏹"+(s.larga||0); }
       var mhp=document.getElementById("d3MeHp"); if (mhp) mhp.textContent = me ? ("❤ "+me.hp+"/"+me.max) : "";
       var ehp=document.getElementById("d3EnHp"); if (ehp) ehp.textContent = "❤ "+(en?en.hp:0)+"/"+(en?en.max:0);
@@ -1008,9 +1023,12 @@
       d3.me = [];
       d3.hand = bag.map(d3Unit);
       d3.deck = extra.map(d3Unit);
-      d3.en = foe.slice(0,3);
-      d3.enHand = 4;
-      d3.enDeck = Math.max(0, foe.length-3);
+      d3.enBag = foe.slice();
+      d3.en = [];
+      d3.ei = 0;
+      d3.enDeck = d3.enBag.length;
+      d3BringNext();
+      d3.enDeck = (d3.enBag||[]).length;
       d3.needPick = true;
       var ready=document.getElementById("d3Ready");
       if (ready) ready.style.display="none";
@@ -1119,7 +1137,7 @@
       if (d3.phase==="pick") return;
       if (kind) window.d3Kind = kind;
       if (d3.over || d3.busy || d3.turn!=="me" || d3.acted) return;
-      if (window.pvpOn && window.pvpGame==="d3" && !(d3.en&&d3.en[0]&&d3.en[0].hp>0)) {
+      if (!(d3.en&&d3.en[d3.ei]&&d3.en[d3.ei].hp>0)) {
         var zx=document.getElementById("d3Msg");
         if (zx) zx.textContent="Espera a que el rival ponga carta.";
         return;
@@ -1165,10 +1183,13 @@
         if (b.hp<=0) {
           try { sfx("fall"); } catch(e){}
           if (to==="en") {
-            if (d3Alive("en")<=0) return d3End(true);
-            d3.en = [];
-            d3.ei = 0;
-            if (msg) msg.textContent = (hb.name||"Carta")+" cae. Esperando la siguiente del rival…";
+            if (d3.en[ix]) d3.en[ix].hp = 0;
+            d3.en = (d3.en||[]).filter(function(u){ return u && u.hp>0; });
+            var came = d3BringNext();
+            if (!came) return d3End(true);
+            if (msg) msg.textContent = (hb.name||"Carta")+" cae. Sale "+(d3Hero(came).name||"otra")+". Sigue la partida.";
+            d3.turn = "me";
+            d3.acted = false;
           } else {
             d3.me = [];
             d3.needPick = true;
@@ -1185,8 +1206,8 @@
         }
         if (from==="en") {
           d3.turn="me"; d3.acted=false;
-          if (msg) msg.textContent = "Tu turno. Toca la grande para atacar.";
-        } else {
+          if (msg && b.hp>0) msg.textContent = "Tu turno. Toca la grande para atacar.";
+        } else if (b.hp>0) {
           if (msg) msg.textContent = "Has atacado. Turno rival...";
           d3.turn="en";
           if (window.pvpOn && window.pvpGame==="d3") {
@@ -1200,7 +1221,19 @@
       if (d3.over) return;
       if (d3.busy) { setTimeout(d3Enemy, 200); return; }
       var kinds=["corta","media","larga"];
-      if (!d3.en[d3.ei] || d3.en[d3.ei].hp<=0) d3.ei = d3Next("en", d3.ei);
+      if (!d3.en[d3.ei] || d3.en[d3.ei].hp<=0) {
+        var alive = (d3.en||[]).findIndex(function(u){ return u && u.hp>0; });
+        if (alive>=0) d3.ei = alive;
+        else {
+          var came2 = d3BringNext();
+          if (!came2) { d3End(true); return; }
+          d3Paint();
+          var mm=document.getElementById("d3Msg");
+          if (mm) mm.textContent = (d3Hero(came2).name||"Rival")+" entra. Tu turno.";
+          d3.turn="me"; d3.acted=false; d3.busy=false;
+          return;
+        }
+      }
       var h = d3Hero(d3.en[d3.ei]);
       var st = h.atk || {corta:3,media:3,larga:3};
       var kind = kinds[0];
