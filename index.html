@@ -455,6 +455,15 @@
         </div>
       </div>
       <h2>PLANET GOLD</h2>
+      <div id="throne" style="margin-top:10px;padding:10px;border:1px solid #d4af37;border-radius:12px;background:#1a1408;display:flex;gap:10px;align-items:center">
+        <img id="throneImg" alt="" style="width:54px;height:70px;object-fit:cover;border-radius:8px;border:2px solid #f3d077;background:#0b0d14" />
+        <div style="flex:1;min-width:0">
+          <div class="muted" style="font-size:11px;letter-spacing:.08em">REY DE LA HORA</div>
+          <b id="throneName" style="color:#ffe08a">Trono vacío</b>
+          <div class="muted" id="throneTime" style="font-size:12px">Gana un duelo y siéntate 60 min</div>
+        </div>
+      </div>
+      <button class="main" id="throneBtn" type="button" style="margin-top:8px;padding:8px;font-size:13px;background:#7a5a10;color:#fff6d8">TOMAR EL TRONO</button>
       <div class="big" id="homePts">0 pts</div>
       <div class="muted">Nivel <b id="homeLv">1</b> · <span id="homeXp">0/150 XP</span></div>
       <div class="xpwrap"><div class="xpbar"><i id="homeXpBar"></i></div></div>
@@ -1318,7 +1327,60 @@
       if (txt) txt.textContent = (win?"Premio":"Consolación")+" · +"+addPts+" pts"+(addPend?" · +"+addPend+" TGOLD":"");
       if (box) { box.style.display="flex"; box.style.zIndex="200050"; box.style.pointerEvents="auto"; }
       try { showRetar(win, star, addPts, addPend); } catch(e){}
+      if (window._kingFight && win) {
+        window._kingFight = false;
+        try { takeThrone(star); } catch(e){}
+        var rm=document.getElementById("d3Msg");
+        if (rm) rm.textContent = "Eres el rey de la hora.";
+      } else window._kingFight = false;
     }
+
+
+    function kingLoad(){
+      try { return JSON.parse(localStorage.getItem("pg_king")||"null"); } catch(e){ return null; }
+    }
+    function kingSave(k){ localStorage.setItem("pg_king", JSON.stringify(k||null)); }
+    function paintKing(){
+      var k = kingLoad();
+      var img = document.getElementById("throneImg");
+      var nm = document.getElementById("throneName");
+      var tm = document.getElementById("throneTime");
+      var btn = document.getElementById("throneBtn");
+      if (!nm) return;
+      var left = k ? Math.max(0, Number(k.until||0) - Date.now()) : 0;
+      if (!k || left<=0) {
+        if (img) img.src = "cards/capitan.jpg";
+        nm.textContent = "Trono vacío";
+        if (tm) tm.textContent = "Gana el duelo y tu carta reina 60 min";
+        if (btn) btn.textContent = "TOMAR EL TRONO";
+        return;
+      }
+      var m = Math.floor(left/60000), s = Math.floor((left%60000)/1000);
+      if (img) img.src = k.img || "cards/capitan.jpg";
+      nm.textContent = (k.who||"Rey") + " · " + (k.card||"carta");
+      if (tm) tm.textContent = (m+":"+String(s).padStart(2,"0")) + " · " + (k.crowns||1) + " corona" + ((k.crowns||1)>1?"s":"");
+      if (btn) btn.textContent = "RETAR AL REY";
+    }
+    function takeThrone(card){
+      var prev = kingLoad();
+      var same = prev && prev.who===playerName() && prev.card===(card&&card.name);
+      kingSave({
+        who: (typeof playerName==="function"?playerName():"Tú"),
+        card: (card&&card.name)||"Carta",
+        img: (card&&card.img)||"cards/capitan.jpg",
+        until: Date.now()+60*60*1000,
+        crowns: same ? (Number(prev.crowns||1)+1) : 1
+      });
+      paintKing();
+    }
+    document.addEventListener("click", function(ev){
+      if (!ev.target || ev.target.id!=="throneBtn") return;
+      window._kingFight = true;
+      try { showTab("duel3"); if (window.startDuel3) startDuel3(); } catch(e){}
+      var m=document.getElementById("d3Msg");
+      var k=kingLoad();
+      if (m) m.textContent = (k && k.until>Date.now()) ? ("Trono de "+k.who+". Gana y te sientas.") : "Trono vacío. Gana y reinas 60 min.";
+    });
 
     function showRetar(win, star, pts, gold){
       var box = document.getElementById("retar");
@@ -1335,13 +1397,32 @@
     }
     function sendRetar(){
       var text = window._retarText || "Revancha en Planet Gold.";
-      var url = location.href.split("#")[0];
+      var who = (typeof playerName==="function" ? playerName() : "Tú").replace(/^@/,"");
+      var card = (document.getElementById("retarName")||{}).textContent || "carta";
+      var base = location.href.split("#")[0].split("?")[0];
+      var url = base + "?reto=" + encodeURIComponent(who) + "&carta=" + encodeURIComponent(card);
       var share = "https://t.me/share/url?url="+encodeURIComponent(url)+"&text="+encodeURIComponent(text);
       try {
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(share);
         else if (navigator.share) navigator.share({ title:"Planet Gold", text:text, url:url });
         else window.open(share, "_blank");
       } catch(e) { window.open(share, "_blank"); }
+    }
+    function openReto(){
+      var q = new URLSearchParams(location.search);
+      var reto = q.get("reto") || "";
+      try {
+        var sp = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param;
+        if (!reto && sp && String(sp).indexOf("reto_")===0) reto = decodeURIComponent(String(sp).slice(5));
+      } catch(e){}
+      if (!reto) return;
+      var carta = q.get("carta") || "su carta";
+      setTimeout(function(){
+        try { showTab("duel3"); if (window.startDuel3) startDuel3(); } catch(e){}
+        var m = document.getElementById("d3Msg");
+        if (m) m.textContent = "Revancha de "+reto+" · "+carta+". Elige 5 y juega. Esta no gasta energía.";
+        window._retoFree = true;
+      }, 700);
     }
     document.addEventListener("click", function(ev){
       if (ev.target && ev.target.id==="retarSend") sendRetar();
@@ -3656,6 +3737,7 @@
       const pts = Number(localStorage.getItem("pg_pts")||0);
       if (rk) rk.textContent = pts >= 20000 ? "#1 local" : (pts >= 5000 ? "Top local" : "Novato");
       const best = pickBest();
+      try { paintKing(); } catch(e){}
       const bi = document.getElementById("bestImg");
       const bn = document.getElementById("bestName");
       const bt = document.getElementById("bestNote");
@@ -5404,6 +5486,8 @@
     }
     draw();
     try { bootGuide(); } catch(e) {}
+    try { openReto(); } catch(e) {}
+    setInterval(function(){ try { paintKing(); } catch(e){} }, 1000);
   </script>
 </body>
 </html>
