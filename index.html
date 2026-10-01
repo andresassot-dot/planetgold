@@ -946,6 +946,9 @@
       }
     }
     window.startDuel3 = function startDuel3(){
+      window.pvpOn = false;
+      window.pvpGame = "";
+      d3PvpMsg("");
       d3.phase = "pick";
       d3.pick = [];
       d3.owned = d3Owned();
@@ -1004,9 +1007,7 @@
         bag.push(extra[i]); extra.splice(i,1);
       }
       if (!bag.length) bag = d3Owned().slice(0,5);
-      var foe = (window.pvpOn && window.pvpGame==="d3")
-        ? (d3.foeBag||[]).map(d3Unit)
-        : d3Pool(false).map(d3Unit);
+      var foe = d3Pool(false).map(d3Unit);
       d3.phase = "fight";
       var handEl=document.getElementById("d3Hand"); if (handEl) handEl.classList.remove("picking");
       var msg0=document.getElementById("d3Msg"); if (msg0) { msg0.classList.remove("pick"); msg0.style.color=""; }
@@ -1129,6 +1130,11 @@
         if (zx) zx.textContent="Espera a que el rival ponga carta.";
         return;
       }
+      if (!d3.en.length || !d3.en.some(function(u){ return u && u.hp>0; })) {
+        d3.en = d3Pool(false).slice(0,3).map(d3Unit);
+        d3.ei = 0;
+        d3Paint();
+      }
       if (!d3.me[d3.mi] || d3.me[d3.mi].hp<=0) return;
       d3Hit("me","en", window.d3Kind||kind||"corta");
     };
@@ -1201,19 +1207,19 @@
       }, 620);
     }
     function d3Enemy(){
-      if (window.pvpOn && window.pvpGame==="d3") return;
+      if (window.pvpOn && window.pvpGame==="d3" && window.pvpMatch) return;
       if (d3.over) return;
       if (d3.busy) { setTimeout(d3Enemy, 200); return; }
+      if (!d3.en.length || !d3.en.some(function(u){ return u && u.hp>0; })) {
+        d3.en = d3Pool(false).slice(0,3).map(d3Unit);
+        d3.ei = 0;
+      }
       var kinds=["corta","media","larga"];
       if (!d3.en[d3.ei] || d3.en[d3.ei].hp<=0) d3.ei = d3Next("en", d3.ei);
       var h = d3Hero(d3.en[d3.ei]);
       var st = h.atk || {corta:3,media:3,larga:3};
       var kind = kinds[0];
       kinds.forEach(function(k){ if ((st[k]||0)>(st[kind]||0)) kind=k; });
-      if (Math.random()<0.18) {
-        var alt = d3Next("en", d3.ei);
-        if (alt!==d3.ei) d3.ei=alt;
-      }
       d3Hit("en","me", kind);
     }
     function d3Best(side){
@@ -1562,6 +1568,17 @@
       localStorage.setItem("pg_du_"+id, d);
       return note;
     }
+    const ULTRA_MIX = [
+      { hero:"mago-rayo-legend", mount:"relampago-legend", out:"voltarion", need:3 }
+    ];
+    function fuseUltra(mix){
+      var need = mix.need || 3;
+      if (dustOf(mix.hero)<need || dustOf(mix.mount)<need) return "Hacen falta "+need+" del mago legendario y "+need+" de la montura.";
+      localStorage.setItem("pg_du_"+mix.hero, String(dustOf(mix.hero)-need));
+      localStorage.setItem("pg_du_"+mix.mount, String(dustOf(mix.mount)-need));
+      localStorage.setItem("pg_du_"+mix.out, String(dustOf(mix.out)+1));
+      return "Ultra rara: Voltarión";
+    }
 
     const MAX_PICO = 12, PICO_MS = 7000;
     let veinHits = {};
@@ -1789,6 +1806,10 @@
       { id:"brasas", deck:"magos", name:"Viuda Carmesí", rare:"normal", syn:"fuego", role:"fuego", img:"cards/viuda-carmesi.jpg", dmg:1.15, hp:4, atk:{corta:1,media:4,larga:5, dots:{N:"larga",NE:"media",NO:"media"} }, dots:{N:"media",NE:"larga",E:"media"}, fusesTo:"brasas-holo" },
       { id:"brasas-holo", deck:"magos", name:"Viuda Carmesí Holo", rare:"ultra", syn:"fuego", role:"holo", img:"cards/brasas-holo.jpg", dmg:1.35, hp:6, atk:{corta:3,media:6,larga:7, dots:{N:"larga",NE:"media",NO:"media"} }, dots:{N:"media",NE:"larga",E:"media"}, evo:true, holo:true, fusesTo:"brasas-legend" },
       { id:"brasas-legend", deck:"magos", name:"Viuda Carmesí Legendaria", rare:"legendaria", syn:"fuego", role:"legend", img:"cards/brasas-legend.jpg", dmg:1.6, hp:9, atk:{corta:5,media:8,larga:9, dots:{N:"larga",NE:"media",NO:"media"}}, dots:{N:"larga",NE:"media",NO:"media"}, evo:true, legend:true },
+      { id:"viuda-fenix", deck:"magos", name:"Viuda del Fénix", rare:"ultrara", syn:"fuego", role:"ultra", img:"cards/brasas-holo.jpg", dmg:1.8, hp:11, atk:{corta:7,media:8,larga:11, dots:{N:"larga",NE:"media",NO:"media"}}, dots:{N:"larga",NE:"media",NO:"media"}, evo:true, ultra:true },
+      { id:"gaia-roca", deck:"magos", name:"Gaia de Roca", rare:"ultrara", syn:"tierra", role:"ultra", img:"cards/rocaverde-holo.jpg", dmg:1.75, hp:12, atk:{corta:7,media:9,larga:10, dots:{N:"larga",NE:"media",NO:"media"}}, dots:{N:"larga",NE:"media",NO:"media"}, evo:true, ultra:true },
+      { id:"atenas-kraken", deck:"magos", name:"Atenas del Kraken", rare:"ultrara", syn:"agua", role:"ultra", img:"cards/marea-holo.jpg", dmg:1.7, hp:12, atk:{corta:4,media:8,larga:10, dots:{N:"larga",NE:"media",NO:"media"}}, dots:{N:"larga",NO:"media",O:"larga"}, evo:true, ultra:true },
+      { id:"zephyra-cefiro", deck:"magos", name:"Zephyra Céfiro", rare:"ultrara", syn:"aire", role:"ultra", img:"cards/vendaval-holo.jpg", dmg:1.7, hp:11, atk:{corta:4,media:9,larga:10, dots:{N:"media",NE:"larga",NO:"larga"}}, dots:{N:"media",NE:"larga",NO:"larga"}, evo:true, ultra:true },
       { id:"marea", deck:"magos", name:"Atenas", rare:"normal", syn:"agua", role:"agua", img:"cards/atenas.jpg", dmg:1.05, hp:5, atk:{corta:0,media:4,larga:6, dots:{N:"larga",NE:"media",NO:"media"} }, dots:{N:"larga",NO:"media",O:"larga"}, fusesTo:"marea-holo" },
       { id:"marea-holo", deck:"magos", name:"Atenas Holo", rare:"ultra", syn:"agua", role:"holo", img:"cards/marea-holo.jpg", dmg:1.25, hp:7, atk:{corta:2,media:6,larga:8, dots:{N:"larga",NE:"media",NO:"media"} }, dots:{N:"larga",NO:"media",O:"larga"}, evo:true, holo:true, fusesTo:"marea-legend" },
       { id:"marea-legend", deck:"magos", name:"Atenas Legendaria", rare:"legendaria", syn:"agua", role:"legend", img:"cards/marea-legend.jpg", dmg:1.5, hp:10, atk:{corta:4,media:8,larga:10, dots:{N:"larga",NE:"media",NO:"media"}}, dots:{N:"larga",NE:"media",NO:"media"}, evo:true, legend:true },
@@ -1897,6 +1918,8 @@
       { id:"relampago", deck:"mascotas", name:"Relámpago", rare:"rara", syn:"rayo", role:"montura", img:"cards/relampago.jpg", dmg:1.25, hp:9, atk:{corta:7,media:6,larga:4, dots:{N:"corta",NE:"media",NO:"corta"} }, dots:{N:"corta",NE:"media",E:"corta"}, fusesTo:"relampago-holo" },
       { id:"relampago-holo", deck:"mascotas", name:"Relámpago Holo", rare:"epica", syn:"rayo", role:"holo", img:"cards/relampago_holo.jpg", dmg:1.45, hp:11, atk:{corta:9,media:8,larga:6, dots:{N:"corta",NE:"media",NO:"corta"} }, dots:{N:"corta",NE:"media",E:"corta"}, evo:true, holo:true, fusesTo:"relampago-legend" },
       { id:"relampago-legend", deck:"mascotas", name:"Relámpago Legendaria", rare:"legendaria", syn:"rayo", role:"legend", img:"cards/relampago-legend.jpg", dmg:1.7, hp:14, atk:{corta:11,media:10,larga:8, dots:{N:"corta",NE:"media",NO:"corta"}}, dots:{N:"corta",NE:"media",NO:"corta"}, evo:true, legend:true },
+      { id:"mago-rayo-legend", deck:"magos", name:"Mago de Rayo Legendario", rare:"legendaria", syn:"rayo", role:"legend", img:"cards/mago-rayo-legend.jpg", dmg:1.6, hp:10, atk:{corta:5,media:8,larga:12, dots:{N:"larga",NE:"media",NO:"media"}}, dots:{N:"larga",E:"media",O:"media"}, evo:true, legend:true },
+      { id:"voltarion", deck:"magos", name:"Voltarión", rare:"ultrara", syn:"rayo", role:"ultra", img:"cards/voltarion.jpg", dmg:1.9, hp:11, atk:{corta:8,media:7,larga:6, dots:{N:"corta",NE:"media",NO:"media"}}, dots:{N:"corta",NE:"media",E:"corta"}, evo:true, ultra:true },
       { id:"obsidiana", deck:"mascotas", name:"Obsidiana", rare:"rara", syn:"sombra", role:"montura", img:"cards/obsidiana.jpg", dmg:1.25, hp:8, atk:{corta:5,media:6,larga:9, dots:{N:"larga",NE:"larga",NO:"media"} }, dots:{N:"larga",NE:"larga",O:"media"}, fusesTo:"obsidiana-holo" },
       { id:"obsidiana-holo", deck:"mascotas", name:"Obsidiana Holo", rare:"epica", syn:"sombra", role:"holo", img:"cards/obsidiana_holo.jpg", dmg:1.45, hp:10, atk:{corta:7,media:8,larga:11, dots:{N:"larga",NE:"larga",NO:"media"} }, dots:{N:"larga",NE:"larga",O:"media"}, evo:true, holo:true, fusesTo:"obsidiana-legend" },
       { id:"obsidiana-legend", deck:"mascotas", name:"Obsidiana Legendaria", rare:"legendaria", syn:"sombra", role:"legend", img:"cards/obsidiana-legend.jpg", dmg:1.7, hp:13, atk:{corta:9,media:10,larga:12, dots:{N:"larga",NE:"larga",NO:"media"}}, dots:{N:"larga",NE:"larga",NO:"media"}, evo:true, legend:true }
@@ -2346,7 +2369,7 @@
     
     let mazoFilt = "todas";
     function renderMazo(){
-      const decks = ["todas","futbol","magos","duendes","reyes","minecraft","monturas","holo","leyendas"];
+      const decks = ["todas","futbol","magos","duendes","reyes","minecraft","monturas","holo","leyendas","ultra"];
       const bar = document.getElementById("mazoFilt");
       if (bar) bar.innerHTML = decks.map(d => `<button class="main" style="padding:6px 10px;font-size:11px;margin:0;background:${mazoFilt===d?"#d4af37":"#2a3146"};color:${mazoFilt===d?"#1a1200":"#ffe08a"}" data-mf="${d}">${d}</button>`).join("");
       if (bar) bar.querySelectorAll("[data-mf]").forEach(b => b.onclick = () => { mazoFilt=b.getAttribute("data-mf"); renderMazo(); });
@@ -2356,6 +2379,7 @@
         if (mazoFilt==="todas") return true;
         if (mazoFilt==="holo") return !!(h.holo || (h.id||"").includes("-holo")) && !h.legend;
         if (mazoFilt==="leyendas") return !!(h.legend || (h.id||"").includes("-legend"));
+        if (mazoFilt==="ultra") return !!h.ultra;
         return (h.deck||"")===mazoFilt || (h.deck==="mascotas" && mazoFilt==="monturas");
       });
       const nEl=document.getElementById("mazoN");
@@ -2365,12 +2389,30 @@
       if (!list.length) { box.innerHTML = '<p class="muted" style="grid-column:1/-1;text-align:center">Aún no tienes cartas. Abre sobres o gana duelos.</p>'; return; }
       box.innerHTML = list.map((h,i) => {
         const n = (dustOf(h.id)||0) + (rankOf(h.id)||0);
-        const live = !!(h.holo || h.legend || (h.id||"").indexOf("-holo")>=0 || (h.id||"").indexOf("-legend")>=0);
+        const live = !!(h.holo || h.legend || h.ultra || (h.id||"").indexOf("-holo")>=0 || (h.id||"").indexOf("-legend")>=0);
         return `<div class="c${live?" gif":""}" data-zi="${i}"><img src="${h.img}" alt=""><b>${h.name||h.id}</b><span>x${n}${(h.fusesTo && n<3)?" · "+n+"/3 holo":""} · ${h.rare||"normal"}${live?" · GIF":""}</span></div>`;
       }).join("");
       box.querySelectorAll("[data-zi]").forEach(el => {
         el.onclick = () => { try { openZoom(list[+el.getAttribute("data-zi")]); document.getElementById("zoom").style.display="flex"; } catch(e) {} };
       });
+      var ready = ULTRA_MIX.filter(function(m){ var n=m.need||3; return dustOf(m.hero)>=n && dustOf(m.mount)>=n; });
+      if (ready.length) {
+        box.insertAdjacentHTML("afterbegin", ready.map(function(m){
+          var h=(HEROES||[]).find(function(x){return x.id===m.hero;})||{};
+          var mo=(HEROES||[]).find(function(x){return x.id===m.mount;})||{};
+          return '<div class="c" style="grid-column:1/-1;padding:8px"><b>Juntar '+ (h.name||m.hero) +' + '+ (mo.name||m.mount) +'</b><button class="main" data-ultra="'+m.out+'" style="margin-top:6px">HACER ULTRA RARA</button></div>';
+        }).join(""));
+        box.querySelectorAll("[data-ultra]").forEach(function(b){
+          b.onclick = function(ev){
+            ev.stopPropagation();
+            var mix = ULTRA_MIX.find(function(m){ return m.out===b.getAttribute("data-ultra"); });
+            var note = fuseUltra(mix);
+            try { sfx("gol"); } catch(e){}
+            alert(note);
+            renderMazo();
+          };
+        });
+      }
     }
 
     
