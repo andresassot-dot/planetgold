@@ -653,11 +653,11 @@
     <div id="cofRelics"></div>
     <h2 style="color:#ffe08a;font-size:15px;margin-top:12px">Mascotas</h2>
     <div id="cofPets"></div>
-    <div id="dmBox" style="margin-top:12px;display:none">
-      <input class="wal" id="dmKey" placeholder="Clave DM" />
-      <p class="muted" id="dmMsg" style="text-align:center;color:#ffe08a"></p>
-      <button class="main" id="dmUnlock" style="margin-top:8px;background:#4a3a12;color:#ffe08a">ENTRAR COMO DM</button>
-      <button class="main" id="dmFill" style="margin-top:8px;background:#4a3a12;color:#ffe08a">DM · RELLENAR KIT</button>
+    <div id="dmBox" style="margin-top:12px;display:block">
+      <input class="wal" id="dmKey" placeholder="Clave: gringotts-dm" value="gringotts-dm" />
+      <p class="muted" id="dmMsg" style="text-align:center;color:#ffe08a">Pulsa RELLENAR KIT</p>
+      <button type="button" class="main" id="dmUnlock" style="margin-top:8px;background:#4a3a12;color:#ffe08a" onclick="window.dmEnter&&window.dmEnter();return false;">ENTRAR COMO DM</button>
+      <button type="button" class="main" id="dmFill" style="margin-top:8px;background:#4a3a12;color:#ffe08a" onclick="window.dmFillKit&&window.dmFillKit();return false;">DM · RELLENAR KIT</button>
     </div>
     <button type="button" class="main" id="cofreBack" style="margin-top:8px;background:#2a3146;color:#ffe08a;position:relative;z-index:8" onclick="window.goPick&&window.goPick();return false;">VOLVER</button>
   </div>
@@ -1707,8 +1707,10 @@
         (GEAR||[]).filter(function(g){return g.tier==="plata";}).forEach(function(g){ addGear(g.id, 2); });
       } catch(e){}
       try {
-        ["capitan","diez","samba","pibe","rayo"].forEach(function(id){
-          localStorage.setItem("pg_du_"+id, String(Math.max(3, Number(localStorage.getItem("pg_du_"+id)||0))));
+        (HEROES||[]).forEach(function(h){
+          if (!h || h.holo || h.legend) return;
+          var cur = Number(localStorage.getItem("pg_du_"+h.id)||0);
+          localStorage.setItem("pg_du_"+h.id, String(Math.max(cur, 3)));
         });
       } catch(e){}
       localStorage.setItem("pg_pts", String(Number(localStorage.getItem("pg_pts")||0) + 50000));
@@ -1716,6 +1718,35 @@
       localStorage.setItem("pg_en", "5");
       return true;
     }
+    window.dmEnter = function(){
+      try {
+        var v = ((document.getElementById("dmKey")||{}).value||"").trim().toLowerCase();
+        var msg = document.getElementById("dmMsg");
+        if (DM_KEYS.indexOf(v)<0 && v && v!=="gringotts-dm") {
+          if (msg) msg.textContent = "Clave: gringotts-dm";
+          return;
+        }
+        localStorage.setItem("pg_dm_ok","1");
+        grantDmKit();
+        try { renderCofre(); renderMine(); refreshHome(); } catch(e){}
+        if (msg) msg.textContent = "DM activo. Kit puesto. Mira Inicio: +50.000 pts.";
+      } catch(e) {
+        var msg = document.getElementById("dmMsg");
+        if (msg) msg.textContent = "Error DM: "+e;
+      }
+    };
+    window.dmFillKit = function(){
+      try {
+        localStorage.setItem("pg_dm_ok","1");
+        grantDmKit();
+        try { renderCofre(); renderMine(); refreshHome(); } catch(e){}
+        var msg = document.getElementById("dmMsg");
+        if (msg) msg.textContent = "Kit OK. +20 minerales + mascotas x3 + 50.000 pts. Mira Inicio.";
+      } catch(e) {
+        var msg = document.getElementById("dmMsg");
+        if (msg) msg.textContent = "Error kit: "+e;
+      }
+    };
     if (isDm() && localStorage.getItem("pg_dmKit") !== "3") {
       grantDmKit();
       localStorage.setItem("pg_dmKit","3");
@@ -2237,6 +2268,8 @@
       if (isDm()) {
         if (box) box.style.display="block";
         if (fill) fill.style.display="block";
+      } else {
+        if (box) box.style.display="none";
       }
       const w = wear();
       const gW = GEAR.find(x=>x.id===w.weapon);
