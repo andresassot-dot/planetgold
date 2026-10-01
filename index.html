@@ -468,6 +468,8 @@
       </div>
       <button class="main" id="dailyBtn" type="button" onclick="claimDailyNow()" style="margin-top:8px;padding:8px;font-size:13px;background:#2e8b57;color:#f4fff8">BONUS DEL DÍA</button>
       <button class="main" id="swapBtn" style="margin-top:8px;padding:8px;font-size:13px">CAMBIAR 20.000 PTS → 10 TGOLD</button>
+      
+      <button class="main" id="retarDemo" type="button" style="margin-top:8px;padding:8px;font-size:13px;background:#1a4f9c;color:#d6e8ff">PROBAR RETO</button>
       <button class="main" id="guideBtn" type="button" onclick="openGuide(true)" style="margin-top:8px;padding:8px;font-size:13px;background:#2a4a7a;color:#d6e6ff">CÓMO JUGAR</button>
       <div id="firstLoop" style="margin-top:10px;padding:10px;border:1px solid #d4af37;border-radius:12px;background:#14110a">
         <b style="color:#ffe08a">Tu primera partida · 2 min</b>
@@ -674,6 +676,20 @@
     </div>
     <button type="button" class="main" id="cofreBack" style="margin-top:8px;background:#2a3146;color:#ffe08a;position:relative;z-index:8" onclick="window.goPick&&window.goPick();return false;">VOLVER</button>
   </div>
+  
+  <div id="retar" style="display:none;position:fixed;inset:0;z-index:200080;background:rgba(6,8,16,.88);align-items:center;justify-content:center;padding:18px">
+    <div style="width:min(88vw,340px);background:#121622;border:3px solid #d4af37;border-radius:18px;padding:16px;text-align:center">
+      <div id="retarTag" style="color:#ffe08a;letter-spacing:.18em;font-size:12px;font-weight:800">PLANET GOLD</div>
+      <h2 id="retarTitle" style="color:#ffe08a;margin:8px 0">HAS GANADO</h2>
+      <img id="retarImg" alt="" style="width:180px;height:230px;object-fit:contain;border-radius:12px;border:2px solid #f3d077;background:#0b0d14" />
+      <div id="retarName" style="color:#ffe08a;font-weight:800;margin-top:8px">Carta</div>
+      <div id="retarWho" class="muted" style="margin-top:4px"></div>
+      <p id="retarTxt" class="muted" style="margin:8px 0 12px"></p>
+      <button type="button" class="main" id="retarSend">RETAR A UN AMIGO</button>
+      <button type="button" class="main" id="retarClose" style="margin-top:8px;background:#2a3146;color:#ffe08a">SEGUIR</button>
+    </div>
+  </div>
+
   <div id="lootPop">
     <div class="box">
       <div class="muted">Has ganado</div>
@@ -1301,7 +1317,43 @@
       if (nam) nam.textContent = (star.name||"") + (win ? " · MVP" : " · rival");
       if (txt) txt.textContent = (win?"Premio":"Consolación")+" · +"+addPts+" pts"+(addPend?" · +"+addPend+" TGOLD":"");
       if (box) { box.style.display="flex"; box.style.zIndex="200050"; box.style.pointerEvents="auto"; }
+      try { showRetar(win, star, addPts, addPend); } catch(e){}
     }
+
+    function showRetar(win, star, pts, gold){
+      var box = document.getElementById("retar");
+      if (!box) return;
+      var name = (star && star.name) || "tu carta";
+      var who = (typeof playerName==="function") ? playerName() : "Tú";
+      document.getElementById("retarTitle").textContent = win ? "HAS GANADO" : "HAS PERDIDO";
+      document.getElementById("retarImg").src = (star && star.img) || "cards/capitan.jpg";
+      document.getElementById("retarName").textContent = name;
+      document.getElementById("retarWho").textContent = who + (win ? " · reta a la revancha" : " · pide la revancha");
+      document.getElementById("retarTxt").textContent = (win?"Premio":"Consolación")+" · +"+(pts||0)+" pts"+(gold?" · +"+gold+" TGOLD":"");
+      box.style.display = "flex";
+      window._retarText = (win ? "Te gané con " : "Casi. Revancha con ") + name + " en Planet Gold.";
+    }
+    function sendRetar(){
+      var text = window._retarText || "Revancha en Planet Gold.";
+      var url = location.href.split("#")[0];
+      var share = "https://t.me/share/url?url="+encodeURIComponent(url)+"&text="+encodeURIComponent(text);
+      try {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(share);
+        else if (navigator.share) navigator.share({ title:"Planet Gold", text:text, url:url });
+        else window.open(share, "_blank");
+      } catch(e) { window.open(share, "_blank"); }
+    }
+    document.addEventListener("click", function(ev){
+      if (ev.target && ev.target.id==="retarSend") sendRetar();
+      if (ev.target && ev.target.id==="retarClose") {
+        var box=document.getElementById("retar"); if (box) box.style.display="none";
+      }
+      if (ev.target && ev.target.id==="retarDemo") {
+        var best = (typeof pickBest==="function") ? pickBest() : {name:"Brote Legendaria", img:"cards/capitan.jpg"};
+        showRetar(true, best, 50, 1);
+      }
+    });
+
     window.duelLeaveEnd = function(){
       var box=document.getElementById("duelEnd");
       if (box) box.style.display="none";
