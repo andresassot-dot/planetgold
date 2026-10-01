@@ -258,6 +258,18 @@
     .d3card img { width:54px; height:76px; object-fit:contain; object-position:center; border-radius:7px; border:2px solid #8a93a8; background:#111; }
     .d3hand .d3card { width:62px; }
     .d3hand .d3card img { width:62px; height:88px; border-color:#ffe08a; }
+    @keyframes cardFloat {
+      0%,100% { transform: translateY(0) rotate(-1.2deg); }
+      50% { transform: translateY(-7px) rotate(1.4deg); }
+    }
+    .mazoGrid .c { overflow: visible; }
+    .mazoGrid .c img, .d3hand .d3card img, #deckPile img {
+      animation: cardFloat 2.6s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+    .mazoGrid .c:nth-child(2n) img, .d3hand .d3card:nth-child(2n) img { animation-delay: .35s; }
+    .mazoGrid .c:nth-child(3n) img, .d3hand .d3card:nth-child(3n) img { animation-delay: .7s; }
+    .d3card.on img, .d3hand.picking .d3card.on img { animation-play-state: paused; }
     .d3card.on img { border-color:#ffe08a; box-shadow:0 0 10px rgba(255,224,138,.55); }
     .d3hand.picking .d3card.on img { border-color:#ff2a2a; border-width:3px; box-shadow:0 0 12px rgba(255,40,40,.85); }
     #d3Msg.pick { color:#ff3b3b !important; font-weight:800; }
@@ -1078,21 +1090,16 @@
         d3.sec -= 1;
         paint();
         if (d3.sec <= 0) {
-          if (window.pvpOn && window.pvpGame==="d3") {
-            d3.sec = 60;
-            if (d3.turn==="me") {
-              d3.turn="en";
-              try { d3PvpSend({ type:"pass" }, true); } catch(e){}
-            } else {
-              d3.turn="me"; d3.acted=false;
-            }
-            paint();
-            return;
+          d3.sec = 60;
+          if (d3.turn==="me") {
+            d3.turn="en"; d3.acted=false;
+            if (window.pvpOn && window.pvpGame==="d3") { try { d3PvpSend({ type:"pass" }, true); } catch(e){} }
+            else setTimeout(d3Enemy, 300);
+          } else {
+            d3.turn="me"; d3.acted=false;
           }
-          d3StopClock();
-          var mh = d3.me.reduce(function(s,u){ return s+(u.hp>0?u.hp:0); },0);
-          var eh = d3.en.reduce(function(s,u){ return s+(u.hp>0?u.hp:0); },0);
-          d3End(mh>=eh);
+          paint();
+          return;
         }
       }, 1000);
     }
@@ -1184,12 +1191,14 @@
           try { sfx("fall"); } catch(e){}
           if (to==="en") {
             if (d3.en[ix]) d3.en[ix].hp = 0;
-            d3.en = (d3.en||[]).filter(function(u){ return u && u.hp>0; });
+            d3.en = [];
             var came = d3BringNext();
             if (!came) return d3End(true);
-            if (msg) msg.textContent = (hb.name||"Carta")+" cae. Sale "+(d3Hero(came).name||"otra")+". Sigue la partida.";
+            var left = (d3.enBag||[]).length;
+            if (msg) msg.textContent = (hb.name||"Carta")+" cae. Sale "+(d3Hero(came).name||"otra")+" · quedan "+left+" en el mazo. La partida sigue.";
             d3.turn = "me";
             d3.acted = false;
+            d3.needPick = false;
           } else {
             d3.me = [];
             d3.needPick = true;
