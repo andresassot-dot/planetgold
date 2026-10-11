@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Planet Gold — Disparo</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; color: #fff; }
@@ -829,21 +832,19 @@
   </div>
 
   <div id="bonus">
-    <button type="button" class="backTop" id="bonusExit" onclick="event.preventDefault();try{bgmStop()}catch(e){};showTab('home');return false;">← SALIR</button>
-    <h1 style="color:#ffe08a;text-align:center;margin:0">BONUS</h1>
-    <p class="muted" style="text-align:center;margin:4px 0 8px">Arrastra <b style="color:#c084fc">SOL</b> · también hay BNB · ETH · BTC · XRP · G</p>
+    <button type="button" class="backTop" id="bonusExit" onclick="event.preventDefault();try{bgmStop()}catch(e){};if(window.chess3D)window.chess3D.stop();showTab('home');return false;">← SALIR</button>
+    <h1 style="color:#ffe08a;text-align:center;margin:0">AJEDREZ 3D</h1>
+    <p class="muted" style="text-align:center;margin:4px 0 8px">Tus cartas vs IA · rota el tablero con el dedo</p>
     <div class="heroBan" style="padding:10px;text-align:center">
-      <div id="crHud" style="display:flex;justify-content:space-between;font-weight:800;color:#ffe08a">
-        <span>SOL <b id="crGot">0</b>/8</span>
-        <span>MOV <b id="crMov">18</b></span>
-        <span>Nv <b id="crLv">1</b></span>
+      <div id="chessHud" style="display:flex;justify-content:space-between;font-weight:800;color:#ffe08a">
+        <span>Turno: <b id="chessTurn">Blancas (tú)</b></span>
+        <span>Estado: <b id="chessStatus">Listo</b></span>
       </div>
-      <p id="crMsg" class="muted" style="margin:6px 0 0">Arrastra SOL hacia SOL. 4 seguidas = raya. 5 = bomba.</p>
+      <p id="chessMsg" class="muted" style="margin:6px 0 0">Toca una carta para mover</p>
     </div>
-    <div id="crGrid"></div>
-    <button type="button" class="main" id="crPlay">JUGAR NIVEL</button>
-    <div class="crBag" id="crBags"></div>
-    <div id="crLog">Arrastra 3 iguales. SOL lila suma a 8/8.</div>
+    <div id="chessContainer" style="flex:1;min-height:340px;position:relative;border:2px solid #d4af37;border-radius:14px;overflow:hidden;background:#070b16;margin:8px 0;"></div>
+    <button type="button" class="main" id="chessNew" style="margin-top:4px">NUEVA PARTIDA</button>
+    <div class="muted" style="text-align:center;margin-top:6px;font-size:12px">Gana el jaque mate para +3 TGOLD</div>
   </div>
 
   <div id="arena">
@@ -3461,7 +3462,7 @@
       else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
-      if (name === "bonus") { try { crPaintBags(); crPaint(); bgmStart("bonus"); sfx("menu"); } catch(e){} }
+      if (name === "bonus") { try { if(window.chess3D) window.chess3D.start(); bgmStart("bonus"); sfx("menu"); } catch(e){ console.log(e); } }
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walPend").textContent = p;
@@ -5567,6 +5568,302 @@
     try { bootGuide(); } catch(e) {}
     try { openReto(); } catch(e) {}
     setInterval(function(){ try { paintKing(); } catch(e){} }, 1000);
+
+    // ========== AJEDREZ 3D (solo zona Bonus) ==========
+    window.chess3D = (function(){
+      let scene, camera, renderer, controls, boardGroup, pieces = {}, squares = [];
+      let chess, selected = null, possible = [], animating = false, running = false;
+      let raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+      const SQUARE_SIZE = 1.2;
+      const pieceMap = {
+        wK: "capitan", wQ: "diez", wR: "samba", wB: "pibe", wN: "rayo", wP: "capitan",
+        bK: "capitan-holo", bQ: "diez-holo", bR: "samba-holo", bB: "pibe-holo", bN: "rayo", bP: "samba"
+      };
+      function getHero(id){
+        return (HEROES||[]).find(h => h.id === id) || { img: "cards/capitan.jpg", name: id };
+      }
+      function createTexture(url){
+        const loader = new THREE.TextureLoader();
+        const tex = loader.load(url, undefined, undefined, function(){ /* error fallback */ });
+        tex.encoding = THREE.sRGBEncoding;
+        return tex;
+      }
+      function makePieceMesh(type, color){
+        const id = pieceMap[color + type.toUpperCase()] || "capitan";
+        const h = getHero(id);
+        const tex = createTexture(h.img || "cards/capitan.jpg");
+        const mat = new THREE.MeshLambertMaterial({ map: tex, transparent: true, side: THREE.DoubleSide });
+        const geo = new THREE.PlaneGeometry(0.85, 1.15);
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.y = 0.6;
+        mesh.userData = { type, color, hero: h };
+        // small base
+        const base = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.28, 0.32, 0.08, 12),
+          new THREE.MeshLambertMaterial({ color: color==="w" ? 0xd4af37 : 0x3a2a10 })
+        );
+        base.position.y = 0.04;
+        const group = new THREE.Group();
+        group.add(base);
+        group.add(mesh);
+        group.userData = mesh.userData;
+        return group;
+      }
+      function boardPos(file, rank){
+        // file 0-7 (a-h), rank 0-7 (1-8)
+        return new THREE.Vector3(
+          (file - 3.5) * SQUARE_SIZE,
+          0,
+          (rank - 3.5) * SQUARE_SIZE
+        );
+      }
+      function squareName(file, rank){
+        return "abcdefgh"[file] + (rank+1);
+      }
+      function parseSquare(sq){
+        const file = "abcdefgh".indexOf(sq[0]);
+        const rank = parseInt(sq[1],10) - 1;
+        return { file, rank };
+      }
+      function initScene(container){
+        if (renderer) { try{ renderer.dispose(); }catch(e){} }
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x070b16);
+        camera = new THREE.PerspectiveCamera(45, container.clientWidth / Math.max(container.clientHeight,1), 0.1, 100);
+        camera.position.set(0, 14, 16);
+        camera.lookAt(0, 0, 0);
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+        renderer.shadowMap.enabled = true;
+        container.innerHTML = "";
+        container.appendChild(renderer.domElement);
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0, 0);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.maxPolarAngle = Math.PI / 2.2;
+        controls.minDistance = 8;
+        controls.maxDistance = 28;
+        // lights
+        const amb = new THREE.AmbientLight(0xffffff, 0.55);
+        scene.add(amb);
+        const dir = new THREE.DirectionalLight(0xffe08a, 0.9);
+        dir.position.set(6, 12, 8);
+        dir.castShadow = true;
+        scene.add(dir);
+        const fill = new THREE.DirectionalLight(0x88aaff, 0.3);
+        fill.position.set(-6, 6, -4);
+        scene.add(fill);
+        // board
+        boardGroup = new THREE.Group();
+        scene.add(boardGroup);
+        squares = [];
+        for (let r=0; r<8; r++){
+          for (let f=0; f<8; f++){
+            const isLight = (f+r) % 2 === 0;
+            const geo = new THREE.BoxGeometry(SQUARE_SIZE*0.98, 0.18, SQUARE_SIZE*0.98);
+            const mat = new THREE.MeshLambertMaterial({
+              color: isLight ? 0xd4af37 : 0x1a1408,
+              emissive: isLight ? 0x332200 : 0x000000,
+              emissiveIntensity: 0.15
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(boardPos(f, r));
+            mesh.position.y = 0.09;
+            mesh.receiveShadow = true;
+            mesh.userData = { square: squareName(f, r), isSquare: true };
+            boardGroup.add(mesh);
+            squares.push(mesh);
+          }
+        }
+        // border
+        const border = new THREE.Mesh(
+          new THREE.BoxGeometry(SQUARE_SIZE*8.4, 0.12, SQUARE_SIZE*8.4),
+          new THREE.MeshLambertMaterial({ color: 0x8a6a12 })
+        );
+        border.position.y = 0.02;
+        boardGroup.add(border);
+      }
+      function placePieces(){
+        Object.values(pieces).forEach(p => { if(p.parent) p.parent.remove(p); });
+        pieces = {};
+        const fen = chess.fen().split(" ")[0];
+        const rows = fen.split("/");
+        for (let r=0; r<8; r++){
+          let f = 0;
+          for (const ch of rows[7-r]){
+            if (/[1-8]/.test(ch)) { f += parseInt(ch,10); continue; }
+            const color = ch === ch.toUpperCase() ? "w" : "b";
+            const type = ch.toLowerCase();
+            const key = color + type.toUpperCase();
+            const mesh = makePieceMesh(type, color);
+            const pos = boardPos(f, r);
+            mesh.position.set(pos.x, 0, pos.z);
+            mesh.userData.square = squareName(f, r);
+            boardGroup.add(mesh);
+            pieces[squareName(f, r)] = mesh;
+            f++;
+          }
+        }
+      }
+      function highlightSquares(moves){
+        squares.forEach(s => {
+          const m = s.material;
+          if (m.emissive) m.emissive.setHex(s.userData.square && (s.userData.file+s.userData.rank)%2===0 ? 0x332200 : 0x000000);
+        });
+        moves.forEach(mv => {
+          const sq = squares.find(s => s.userData.square === mv.to);
+          if (sq && sq.material.emissive) sq.material.emissive.setHex(0x44ff88);
+        });
+      }
+      function clearHighlights(){
+        squares.forEach(s => {
+          if (s.material.emissive) s.material.emissive.setHex(0x000000);
+        });
+      }
+      function animateMove(from, to, cb){
+        const piece = pieces[from];
+        if (!piece) { if(cb) cb(); return; }
+        animating = true;
+        const start = piece.position.clone();
+        const endPos = boardPos(parseSquare(to).file, parseSquare(to).rank);
+        endPos.y = 0;
+        let t = 0;
+        function step(){
+          t += 0.06;
+          if (t >= 1) {
+            piece.position.copy(endPos);
+            pieces[to] = piece;
+            delete pieces[from];
+            piece.userData.square = to;
+            animating = false;
+            if (cb) cb();
+            return;
+          }
+          piece.position.lerpVectors(start, endPos, t);
+          piece.position.y = Math.sin(t * Math.PI) * 0.8;
+          requestAnimationFrame(step);
+        }
+        step();
+      }
+      function updateHud(){
+        const turnEl = document.getElementById("chessTurn");
+        const statusEl = document.getElementById("chessStatus");
+        const msgEl = document.getElementById("chessMsg");
+        if (turnEl) turnEl.textContent = chess.turn()==="w" ? "Blancas (tú)" : "Negras (IA)";
+        let st = "Jugando";
+        if (chess.in_checkmate()) st = chess.turn()==="w" ? "Derrota" : "¡Victoria!";
+        else if (chess.in_check()) st = "Jaque";
+        else if (chess.in_stalemate() || chess.in_draw()) st = "Tablas";
+        if (statusEl) statusEl.textContent = st;
+        if (msgEl && !animating) msgEl.textContent = chess.turn()==="w" ? "Tu turno · toca una carta" : "IA pensando…";
+      }
+      function aiMove(){
+        if (chess.game_over() || chess.turn()!=="b" || animating) return;
+        const moves = chess.moves({ verbose: true });
+        if (!moves.length) return;
+        const mv = moves[Math.floor(Math.random()*moves.length)];
+        setTimeout(() => {
+          animateMove(mv.from, mv.to, () => {
+            chess.move(mv);
+            placePieces(); // refresh in case of capture/promotion
+            updateHud();
+            checkEnd();
+          });
+        }, 600);
+      }
+      function checkEnd(){
+        if (chess.in_checkmate()) {
+          const win = chess.turn() === "b"; // black to move means white won
+          const msg = document.getElementById("chessMsg");
+          if (msg) msg.textContent = win ? "¡Jaque mate! +3 TGOLD" : "Jaque mate. Pierdes.";
+          if (win) {
+            try { grantTgold(3); addXp(60); } catch(e){}
+            try { refreshHome(); } catch(e){}
+            try { sfx("gol"); } catch(e){}
+          } else {
+            try { sfx("hit"); } catch(e){}
+          }
+        }
+      }
+      function onPointer(e){
+        if (!running || animating || chess.turn()!=="w" || chess.game_over()) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        const x = (e.clientX || (e.touches && e.touches[0].clientX) || 0);
+        const y = (e.clientY || (e.touches && e.touches[0].clientY) || 0);
+        mouse.x = ((x - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((y - rect.top) / rect.height) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(boardGroup.children, true);
+        if (!hits.length) return;
+        let obj = hits[0].object;
+        while (obj && !obj.userData.square && obj.parent) obj = obj.parent;
+        const sq = obj && obj.userData && obj.userData.square;
+        if (!sq) return;
+        if (selected) {
+          const legal = possible.find(m => m.to === sq);
+          if (legal) {
+            const from = selected;
+            animateMove(from, sq, () => {
+              chess.move({ from, to: sq, promotion: "q" });
+              placePieces();
+              selected = null;
+              possible = [];
+              clearHighlights();
+              updateHud();
+              checkEnd();
+              if (!chess.game_over()) aiMove();
+            });
+            return;
+          }
+        }
+        const piece = pieces[sq];
+        if (piece && piece.userData.color === "w") {
+          selected = sq;
+          possible = chess.moves({ square: sq, verbose: true });
+          highlightSquares(possible);
+          const msg = document.getElementById("chessMsg");
+          if (msg) msg.textContent = "Movimientos posibles resaltados";
+        } else {
+          selected = null;
+          possible = [];
+          clearHighlights();
+        }
+      }
+      function loop(){
+        if (!running) return;
+        requestAnimationFrame(loop);
+        if (controls) controls.update();
+        if (renderer && scene && camera) renderer.render(scene, camera);
+      }
+      function start(){
+        const cont = document.getElementById("chessContainer");
+        if (!cont || typeof THREE === "undefined" || typeof Chess === "undefined") {
+          const msg = document.getElementById("chessMsg");
+          if (msg) msg.textContent = "Cargando librerías 3D… recarga si no aparece";
+          return;
+        }
+        running = true;
+        chess = new Chess();
+        initScene(cont);
+        placePieces();
+        updateHud();
+        renderer.domElement.addEventListener("pointerdown", onPointer);
+        loop();
+        const btn = document.getElementById("chessNew");
+        if (btn) btn.onclick = () => { chess = new Chess(); placePieces(); selected=null; possible=[]; clearHighlights(); updateHud(); };
+      }
+      function stop(){
+        running = false;
+        if (renderer && renderer.domElement) {
+          try { renderer.domElement.removeEventListener("pointerdown", onPointer); } catch(e){}
+        }
+      }
+      return { start, stop };
+    })();
+
   </script>
 </body>
 </html>
