@@ -5980,7 +5980,7 @@
       if (!boardEl || boardEl.dataset.ready) return;
       boardEl.dataset.ready = "1";
       boardEl.innerHTML = "<div style=\"grid-column:1/-1;color:#ffe08a;display:flex;align-items:center;justify-content:center;font-size:14px\">Cargando piezas…</div>";
-      boardEl.style.cssText = "width:300px;height:300px;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);transform:rotateX(48deg);transform-style:preserve-3d;box-shadow:0 20px 40px #000;border:3px solid #d4af37;border-radius:6px;background:#111;";
+      boardEl.style.cssText = "width:280px;height:280px;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);border:4px solid #ff0000;background:#ffff00;position:relative;z-index:10;";
 
       const pieceCards = {
         wK:"capitan", wQ:"diez", wR:"samba", wB:"pibe", wN:"rayo", wP:"capitan",
@@ -6067,18 +6067,9 @@
         for(let i=0;i<64;i++){
           const cell = document.createElement("div");
           const light = ((i%8) + Math.floor(i/8)) % 2 === 0;
-          cell.style.cssText = "position:relative;background:"+(light?"#f0d060":"#3a2a10")+";border:1px solid #000;cursor:pointer;min-height:0;";
-          if (possible.includes(i)) cell.style.boxShadow = "inset 0 0 0 3px #7dff8a";
-          if (i===selected) cell.style.boxShadow = "inset 0 0 0 3px #ffe08a";
+          cell.style.cssText = "background:"+(light?"#00ff00":"#0000ff")+";border:1px solid #fff;display:flex;align-items:center;justify-content:center;color:#000;font-size:10px;font-weight:800;";
           const p = position[i];
-          if (p){
-            const img = document.createElement("img");
-            const id = pieceCards[p] || "capitan";
-            img.src = getHeroImg(id);
-            img.style.cssText = "width:88%;height:88%;object-fit:cover;position:absolute;left:6%;top:6%;border-radius:4px;border:1.5px solid #ffe08a;pointer-events:none;transform:translateZ(12px);box-shadow:0 4px 8px rgba(0,0,0,.5);";
-            img.onerror = function(){ this.style.display="none"; cell.textContent=p; cell.style.color="#ffe08a"; cell.style.fontWeight="800"; cell.style.display="flex"; cell.style.alignItems="center"; cell.style.justifyContent="center"; cell.style.fontSize="11px"; };
-            cell.appendChild(img);
-          }
+          if (p) cell.textContent = p;
           cell.onclick = () => onClick(i);
           boardEl.appendChild(cell);
         }
