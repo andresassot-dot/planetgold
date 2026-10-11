@@ -842,7 +842,7 @@
       </div>
       <p id="chessMsg" class="muted" style="margin:6px 0 0">Toca una carta para mover</p>
     </div>
-    <div id="chessContainer" style="flex:1;min-height:340px;position:relative;border:2px solid #d4af37;border-radius:14px;overflow:hidden;background:#070b16;margin:8px 0;"></div>
+    <div id="chessContainer" style="flex:1;min-height:340px;position:relative;border:2px solid #d4af37;border-radius:14px;overflow:hidden;background:#070b16;margin:8px 0;display:flex;align-items:center;justify-content:center;color:#ffe08a;font-size:14px;">Cargando tablero 3D…</div>
     <button type="button" class="main" id="chessNew" style="margin-top:4px">NUEVA PARTIDA</button>
     <div class="muted" style="text-align:center;margin-top:6px;font-size:12px">Gana el jaque mate para +3 TGOLD</div>
   </div>
@@ -3462,7 +3462,7 @@
       else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
-      if (name === "bonus") { try { if(window.chess3D) window.chess3D.start(); bgmStart("bonus"); sfx("menu"); } catch(e){ console.log(e); } }
+      if (name === "bonus") { try { setTimeout(function(){ if(window.chess3D) window.chess3D.start(); }, 120); bgmStart("bonus"); sfx("menu"); } catch(e){ console.log(e); } }
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walPend").textContent = p;
@@ -5596,7 +5596,7 @@
         const geo = new THREE.PlaneGeometry(0.85, 1.15);
         const mesh = new THREE.Mesh(geo, mat);
         mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = 0.6;
+        mesh.position.y = 0.75;
         mesh.userData = { type, color, hero: h };
         // small base
         const base = new THREE.Mesh(
@@ -5634,7 +5634,9 @@
         camera.position.set(0, 14, 16);
         camera.lookAt(0, 0, 0);
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
+        const cw = container.clientWidth || 360;
+        const ch = container.clientHeight || 340;
+        renderer.setSize(cw, ch);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
         renderer.shadowMap.enabled = true;
         container.innerHTML = "";
@@ -5838,22 +5840,70 @@
         if (controls) controls.update();
         if (renderer && scene && camera) renderer.render(scene, camera);
       }
-      function start(){
-        const cont = document.getElementById("chessContainer");
-        if (!cont || typeof THREE === "undefined" || typeof Chess === "undefined") {
-          const msg = document.getElementById("chessMsg");
-          if (msg) msg.textContent = "Cargando librerías 3D… recarga si no aparece";
+      function ensureLibs(cb){
+        if (typeof THREE !== "undefined" && typeof Chess !== "undefined" && typeof THREE.OrbitControls !== "undefined") {
+          cb();
           return;
         }
-        running = true;
-        chess = new Chess();
-        initScene(cont);
-        placePieces();
-        updateHud();
-        renderer.domElement.addEventListener("pointerdown", onPointer);
-        loop();
-        const btn = document.getElementById("chessNew");
-        if (btn) btn.onclick = () => { chess = new Chess(); placePieces(); selected=null; possible=[]; clearHighlights(); updateHud(); };
+        const msg = document.getElementById("chessMsg");
+        if (msg) msg.textContent = "Cargando motor 3D…";
+        let tries = 0;
+        const t = setInterval(() => {
+          tries++;
+          if (typeof THREE !== "undefined" && typeof Chess !== "undefined") {
+            clearInterval(t);
+            cb();
+          } else if (tries > 30) {
+            clearInterval(t);
+            if (msg) msg.textContent = "Error: no se pudieron cargar las librerías 3D. Revisa conexión.";
+          }
+        }, 200);
+      }
+      function start(){
+        const cont = document.getElementById("chessContainer");
+        if (!cont) return;
+        ensureLibs(() => {
+          // Esperar a que el contenedor tenga tamaño real
+          const tryInit = () => {
+            const w = cont.clientWidth || cont.offsetWidth;
+            const h = cont.clientHeight || cont.offsetHeight || 340;
+            if (w < 50) {
+              setTimeout(tryInit, 80);
+              return;
+            }
+            running = true;
+            chess = new Chess();
+            initScene(cont);
+            placePieces();
+            updateHud();
+            if (renderer && renderer.domElement) {
+              renderer.domElement.addEventListener("pointerdown", onPointer);
+              renderer.domElement.addEventListener("touchstart", onPointer, {passive:false});
+            }
+            loop();
+            const btn = document.getElementById("chessNew");
+            if (btn) btn.onclick = () => {
+              chess = new Chess();
+              placePieces();
+              selected = null;
+              possible = [];
+              clearHighlights();
+              updateHud();
+            };
+            // resize handler
+            const onResize = () => {
+              if (!renderer || !camera || !cont) return;
+              const ww = cont.clientWidth;
+              const hh = cont.clientHeight || 340;
+              camera.aspect = ww / hh;
+              camera.updateProjectionMatrix();
+              renderer.setSize(ww, hh);
+            };
+            window.addEventListener("resize", onResize);
+            setTimeout(onResize, 100);
+          };
+          tryInit();
+        });
       }
       function stop(){
         running = false;
