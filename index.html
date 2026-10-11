@@ -5,49 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Planet Gold — Disparo</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    // Carga dinámica más fiable para Telegram
-    window._chessLibs = { three:false, chess:false, controls:false };
-    function loadScript(src, key){
-      return new Promise((res, rej) => {
-        const s = document.createElement("script");
-        s.src = src;
-        s.onload = () => { window._chessLibs[key]=true; res(); };
-        s.onerror = () => rej(new Error(src));
-        document.head.appendChild(s);
-      });
-    }
-    (async function(){
-      const sources = {
-        three: [
-          "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
-          "https://unpkg.com/three@0.128.0/build/three.min.js",
-          "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"
-        ],
-        chess: [
-          "https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js",
-          "https://unpkg.com/chess.js@0.13.4/chess.min.js"
-        ]
-      };
-      for (const src of sources.three) {
-        try { await loadScript(src, "three"); break; } catch(e){}
-      }
-      for (const src of sources.chess) {
-        try { await loadScript(src, "chess"); break; } catch(e){}
-      }
-      // OrbitControls después de Three
-      if (window.THREE) {
-        const ctrlSrcs = [
-          "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js",
-          "https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"
-        ];
-        for (const src of ctrlSrcs) {
-          try { await loadScript(src, "controls"); break; } catch(e){}
-        }
-      }
-      window._chessLibsReady = true;
-    })();
-  </script>
+  
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; color: #fff; }
@@ -872,17 +830,19 @@
   </div>
 
   <div id="bonus">
-    <button type="button" class="backTop" id="bonusExit" onclick="event.preventDefault();try{bgmStop()}catch(e){};if(window.chess3D)window.chess3D.stop();showTab('home');return false;">← SALIR</button>
+    <button type="button" class="backTop" id="bonusExit" onclick="event.preventDefault();try{bgmStop()}catch(e){};showTab('home');return false;">← SALIR</button>
     <h1 style="color:#ffe08a;text-align:center;margin:0">AJEDREZ 3D</h1>
-    <p class="muted" style="text-align:center;margin:4px 0 8px">Tus cartas vs IA · rota el tablero con el dedo</p>
+    <p class="muted" style="text-align:center;margin:4px 0 8px">Tus cartas · toca para mover · rota la vista</p>
     <div class="heroBan" style="padding:10px;text-align:center">
       <div id="chessHud" style="display:flex;justify-content:space-between;font-weight:800;color:#ffe08a">
         <span>Turno: <b id="chessTurn">Blancas (tú)</b></span>
-        <span>Estado: <b id="chessStatus">Listo</b></span>
+        <span>Estado: <b id="chessStatus">Jugando</b></span>
       </div>
-      <p id="chessMsg" class="muted" style="margin:6px 0 0">Toca una carta para mover</p>
+      <p id="chessMsg" class="muted" style="margin:6px 0 0">Toca una carta blanca</p>
     </div>
-    <div id="chessContainer" style="flex:1;min-height:340px;position:relative;border:2px solid #d4af37;border-radius:14px;overflow:hidden;background:#070b16;margin:8px 0;display:flex;align-items:center;justify-content:center;color:#ffe08a;font-size:14px;">Cargando tablero 3D…</div>
+    <div id="chessStage" style="flex:1;min-height:360px;display:flex;align-items:center;justify-content:center;perspective:900px;overflow:hidden;margin:6px 0;">
+      <div id="chessBoard"></div>
+    </div>
     <button type="button" class="main" id="chessNew" style="margin-top:4px">NUEVA PARTIDA</button>
     <div class="muted" style="text-align:center;margin-top:6px;font-size:12px">Gana el jaque mate para +3 TGOLD</div>
   </div>
@@ -3502,7 +3462,7 @@
       else { try { bgmStop(); } catch(e) {} }
       if (name === "mine") { renderMine(); startMineLoop(); } else stopMineLoop();
       if (name === "cofre") renderCofre();
-      if (name === "bonus") { try { setTimeout(function(){ if(window.chess3D) window.chess3D.start(); }, 120); bgmStart("bonus"); sfx("menu"); } catch(e){ console.log(e); } }
+      if (name === "bonus") { try { setTimeout(function(){ if(window.initChessCSS) window.initChessCSS(); }, 80); bgmStart("bonus"); sfx("menu"); } catch(e){ console.log(e); } }
       if (name === "wallet") {
         const p = Number(localStorage.getItem("pg_pend")||0);
         document.getElementById("walPend").textContent = p;
@@ -6012,6 +5972,206 @@
       }
       return { start, stop };
     })();
+
+  
+    // ========== AJEDREZ CSS 3D (sin librerías externas) ==========
+    window.initChessCSS = function(){
+      const boardEl = document.getElementById("chessBoard");
+      if (!boardEl || boardEl.dataset.ready) return;
+      boardEl.dataset.ready = "1";
+      boardEl.style.cssText = "width:min(92vw,340px);height:min(92vw,340px);display:grid;grid-template-columns:repeat(8,1fr);transform:rotateX(52deg) rotateZ(-8deg);transform-style:preserve-3d;box-shadow:0 30px 50px rgba(0,0,0,.6);border:4px solid #d4af37;border-radius:8px;background:#0b1020;";
+
+      const pieceCards = {
+        wK:"capitan", wQ:"diez", wR:"samba", wB:"pibe", wN:"rayo", wP:"capitan",
+        bK:"capitan-holo", bQ:"diez-holo", bR:"samba-holo", bB:"pibe", bN:"rayo", bP:"samba"
+      };
+      // Simple starting position (FEN-like array, white at bottom)
+      let position = [
+        "bR","bN","bB","bQ","bK","bB","bN","bR",
+        "bP","bP","bP","bP","bP","bP","bP","bP",
+        "","","","","","","","",
+        "","","","","","","","",
+        "","","","","","","","",
+        "","","","","","","","",
+        "wP","wP","wP","wP","wP","wP","wP","wP",
+        "wR","wN","wB","wQ","wK","wB","wN","wR"
+      ];
+      let turn = "w";
+      let selected = -1;
+      let possible = [];
+
+      function sqName(i){ return "abcdefgh"[i%8] + (8-Math.floor(i/8)); }
+      function getHeroImg(id){
+        const h = (typeof HEROES!=="undefined" ? HEROES : []).find(x=>x.id===id);
+        return (h && h.img) ? h.img : ("cards/"+id+".jpg");
+      }
+      function isWhite(p){ return p && p[0]==="w"; }
+      function isBlack(p){ return p && p[0]==="b"; }
+
+      // Very basic legal moves (enough to play, not full chess engine)
+      function getMoves(from){
+        const p = position[from];
+        if (!p) return [];
+        const color = p[0];
+        const type = p[1];
+        const r = Math.floor(from/8), c = from%8;
+        const moves = [];
+        const add = (nr,nc) => {
+          if (nr<0||nr>7||nc<0||nc>7) return;
+          const to = nr*8+nc;
+          const target = position[to];
+          if (target && target[0]===color) return;
+          moves.push(to);
+        };
+        if (type==="P"){
+          const dir = color==="w" ? -1 : 1;
+          const startRank = color==="w" ? 6 : 1;
+          if (!position[r+dir*8+c] && r+dir>=0 && r+dir<8) {
+            add(r+dir, c);
+            if (r===startRank && !position[(r+dir*2)*8+c]) add(r+dir*2, c);
+          }
+          // captures
+          for (const dc of [-1,1]){
+            const nr=r+dir, nc=c+dc;
+            if (nr>=0&&nr<8&&nc>=0&&nc<8){
+              const t = position[nr*8+nc];
+              if (t && t[0]!==color) add(nr,nc);
+            }
+          }
+        } else if (type==="N"){
+          [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>add(r+dr,c+dc));
+        } else if (type==="K"){
+          for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) if(dr||dc) add(r+dr,c+dc);
+        } else {
+          // Rook / Bishop / Queen sliding
+          const dirs = [];
+          if (type==="R" || type==="Q") dirs.push([0,1],[0,-1],[1,0],[-1,0]);
+          if (type==="B" || type==="Q") dirs.push([1,1],[1,-1],[-1,1],[-1,-1]);
+          dirs.forEach(([dr,dc])=>{
+            for(let i=1;i<8;i++){
+              const nr=r+dr*i, nc=c+dc*i;
+              if(nr<0||nr>7||nc<0||nc>7) break;
+              const to=nr*8+nc;
+              const t=position[to];
+              if(!t) moves.push(to);
+              else { if(t[0]!==color) moves.push(to); break; }
+            }
+          });
+        }
+        return moves;
+      }
+
+      function render(){
+        boardEl.innerHTML = "";
+        for(let i=0;i<64;i++){
+          const cell = document.createElement("div");
+          const light = ((i%8) + Math.floor(i/8)) % 2 === 0;
+          cell.style.cssText = "position:relative;background:"+(light?"#e8c547":"#2a2110")+";border:1px solid rgba(0,0,0,.25);cursor:pointer;";
+          if (possible.includes(i)) cell.style.boxShadow = "inset 0 0 0 3px #7dff8a";
+          if (i===selected) cell.style.boxShadow = "inset 0 0 0 3px #ffe08a";
+          const p = position[i];
+          if (p){
+            const img = document.createElement("img");
+            const id = pieceCards[p] || "capitan";
+            img.src = getHeroImg(id);
+            img.style.cssText = "width:88%;height:88%;object-fit:cover;position:absolute;left:6%;top:6%;border-radius:4px;border:1.5px solid #ffe08a;pointer-events:none;transform:translateZ(12px);box-shadow:0 4px 8px rgba(0,0,0,.5);";
+            img.onerror = function(){ this.style.display="none"; cell.textContent=p; cell.style.color="#ffe08a"; cell.style.fontWeight="800"; cell.style.display="flex"; cell.style.alignItems="center"; cell.style.justifyContent="center"; cell.style.fontSize="11px"; };
+            cell.appendChild(img);
+          }
+          cell.onclick = () => onClick(i);
+          boardEl.appendChild(cell);
+        }
+        const turnEl = document.getElementById("chessTurn");
+        const statusEl = document.getElementById("chessStatus");
+        const msgEl = document.getElementById("chessMsg");
+        if (turnEl) turnEl.textContent = turn==="w" ? "Blancas (tú)" : "Negras (IA)";
+        if (statusEl) statusEl.textContent = "Jugando";
+        if (msgEl) msgEl.textContent = turn==="w" ? "Toca una carta blanca" : "IA moviendo…";
+      }
+
+      function onClick(i){
+        if (turn!=="w") return;
+        const p = position[i];
+        if (selected===-1){
+          if (isWhite(p)){
+            selected = i;
+            possible = getMoves(i);
+            render();
+          }
+          return;
+        }
+        if (possible.includes(i)){
+          // move
+          position[i] = position[selected];
+          position[selected] = "";
+          // simple promotion
+          if (position[i][1]==="P" && (Math.floor(i/8)===0 || Math.floor(i/8)===7)) position[i] = position[i][0]+"Q";
+          selected = -1;
+          possible = [];
+          turn = "b";
+          render();
+          setTimeout(aiTurn, 500);
+          return;
+        }
+        // reselect
+        if (isWhite(p)){
+          selected = i;
+          possible = getMoves(i);
+          render();
+        } else {
+          selected = -1;
+          possible = [];
+          render();
+        }
+      }
+
+      function aiTurn(){
+        if (turn!=="b") return;
+        // collect all black moves
+        let all = [];
+        for(let i=0;i<64;i++){
+          if (isBlack(position[i])){
+            getMoves(i).forEach(to => all.push({from:i, to}));
+          }
+        }
+        if (!all.length){
+          document.getElementById("chessMsg").textContent = "¡Has ganado! +3 TGOLD";
+          try{ grantTgold(3); addXp(50); refreshHome(); sfx("gol"); }catch(e){}
+          return;
+        }
+        const mv = all[Math.floor(Math.random()*all.length)];
+        position[mv.to] = position[mv.from];
+        position[mv.from] = "";
+        if (position[mv.to][1]==="P" && (Math.floor(mv.to/8)===0 || Math.floor(mv.to/8)===7)) position[mv.to] = "bQ";
+        turn = "w";
+        selected = -1;
+        possible = [];
+        render();
+      }
+
+      function newGame(){
+        position = [
+          "bR","bN","bB","bQ","bK","bB","bN","bR",
+          "bP","bP","bP","bP","bP","bP","bP","bP",
+          "","","","","","","","",
+          "","","","","","","","",
+          "","","","","","","","",
+          "","","","","","","","",
+          "wP","wP","wP","wP","wP","wP","wP","wP",
+          "wR","wN","wB","wQ","wK","wB","wN","wR"
+        ];
+        turn = "w";
+        selected = -1;
+        possible = [];
+        render();
+      }
+
+      const btn = document.getElementById("chessNew");
+      if (btn) btn.onclick = newGame;
+
+      // simple view rotation buttons optional
+      render();
+    };
 
   </script>
 </body>
