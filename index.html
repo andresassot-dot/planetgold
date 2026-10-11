@@ -5,9 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <title>Planet Gold — Disparo</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+  <script>
+    // Carga dinámica más fiable para Telegram
+    window._chessLibs = { three:false, chess:false, controls:false };
+    function loadScript(src, key){
+      return new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = () => { window._chessLibs[key]=true; res(); };
+        s.onerror = () => rej(new Error(src));
+        document.head.appendChild(s);
+      });
+    }
+    (async function(){
+      const sources = {
+        three: [
+          "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+          "https://unpkg.com/three@0.128.0/build/three.min.js",
+          "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"
+        ],
+        chess: [
+          "https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js",
+          "https://unpkg.com/chess.js@0.13.4/chess.min.js"
+        ]
+      };
+      for (const src of sources.three) {
+        try { await loadScript(src, "three"); break; } catch(e){}
+      }
+      for (const src of sources.chess) {
+        try { await loadScript(src, "chess"); break; } catch(e){}
+      }
+      // OrbitControls después de Three
+      if (window.THREE) {
+        const ctrlSrcs = [
+          "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js",
+          "https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"
+        ];
+        for (const src of ctrlSrcs) {
+          try { await loadScript(src, "controls"); break; } catch(e){}
+        }
+      }
+      window._chessLibsReady = true;
+    })();
+  </script>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #0b1020; font-family: system-ui, sans-serif; color: #fff; }
@@ -5569,6 +5609,54 @@
     try { openReto(); } catch(e) {}
     setInterval(function(){ try { paintKing(); } catch(e){} }, 1000);
 
+
+    // Fallback CSS 3D si Three.js no carga
+    window.chessCSSFallback = function(){
+      const cont = document.getElementById("chessContainer");
+      if (!cont) return;
+      cont.innerHTML = "";
+      cont.style.display = "flex";
+      cont.style.alignItems = "center";
+      cont.style.justifyContent = "center";
+      cont.style.perspective = "800px";
+      const board = document.createElement("div");
+      board.style.cssText = "width:280px;height:280px;display:grid;grid-template-columns:repeat(8,1fr);transform:rotateX(55deg) rotateZ(-5deg);box-shadow:0 20px 40px #000;border:3px solid #d4af37;border-radius:6px;";
+      const pieceMap = {
+        wK:"capitan", wQ:"diez", wR:"samba", wB:"pibe", wN:"rayo", wP:"capitan",
+        bK:"capitan-holo", bQ:"diez-holo", bR:"samba-holo", bB:"pibe", bN:"rayo", bP:"samba"
+      };
+      const start = [
+        "bR","bN","bB","bQ","bK","bB","bN","bR",
+        "bP","bP","bP","bP","bP","bP","bP","bP",
+        "","","","","","","","",
+        "","","","","","","","",
+        "","","","","","","","",
+        "","","","","","","","",
+        "wP","wP","wP","wP","wP","wP","wP","wP",
+        "wR","wN","wB","wQ","wK","wB","wN","wR"
+      ];
+      for (let i=0;i<64;i++){
+        const cell = document.createElement("div");
+        const light = ((i%8)+(Math.floor(i/8)))%2===0;
+        cell.style.cssText = "position:relative;background:"+(light?"#d4af37":"#1a1408")+";border:1px solid rgba(212,175,55,.3);";
+        const p = start[i];
+        if (p) {
+          const img = document.createElement("img");
+          const id = pieceMap[p] || "capitan";
+          img.src = "cards/" + id + ".jpg";
+          img.style.cssText = "width:90%;height:90%;object-fit:cover;position:absolute;left:5%;top:5%;border-radius:3px;border:1px solid #ffe08a;transform:translateZ(8px);";
+          img.onerror = () => { img.style.display="none"; cell.textContent = p; cell.style.color="#ffe08a"; cell.style.fontSize="10px"; cell.style.display="flex"; cell.style.alignItems="center"; cell.style.justifyContent="center"; };
+          cell.appendChild(img);
+        }
+        board.appendChild(cell);
+      }
+      cont.appendChild(board);
+      const msg = document.getElementById("chessMsg");
+      if (msg) msg.textContent = "Modo CSS 3D (sin WebGL). Las cartas se ven, pero no es jugable aún.";
+      const status = document.getElementById("chessStatus");
+      if (status) status.textContent = "CSS 3D";
+    };
+
     // ========== AJEDREZ 3D (solo zona Bonus) ==========
     window.chess3D = (function(){
       let scene, camera, renderer, controls, boardGroup, pieces = {}, squares = [];
@@ -5841,23 +5929,34 @@
         if (renderer && scene && camera) renderer.render(scene, camera);
       }
       function ensureLibs(cb){
-        if (typeof THREE !== "undefined" && typeof Chess !== "undefined" && typeof THREE.OrbitControls !== "undefined") {
+        const msg = document.getElementById("chessMsg");
+        const status = document.getElementById("chessStatus");
+        function report(){
+          const t = typeof THREE !== "undefined";
+          const c = typeof Chess !== "undefined";
+          const o = !!(window.THREE && THREE.OrbitControls);
+          if (msg) msg.textContent = "THREE:"+(t?"OK":"NO")+" · Chess:"+(c?"OK":"NO")+" · Controls:"+(o?"OK":"NO");
+          if (status) status.textContent = (t&&c) ? "Listo" : "Cargando…";
+        }
+        report();
+        if (typeof THREE !== "undefined" && typeof Chess !== "undefined") {
           cb();
           return;
         }
-        const msg = document.getElementById("chessMsg");
-        if (msg) msg.textContent = "Cargando motor 3D…";
         let tries = 0;
-        const t = setInterval(() => {
+        const tmr = setInterval(() => {
           tries++;
+          report();
           if (typeof THREE !== "undefined" && typeof Chess !== "undefined") {
-            clearInterval(t);
+            clearInterval(tmr);
             cb();
-          } else if (tries > 30) {
-            clearInterval(t);
-            if (msg) msg.textContent = "Error: no se pudieron cargar las librerías 3D. Revisa conexión.";
+          } else if (tries > 40) {
+            clearInterval(tmr);
+            if (msg) msg.textContent = "No cargaron las librerías. Usando modo CSS 3D.";
+            // Fallback CSS 3D
+            if (window.chessCSSFallback) window.chessCSSFallback();
           }
-        }, 200);
+        }, 150);
       }
       function start(){
         const cont = document.getElementById("chessContainer");
